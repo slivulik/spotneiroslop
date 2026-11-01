@@ -88,3 +88,77 @@ export const WaveLogo = (p: IconProps) => (
     />
   </Icon>
 );
+
+const stroke = { fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
+
+export const SearchIcon = (p: IconProps) => (
+  <Icon {...p} {...stroke}>
+    <circle cx="11" cy="11" r="6.5" />
+    <path d="m16 16 4.5 4.5" />
+  </Icon>
+);
+export const ShieldIcon = (p: IconProps) => (
+  <Icon {...p} {...stroke}>
+    <path d="M12 3 5 6v5.5c0 4.4 3 8 7 9.5 4-1.5 7-5.1 7-9.5V6l-7-3Z" />
+    <path d="m9 12 2 2 4-4" />
+  </Icon>
+);
+export const CompassIcon = (p: IconProps) => (
+  <Icon {...p} {...stroke}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="m15.5 8.5-2 5-5 2 2-5 5-2Z" />
+  </Icon>
+);
+export const ChevronRightIcon = (p: IconProps) => (
+  <Icon {...p} {...stroke} strokeWidth={2.4}>
+    <path d="m9 6 6 6-6 6" />
+  </Icon>
+);
+export const ChevronLeftIcon = (p: IconProps) => (
+  <Icon {...p} {...stroke} strokeWidth={2.4}>
+    <path d="m15 6-6 6 6 6" />
+  </Icon>
+);
+export const SparkIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M12 2.5c.5 4.3 2.2 6.9 7 7.5-4.8.6-6.5 3.2-7 7.5-.5-4.3-2.2-6.9-7-7.5 4.8-.6 6.5-3.2 7-7.5Z" />
+    <path d="M19 15.5c.2 1.8 1 2.9 3 3.1-2 .3-2.8 1.4-3 3.2-.2-1.8-1-2.9-3-3.2 2-.2 2.8-1.3 3-3.1Z" opacity=".7" />
+  </Icon>
+);
+export const FlameIcon = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M12.6 2.5c.4 3.1 3 4.6 4.6 6.9 1.4 2 1.8 4 1.2 6.1-.9 3.3-3.8 5.5-6.9 5.5-3.6 0-6.5-2.8-6.5-6.4 0-2.4 1.2-4.3 2.8-5.9.2 1.7 1 2.9 2.2 3.4-.4-3.7 1-7.3 2.6-9.6Z" />
+  </Icon>
+);
+export const DiscIcon = (p: IconProps) => (
+  <Icon {...p} {...stroke}>
+    <circle cx="12" cy="12" r="9" />
+    <circle cx="12" cy="12" r="2.5" />
+  </Icon>
+);
+export const MicIcon = (p: IconProps) => (
+  <Icon {...p} {...stroke}>
+    <rect x="9" y="3" width="6" height="11" rx="3" />
+    <path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21" />
+  </Icon>
+);
+export const ListIcon = (p: IconProps) => (
+  <Icon {...p} {...stroke}>
+    <path d="M8 6h12M8 12h12M8 18h8M4 6h.01M4 12h.01M4 18h.01" />
+  </Icon>
+);
+export const LyricsIcon = (p: IconProps) => (
+  <Icon {...p} {...stroke}>
+    <path d="M4 5h16M4 10h11M4 15h16M4 20h8" />
+  </Icon>
+);
+export const CloseIcon = (p: IconProps) => (
+  <Icon {...p} {...stroke}>
+    <path d="m6 6 12 12M18 6 6 18" />
+  </Icon>
+);
+export const PlusIcon = (p: IconProps) => (
+  <Icon {...p} {...stroke}>
+    <path d="M12 5v14M5 12h14" />
+  </Icon>
+);

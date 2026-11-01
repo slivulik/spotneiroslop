@@ -60,3 +60,67 @@ export function useArtistReleases(id: string) {
       ),
   });
 }
+
+export function useHome() {
+  const viewer = useViewerKey();
+  return useQuery({
+    queryKey: ["home", viewer],
+    enabled: viewer !== "unknown",
+    queryFn: () => unwrap<S["HomeOut"]>(api.GET("/v1/home")),
+  });
+}
+
+export function useSearch(q: string) {
+  const viewer = useViewerKey();
+  return useQuery({
+    queryKey: ["search", q, viewer],
+    enabled: q.length > 0 && viewer !== "unknown",
+    staleTime: 30_000,
+    placeholderData: (prev) => prev,
+    queryFn: () => unwrap<S["SearchOut"]>(api.GET("/v1/search", { params: { query: { q, limit: 12 } } })),
+  });
+}
+
+export function usePlatform() {
+  return useQuery({
+    queryKey: ["platform"],
+    staleTime: 60_000,
+    queryFn: () => unwrap<S["PlatformPublic"]>(api.GET("/v1/platform")),
+  });
+}
+
+export function usePlaylist(id: string) {
+  const viewer = useViewerKey();
+  return useQuery({
+    queryKey: ["playlist", id, viewer],
+    enabled: viewer !== "unknown",
+    queryFn: () => unwrap<S["PlaylistOut"]>(api.GET("/v1/playlists/{playlist_id}", { params: { path: { playlist_id: id } } })),
+  });
+}
+
+export function useGenre(slug: string) {
+  const viewer = useViewerKey();
+  return useQuery({
+    queryKey: ["genre", slug, viewer],
+    enabled: viewer !== "unknown",
+    queryFn: () => unwrap<S["GenreDetail"]>(api.GET("/v1/genres/{slug}", { params: { path: { slug } } })),
+  });
+}
+
+export function useGenres() {
+  return useQuery({
+    queryKey: ["genres"],
+    queryFn: () => unwrap<S["GenreList"]>(api.GET("/v1/genres")),
+  });
+}
+
+export function useLyrics(trackId: string | null, enabled: boolean) {
+  return useQuery({
+    queryKey: ["lyrics", trackId],
+    enabled: Boolean(trackId) && enabled,
+    retry: false,
+    staleTime: 10 * 60_000,
+    queryFn: () =>
+      unwrap<S["LyricsOut"]>(api.GET("/v1/tracks/{track_id}/lyrics", { params: { path: { track_id: trackId! } } })),
+  });
+}

@@ -20,6 +20,7 @@ import {
   setShuffle,
   upcoming,
 } from "@/player/queue";
+import { listening } from "@/player/events";
 import { readResumePosition, type RequestedQuality, saveResumePosition, usePlayer } from "@/player/store";
 
 const PREFETCH_BEFORE_END_MS = 20_000;
@@ -28,6 +29,8 @@ const SAVE_EVERY_MS = 5_000;
 let engine: PlayerEngine | null = null;
 let lastSave = 0;
 let prefetchedFor: string | null = null;
+/** Track for which `play_start` was reported in the current load. */
+let startedFor: string | null = null;
 
 function state() {
   return usePlayer.getState();
@@ -49,9 +52,22 @@ function gainFor(stream: StreamOut): number {
 function getEngine(): PlayerEngine {
   if (engine) return engine;
   engine = new PlayerEngine({
-    onEvent: (event) => state().dispatch(event),
+    onEvent: (event) => {
+      const before = state().status;
+      state().dispatch(event);
+      const s = state();
+      const track = s.queue ? current(s.queue) : null;
+      if (event.type === "PLAYING" && track && startedFor !== track.id) {
+        startedFor = track.id;
+        listening.start(track.id, s.context);
+      }
+      if (event.type === "PAUSE" || event.type === "WAITING" || (before !== "playing" && event.type === "PLAYING")) {
+        listening.gap();
+      }
+    },
     onProgress: (positionMs, durationMs, bufferedMs) => {
       state().patch({ positionMs, durationMs, bufferedMs });
+      if (state().status === "playing") listening.progress(positionMs);
       const track = current(state().queue ?? { items: [], order: [], cursor: 0, shuffle: false, repeat: "off" });
       if (!track) return;
       const now = Date.now();
@@ -67,7 +83,11 @@ function getEngine(): PlayerEngine {
       }
       updatePositionState(positionMs, durationMs);
     },
-    onEnded: () => advance(false),
+    onEnded: () => {
+      listening.end();
+      startedFor = null;
+      advance(false);
+    },
     onError: (message) => {
       state().patch({ error: message });
       state().dispatch({ type: "ERROR" });
@@ -85,6 +105,8 @@ async function loadCurrent(autoplay: boolean, startAtMs = 0): Promise<void> {
   const track = s.queue ? current(s.queue) : null;
   if (!track) return;
   prefetchedFor = null;
+  listening.end();
+  startedFor = null;
   s.patch({ positionMs: startAtMs, durationMs: track.durationMs, bufferedMs: 0, error: null });
   updateMediaMetadata(track);
   await getEngine().load(track.id, { autoplay, startAtMs, quality: s.quality, gain: gainFor });
@@ -145,6 +167,7 @@ export const player = {
   },
 
   seek(ms: number): void {
+    listening.gap();
     state().patch({ positionMs: ms });
     getEngine().seek(ms);
   },
@@ -180,6 +203,15 @@ export const player = {
     if (!s.queue || cursor < 0 || cursor >= s.queue.order.length) return;
     s.patch({ queue: { ...s.queue, cursor } });
     void loadCurrent(true);
+  },
+
+  levels(): { energy: number; bass: number } | null {
+    return engine?.levels() ?? null;
+  },
+
+  isPlaying(): boolean {
+    const status = state().status;
+    return status === "playing" || status === "buffering";
   },
 
   setNowPlaying(open: boolean): void {

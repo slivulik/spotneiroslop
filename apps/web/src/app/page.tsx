@@ -1,10 +1,20 @@
 "use client";
 
-import Link from "next/link";
-import { PageError, Skeleton } from "@/components/Page";
-import { ReleaseCard, ReleaseGrid } from "@/components/ReleaseCard";
-import { useNewReleases } from "@/lib/queries";
+import type { components } from "@sonora/api-schema";
+import { motion } from "motion/react";
+import { useSyncExternalStore } from "react";
+import { HeroCarousel, HomeBlockView, PromoBanner } from "@/components/home/Blocks";
+import { PageError } from "@/components/Page";
+import { useHome } from "@/lib/queries";
 import { useSession } from "@/lib/session";
+
+type Block = components["schemas"]["HomeBlock"];
+
+const noop = () => () => {};
+/** Server render says a neutral hello; the browser swaps in its own local time of day after hydration. */
+function useGreeting(): string {
+  return useSyncExternalStore(noop, greeting, () => "Привет");
+}
 
 function greeting(): string {
   const hour = new Date().getHours();
@@ -14,64 +24,69 @@ function greeting(): string {
   return "Добрый вечер";
 }
 
+function HomeSkeleton() {
+  return (
+    <div className="flex flex-col gap-10">
+      <div className="skeleton h-56 rounded-[32px]" />
+      {[0, 1].map((row) => (
+        <div key={row} className="flex flex-col gap-3">
+          <div className="skeleton h-8 w-60 rounded-xl" />
+          <div className="flex gap-4 overflow-hidden">
+            {Array.from({ length: 7 }, (_, i) => <div key={i} className="skeleton aspect-square w-48 shrink-0 rounded-3xl" />)}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Hero blocks are shown together as one carousel, where the first of them stands. */
+function arrange(sections: Block[]): (Block | Block[])[] {
+  const heroes = sections.filter((s) => s.type === "hero" && s.hero);
+  const out: (Block | Block[])[] = [];
+  let placed = false;
+  for (const s of sections) {
+    if (s.type === "hero") {
+      if (!placed && heroes.length) out.push(heroes);
+      placed = true;
+    } else out.push(s);
+  }
+  return out;
+}
+
 export default function HomePage() {
   const { status, user } = useSession();
-  const releases = useNewReleases();
-  const items = releases.data?.pages.flatMap((p) => p.items) ?? [];
+  const hello = useGreeting();
+  const home = useHome();
+  const sections = home.data?.sections ?? [];
+  const arranged = arrange(sections);
+  const hasHero = sections.some((s) => s.type === "hero");
+  const promo = sections.find((s) => s.type === "releases" && (s.releases?.length ?? 0) > 1)?.releases ?? [];
 
   return (
-    <div className="relative">
-      <div
-        className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[420px]"
-        style={{
-          background:
-            "radial-gradient(60% 80% at 15% 0%, color-mix(in srgb, var(--sonora-color-wave-a) 35%, transparent), transparent), radial-gradient(50% 70% at 85% 10%, color-mix(in srgb, var(--sonora-color-wave-b) 25%, transparent), transparent)",
-        }}
-      />
-      <div className="mx-auto max-w-[1600px] px-4 pt-10 md:px-8">
-        <h1 className="font-display text-display-l md:text-display-xl">
-          {greeting()}
-          {status === "authenticated" && user ? `, ${user.display_name}` : ""}
-        </h1>
-        {status === "anonymous" ? (
-          <p className="mt-3 max-w-xl text-body-l text-text-secondary">
-            Музыка до Hi-Res Lossless. <Link href="/register" className="text-text-primary underline underline-offset-4">Создайте аккаунт</Link>, чтобы слушать треки целиком.
-          </p>
-        ) : null}
+    <div className="mx-auto flex max-w-[1680px] flex-col gap-12 px-4 pt-4 md:px-8">
+      <motion.h1
+        initial={{ opacity: 0, y: 18, filter: "blur(10px)" }}
+        animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+        transition={{ type: "spring", stiffness: 160, damping: 22 }}
+        className="font-display text-display-l leading-none md:text-display-xl"
+      >
+        <span className="text-gradient">{hello}</span>
+        {status === "authenticated" && user ? <span className="text-text-primary/90">, {user.display_name}</span> : null}
+      </motion.h1>
 
-        <section className="mt-12">
-          <h2 className="mb-4 px-2 font-display text-title-2">Новые релизы</h2>
-          {releases.isError ? <PageError message="Не удалось загрузить релизы" /> : null}
-          <ReleaseGrid>
-            {releases.isPending
-              ? Array.from({ length: 10 }, (_, i) => (
-                  <div key={i} className="flex flex-col gap-3 p-2">
-                    <Skeleton className="aspect-square w-full" />
-                    <Skeleton className="h-4 w-3/4" />
-                    <Skeleton className="h-3 w-1/2" />
-                  </div>
-                ))
-              : items.map((release, i) => <ReleaseCard key={release.id} release={release} priority={i < 6} />)}
-          </ReleaseGrid>
-          {!releases.isPending && !releases.isError && items.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-border-default px-6 py-16 text-center text-text-secondary">
-              Здесь пока пусто. Загрузите музыку через <code className="text-text-primary">sonora-upload</code> — она появится после обработки.
-            </div>
-          ) : null}
-          {releases.hasNextPage ? (
-            <div className="mt-6 flex justify-center">
-              <button
-                type="button"
-                onClick={() => void releases.fetchNextPage()}
-                disabled={releases.isFetchingNextPage}
-                className="rounded-full border border-border-default px-5 py-2 text-caption font-semibold hover:border-border-strong"
-              >
-                {releases.isFetchingNextPage ? "Загрузка…" : "Показать ещё"}
-              </button>
-            </div>
-          ) : null}
-        </section>
-      </div>
+      {home.isPending ? <HomeSkeleton /> : null}
+      {home.isError ? <PageError message="Не удалось загрузить главную" /> : null}
+      {!hasHero && promo.length > 1 ? <PromoBanner releases={promo} /> : null}
+      {arranged.map((item, i) =>
+        Array.isArray(item) ? <HeroCarousel key="hero" blocks={item} /> : <HomeBlockView key={item.id} block={item} index={i} />,
+      )}
+      {home.data && sections.length === 0 ? (
+        <div className="liquid rounded-[32px] px-6 py-20 text-center">
+          <div className="font-display text-title-1">Здесь скоро будет музыка</div>
+          <p className="mt-2 text-body-l text-text-secondary">Загрузите релизы в панели управления — главная заполнится сама.</p>
+        </div>
+      ) : null}
     </div>
   );
 }

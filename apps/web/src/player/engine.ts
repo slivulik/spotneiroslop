@@ -55,6 +55,8 @@ export class PlayerEngine {
   private hls: Hls | null = null;
   private context: AudioContext | null = null;
   private gainNode: GainNode | null = null;
+  private analyser: AnalyserNode | null = null;
+  private spectrum: Uint8Array<ArrayBuffer> | null = null;
   private generation = 0;
   private current: { trackId: string; opts: LoadOptions; stream: StreamOut } | null = null;
   private readonly cache = new Map<string, { stream: StreamOut; at: number }>();
@@ -196,7 +198,12 @@ export class PlayerEngine {
       this.context = new AudioContext();
       const source = this.context.createMediaElementSource(this.audio);
       this.gainNode = this.context.createGain();
-      source.connect(this.gainNode).connect(this.context.destination);
+      // source → normalisation gain → analyser (visuals) → output
+      this.analyser = this.context.createAnalyser();
+      this.analyser.fftSize = 1024;
+      this.analyser.smoothingTimeConstant = 0.78;
+      this.spectrum = new Uint8Array(this.analyser.frequencyBinCount);
+      source.connect(this.gainNode).connect(this.analyser).connect(this.context.destination);
     } catch {
       // Without Web Audio we still play; only loudness normalisation is lost.
       this.context = null;
@@ -207,6 +214,23 @@ export class PlayerEngine {
   private applyGain(linear: number): void {
     if (!this.gainNode || !this.context) return;
     this.gainNode.gain.setTargetAtTime(linear, this.context.currentTime, 0.05);
+  }
+
+  /** Loudness snapshot for visuals: overall energy and bass (0..1); null without Web Audio. */
+  levels(): { energy: number; bass: number } | null {
+    if (!this.analyser || !this.spectrum || this.audio.paused) return null;
+    this.analyser.getByteFrequencyData(this.spectrum);
+    const bins = this.spectrum;
+    let bass = 0;
+    let all = 0;
+    const bassBins = 10; // ≈ 0–430 Hz at 44.1 kHz with fftSize 1024
+    const used = Math.min(bins.length, 180); // up to ≈ 7.7 kHz: where the music lives
+    for (let i = 1; i < used; i++) {
+      const v = bins[i]! / 255;
+      all += v;
+      if (i <= bassBins) bass += v;
+    }
+    return { energy: all / (used - 1), bass: bass / bassBins };
   }
 
   async play(): Promise<void> {

@@ -1,7 +1,9 @@
 "use client";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { registerNavigator } from "@/lib/navigation";
 import { refreshSession } from "@/lib/session";
 import { handlePlayerHotkey } from "@/player/controller";
 
@@ -14,6 +16,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
         },
       }),
   );
+
+  const router = useRouter();
+  useEffect(() => registerNavigator((href) => router.push(href)), [router]);
 
   useEffect(() => {
     // Restore the session from the httpOnly refresh cookie (no-op for guests).

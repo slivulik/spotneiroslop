@@ -15,7 +15,7 @@ export interface QueueTrack {
 }
 
 export interface PlayContext {
-  type: "release" | "artist" | "tracks";
+  type: "release" | "artist" | "tracks" | "playlist" | "genre" | "home";
   id: string | null;
   title: string;
 }

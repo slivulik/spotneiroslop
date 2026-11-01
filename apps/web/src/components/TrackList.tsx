@@ -50,7 +50,7 @@ export function TrackList({ tracks, context, variant = "album" }: TrackListProps
   };
 
   return (
-    <ol className="flex flex-col">
+    <ol className="liquid flex flex-col rounded-[28px] p-2">
       {tracks.map((track, index) => {
         const isCurrent = currentTrack?.id === track.id;
         const showDisc = multiDisc && (index === 0 || tracks[index - 1]?.disc_number !== track.disc_number);
@@ -63,7 +63,7 @@ export function TrackList({ tracks, context, variant = "album" }: TrackListProps
               onClick={() => start(track)}
               onKeyDown={(e) => e.key === "Enter" && start(track)}
               aria-disabled={!track.playable && authenticated}
-              className={`group grid grid-cols-[32px_1fr_auto] items-center gap-4 rounded-md px-4 py-2.5 transition-colors hover:bg-white/6 ${
+              className={`group grid grid-cols-[32px_1fr_auto] items-center gap-4 rounded-2xl px-4 py-2.5 transition-colors hover:bg-white/8 ${
                 !track.playable && authenticated ? "opacity-40" : "cursor-pointer"
               }`}
             >
