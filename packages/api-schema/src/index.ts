@@ -12,6 +12,8 @@ export type ArtistOut = Schemas["ArtistOut"];
 export type Artwork = Schemas["Artwork"];
 export type UserSettings = Schemas["UserSettings"];
 export type ErrorDetail = Schemas["ErrorDetail"];
+export type StreamOut = Schemas["StreamOut"];
+export type ReleaseSummary = Schemas["ReleaseSummary"];
 
 export type SonoraClient = Client<paths>;
 

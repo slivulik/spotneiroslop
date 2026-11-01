@@ -120,8 +120,8 @@ if [[ "${SONORA_SKIP_BUILD:-0}" == "1" ]]; then
   log "Skipping build (SONORA_SKIP_BUILD=1): using existing sonora-api:latest"
   up_flags=(--no-build)
 else
-  log "Building images (API, media worker)"
-  "${COMPOSE[@]}" build api-migrate media-worker
+  log "Building images (API, media worker, web)"
+  "${COMPOSE[@]}" build api-migrate media-worker web
   up_flags=()
 fi
 log "Starting stack"

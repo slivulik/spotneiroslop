@@ -1,0 +1,264 @@
+"use client";
+
+/**
+ * Glue between the queue/state store and the engine. UI components call `player.*`; the engine
+ * reports back through callbacks that update the store. Also owns Media Session integration,
+ * resume-position persistence and next-track prefetching.
+ */
+import type { StreamOut } from "@sonora/api-schema";
+import { artworkUrl } from "@/lib/artwork";
+import { PlayerEngine } from "@/player/engine";
+import { normalizationGain } from "@/player/gain";
+import {
+  createQueue,
+  current,
+  cycleRepeat,
+  nextCursor,
+  type PlayContext,
+  prevAction,
+  type QueueTrack,
+  setShuffle,
+  upcoming,
+} from "@/player/queue";
+import { readResumePosition, type RequestedQuality, saveResumePosition, usePlayer } from "@/player/store";
+
+const PREFETCH_BEFORE_END_MS = 20_000;
+const SAVE_EVERY_MS = 5_000;
+
+let engine: PlayerEngine | null = null;
+let lastSave = 0;
+let prefetchedFor: string | null = null;
+
+function state() {
+  return usePlayer.getState();
+}
+
+function playingWholeAlbum(): boolean {
+  const s = state();
+  return s.context?.type === "release" && !s.queue?.shuffle;
+}
+
+function gainFor(stream: StreamOut): number {
+  return normalizationGain(
+    state().normalization,
+    { track: stream.track_gain ?? null, album: stream.album_gain ?? null },
+    playingWholeAlbum(),
+  );
+}
+
+function getEngine(): PlayerEngine {
+  if (engine) return engine;
+  engine = new PlayerEngine({
+    onEvent: (event) => state().dispatch(event),
+    onProgress: (positionMs, durationMs, bufferedMs) => {
+      state().patch({ positionMs, durationMs, bufferedMs });
+      const track = current(state().queue ?? { items: [], order: [], cursor: 0, shuffle: false, repeat: "off" });
+      if (!track) return;
+      const now = Date.now();
+      if (now - lastSave > SAVE_EVERY_MS) {
+        lastSave = now;
+        saveResumePosition(track.id, positionMs);
+      }
+      if (durationMs - positionMs < PREFETCH_BEFORE_END_MS && prefetchedFor !== track.id) {
+        prefetchedFor = track.id;
+        const queue = state().queue;
+        const next = queue ? upcoming(queue, 1)[0] : undefined;
+        if (next) getEngine().prefetch(next.id, state().quality);
+      }
+      updatePositionState(positionMs, durationMs);
+    },
+    onEnded: () => advance(false),
+    onError: (message) => {
+      state().patch({ error: message });
+      state().dispatch({ type: "ERROR" });
+    },
+    onStream: (stream) => state().patch({ activeQuality: stream.quality, durationMs: stream.duration_ms }),
+  });
+  const s = state();
+  engine.setVolume(s.volume, s.muted);
+  installMediaSession();
+  return engine;
+}
+
+async function loadCurrent(autoplay: boolean, startAtMs = 0): Promise<void> {
+  const s = state();
+  const track = s.queue ? current(s.queue) : null;
+  if (!track) return;
+  prefetchedFor = null;
+  s.patch({ positionMs: startAtMs, durationMs: track.durationMs, bufferedMs: 0, error: null });
+  updateMediaMetadata(track);
+  await getEngine().load(track.id, { autoplay, startAtMs, quality: s.quality, gain: gainFor });
+}
+
+function advance(manual: boolean): void {
+  const s = state();
+  if (!s.queue) return;
+  const cursor = nextCursor(s.queue, manual);
+  if (cursor === null) {
+    s.patch({ positionMs: 0 });
+    return;
+  }
+  s.patch({ queue: { ...s.queue, cursor } });
+  void loadCurrent(true);
+}
+
+export const player = {
+  playTracks(tracks: QueueTrack[], start: number, context: PlayContext, options: { shuffle?: boolean } = {}): void {
+    if (!tracks.length) return;
+    const s = state();
+    const shuffle = options.shuffle ?? false;
+    const queue = createQueue(tracks, start, shuffle, s.queue?.repeat ?? "off");
+    s.patch({ queue, context });
+    void loadCurrent(true);
+  },
+
+  /** Play/pause; after a reload the restored queue starts where it was left. */
+  toggle(): void {
+    const s = state();
+    const e = getEngine();
+    if (!e.hasSource) {
+      const track = s.queue ? current(s.queue) : null;
+      if (track) void loadCurrent(true, readResumePosition(track.id));
+      return;
+    }
+    if (s.status === "playing" || s.status === "buffering") e.pause();
+    else if (s.status === "ended") {
+      e.seek(0);
+      void e.play();
+    } else void e.play();
+  },
+
+  next(): void {
+    advance(true);
+  },
+
+  prev(): void {
+    const s = state();
+    if (!s.queue) return;
+    const action = prevAction(s.queue, s.positionMs);
+    if (action.kind === "restart") {
+      getEngine().seek(0);
+      return;
+    }
+    s.patch({ queue: { ...s.queue, cursor: action.cursor } });
+    void loadCurrent(true);
+  },
+
+  seek(ms: number): void {
+    state().patch({ positionMs: ms });
+    getEngine().seek(ms);
+  },
+
+  setVolume(volume: number): void {
+    state().patch({ volume, muted: volume === 0 ? state().muted : false });
+    getEngine().setVolume(volume, state().muted);
+  },
+
+  toggleMute(): void {
+    state().patch({ muted: !state().muted });
+    getEngine().setVolume(state().volume, state().muted);
+  },
+
+  setQuality(quality: RequestedQuality): void {
+    const s = state();
+    s.patch({ quality });
+    if (getEngine().hasSource) void loadCurrent(s.status === "playing" || s.status === "buffering", s.positionMs);
+  },
+
+  toggleShuffle(): void {
+    const s = state();
+    if (s.queue) s.patch({ queue: setShuffle(s.queue, !s.queue.shuffle) });
+  },
+
+  cycleRepeat(): void {
+    const s = state();
+    if (s.queue) s.patch({ queue: { ...s.queue, repeat: cycleRepeat(s.queue.repeat) } });
+  },
+
+  playAt(cursor: number): void {
+    const s = state();
+    if (!s.queue || cursor < 0 || cursor >= s.queue.order.length) return;
+    s.patch({ queue: { ...s.queue, cursor } });
+    void loadCurrent(true);
+  },
+
+  setNowPlaying(open: boolean): void {
+    state().patch({ nowPlayingOpen: open });
+  },
+};
+
+// ---------------------------------------------------------------------------
+// Media Session (lock screen, hardware keys, OS media overlay)
+// ---------------------------------------------------------------------------
+
+function installMediaSession(): void {
+  if (typeof navigator === "undefined" || !("mediaSession" in navigator)) return;
+  const ms = navigator.mediaSession;
+  const handlers: [MediaSessionAction, MediaSessionActionHandler][] = [
+    ["play", () => player.toggle()],
+    ["pause", () => player.toggle()],
+    ["nexttrack", () => player.next()],
+    ["previoustrack", () => player.prev()],
+    ["seekto", (d) => d.seekTime !== undefined && player.seek(d.seekTime * 1000)],
+    ["seekforward", (d) => player.seek(state().positionMs + (d.seekOffset ?? 10) * 1000)],
+    ["seekbackward", (d) => player.seek(state().positionMs - (d.seekOffset ?? 10) * 1000)],
+  ];
+  for (const [action, handler] of handlers) {
+    try {
+      ms.setActionHandler(action, handler);
+    } catch {
+      // Unsupported action on this platform.
+    }
+  }
+}
+
+function updateMediaMetadata(track: QueueTrack): void {
+  if (typeof navigator === "undefined" || !("mediaSession" in navigator)) return;
+  const art = track.release.artwork;
+  navigator.mediaSession.metadata = new MediaMetadata({
+    title: track.version ? `${track.title} (${track.version})` : track.title,
+    artist: track.artists.map((a) => a.name).join(", "),
+    album: track.release.title,
+    artwork: art
+      ? [160, 300, 640].map((size) => ({ src: artworkUrl(art, size, "jpg"), sizes: `${size}x${size}`, type: "image/jpeg" }))
+      : [],
+  });
+}
+
+function updatePositionState(positionMs: number, durationMs: number): void {
+  if (typeof navigator === "undefined" || !("mediaSession" in navigator) || durationMs <= 0) return;
+  try {
+    navigator.mediaSession.setPositionState({
+      duration: durationMs / 1000,
+      position: Math.min(positionMs, durationMs) / 1000,
+      playbackRate: 1,
+    });
+  } catch {
+    // Some browsers reject transient inconsistent values during seeks.
+  }
+}
+
+/** Space toggles, ←/→ seek 5 s, Shift+←/→ previous/next, M mutes. */
+export function handlePlayerHotkey(event: KeyboardEvent): boolean {
+  const target = event.target as HTMLElement | null;
+  if (target && (target.isContentEditable || ["INPUT", "TEXTAREA", "SELECT"].includes(target.tagName))) return false;
+  if (!state().queue) return false;
+  switch (event.code) {
+    case "Space":
+      player.toggle();
+      return true;
+    case "ArrowRight":
+      if (event.shiftKey) player.next();
+      else player.seek(state().positionMs + 5000);
+      return true;
+    case "ArrowLeft":
+      if (event.shiftKey) player.prev();
+      else player.seek(Math.max(0, state().positionMs - 5000));
+      return true;
+    case "KeyM":
+      player.toggleMute();
+      return true;
+    default:
+      return false;
+  }
+}

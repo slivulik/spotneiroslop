@@ -33,3 +33,7 @@ local.properties
 .DS_Store
 .idea/
 .vscode/
+
+# local artefacts
+screenshots/
+next-env.d.ts

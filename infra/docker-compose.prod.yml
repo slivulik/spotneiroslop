@@ -147,6 +147,19 @@ services:
       resources:
         limits: { memory: 1536m }
 
+  web:
+    <<: *restart
+    build:
+      context: ..
+      dockerfile: apps/web/Dockerfile
+    image: sonora-web:latest
+    environment:
+      SONORA_API_INTERNAL_URL: http://api:8000
+    depends_on: [api]
+    deploy:
+      resources:
+        limits: { memory: 384m }
+
   caddy:
     <<: *restart
     image: caddy:2.10-alpine
@@ -161,7 +174,7 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddydata:/data
       - caddyconfig:/config
-    depends_on: [api, s3]
+    depends_on: [api, s3, web]
 
   clickhouse:
     <<: *restart

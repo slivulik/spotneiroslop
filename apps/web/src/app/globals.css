@@ -1,0 +1,87 @@
+@import "tailwindcss";
+@import "@sonora/design-tokens/tokens.css";
+@import "@sonora/design-tokens/theme.css";
+
+@layer base {
+  html {
+    background: var(--sonora-color-bg-base);
+    color: var(--sonora-color-text-primary);
+    font-family: var(--sonora-font-text);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    min-height: 100dvh;
+    overflow-x: hidden;
+  }
+  ::selection {
+    background: var(--sonora-color-accent-muted);
+  }
+  :focus-visible {
+    outline: 2px solid var(--sonora-color-accent-default);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.14) transparent;
+  }
+}
+
+@layer components {
+  .glass {
+    background: var(--sonora-color-glass-regular);
+    backdrop-filter: blur(var(--sonora-blur-lg)) saturate(1.6);
+    -webkit-backdrop-filter: blur(var(--sonora-blur-lg)) saturate(1.6);
+  }
+  .glass-thick {
+    background: var(--sonora-color-glass-thick);
+    backdrop-filter: blur(var(--sonora-blur-backdrop)) saturate(1.8);
+    -webkit-backdrop-filter: blur(var(--sonora-blur-backdrop)) saturate(1.8);
+  }
+  /* Range input styled as a thin track that thickens on hover (progress, volume). */
+  .slider {
+    --fill: 0%;
+    appearance: none;
+    height: 4px;
+    border-radius: 9999px;
+    background: linear-gradient(to right, var(--slider-fill, #fff) var(--fill), rgba(255, 255, 255, 0.18) var(--fill));
+    cursor: pointer;
+    transition: height var(--sonora-duration-fast) var(--sonora-ease-standard);
+  }
+  .slider:hover {
+    height: 6px;
+  }
+  .slider::-webkit-slider-thumb {
+    appearance: none;
+    width: 12px;
+    height: 12px;
+    border-radius: 9999px;
+    background: #fff;
+    opacity: 0;
+    transition: opacity var(--sonora-duration-fast);
+  }
+  .slider:hover::-webkit-slider-thumb {
+    opacity: 1;
+  }
+  .slider::-moz-range-thumb {
+    width: 12px;
+    height: 12px;
+    border: 0;
+    border-radius: 9999px;
+    background: #fff;
+  }
+}
+
+@keyframes eq-bar {
+  0%, 100% { transform: scaleY(0.3); }
+  50% { transform: scaleY(1); }
+}
+.eq-bar {
+  transform-origin: bottom;
+  animation: eq-bar 0.9s var(--sonora-ease-standard) infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .eq-bar { animation: none; }
+}
