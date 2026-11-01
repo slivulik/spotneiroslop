@@ -12,7 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.LibraryMusic
+import androidx.compose.material.icons.filled.LibraryMusic
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Search
@@ -60,7 +60,7 @@ private data class Tab(val route: String, val label: String, val icon: androidx.
 private val TABS = listOf(
     Tab("home", "Главная", Icons.Filled.Home),
     Tab("search", "Поиск", Icons.Filled.Search),
-    Tab("library", "Медиатека", Icons.AutoMirrored.Filled.LibraryMusic),
+    Tab("library", "Медиатека", Icons.Filled.LibraryMusic),
 )
 
 @UnstableApi

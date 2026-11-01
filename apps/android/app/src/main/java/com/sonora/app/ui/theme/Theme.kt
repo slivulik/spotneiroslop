@@ -16,7 +16,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.sonora.app.R
-import com.sonora.app.core.designsystem.tokens.SonoraTokens
+import com.sonora.core.designsystem.tokens.SonoraTokens
 import com.sonora.app.data.repo.ThemeMode
 
 val Unbounded = FontFamily(Font(R.font.unbounded_600, FontWeight.SemiBold), Font(R.font.unbounded_700, FontWeight.Bold))
