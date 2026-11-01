@@ -17,7 +17,7 @@ export function MobileTabBar() {
     ...(isAdmin ? [{ href: "/admin", label: "Админ", icon: <ShieldIcon size={22} />, active: path.startsWith("/admin") }] : []),
   ];
   return (
-    <nav className="fixed inset-x-3 bottom-[max(10px,env(safe-area-inset-bottom))] z-[var(--sonora-layer-sticky)] md:hidden">
+    <nav aria-label="Разделы" className="fixed inset-x-3 bottom-[max(10px,env(safe-area-inset-bottom))] z-[var(--sonora-layer-sticky)] md:hidden">
       <div className="liquid liquid-pill mx-auto flex max-w-md justify-around p-1.5">
         {tabs.map((tab) => (
           <Link key={tab.href} href={tab.href} aria-current={tab.active ? "page" : undefined} className="relative flex flex-1 flex-col items-center gap-0.5 rounded-full py-1.5 text-[10px] font-semibold">

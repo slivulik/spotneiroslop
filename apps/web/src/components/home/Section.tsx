@@ -26,11 +26,11 @@ export function SectionHeader({
   return (
     <div className="mb-4 flex items-center gap-4 px-1">
       <span className="mono-label self-start pt-2 text-accent">{String(index + 1).padStart(2, "0")}</span>
-      <div className="min-w-0 max-w-[65%] flex-none">
+      <div className="min-w-0 flex-1 sm:max-w-[65%] sm:flex-none">
         <h2 className="truncate font-display text-title-2 leading-tight">{title}</h2>
         {subtitle ? <p className="truncate text-caption text-text-secondary">{subtitle}</p> : null}
       </div>
-      <WaveRule seed={title} className="h-6 min-w-12 flex-1 basis-0 text-text-tertiary" />
+      <WaveRule seed={title} className="hidden h-6 min-w-12 flex-1 basis-0 text-text-tertiary sm:block" />
       {href ? (
         <Link href={href} className="mono-label shrink-0 text-text-secondary transition-colors hover:text-text-primary">
           Все →

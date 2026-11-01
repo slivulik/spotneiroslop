@@ -114,13 +114,36 @@ export class PlayerEngine {
   private current: { trackId: string; opts: LoadOptions; stream: StreamOut } | null = null;
   private readonly cache = new Map<string, { stream: StreamOut; at: number }>();
   private recoveries = 0;
+  private waitingOnline = false;
+
+  /** Resolves true when the browser is back online, false if another track took over meanwhile. */
+  private untilOnline(generation: number): Promise<boolean> {
+    return new Promise((resolve) => {
+      const done = () => {
+        window.removeEventListener("online", done);
+        clearInterval(poll);
+        resolve(generation === this.generation);
+      };
+      const poll = setInterval(() => (navigator.onLine || generation !== this.generation) && done(), 2000);
+      window.addEventListener("online", done);
+    });
+  }
   /** hls.js/MSE (true) or native HLS (false); decided once per browser. */
   private mse: boolean | null = null;
   /** Quality hls.js last settled on: the next track starts there instead of probing bandwidth. */
   private lastLevel: Quality | null = null;
   private preloading: AbortController | null = null;
 
+  /** Diagnostics for tests and support (`window.__sonoraPlayback()`), read-only. */
+  playbackSnapshot() {
+    const a = this.audio;
+    return { paused: a.paused, currentTime: a.currentTime, readyState: a.readyState, error: a.error?.code ?? null, instances: PlayerEngine.instances };
+  }
+
+  static instances = 0;
+
   constructor(private readonly cb: EngineCallbacks) {
+    PlayerEngine.instances += 1;
     const audio = new Audio();
     audio.preload = "auto";
     audio.crossOrigin = "anonymous";
@@ -273,21 +296,34 @@ export class PlayerEngine {
       this.hls.recoverMediaError();
       return;
     }
-    if (data.type === HlsClass.ErrorTypes.NETWORK_ERROR && this.recoveries < 3) {
-      // Expired or revoked stream link, or a network blip: get a fresh URL and resume in place.
-      this.recoveries += 1;
-      const { trackId, opts } = this.current;
-      const resumeAt = this.audio.currentTime * 1000;
-      const wasPlaying = !this.audio.paused;
-      try {
-        const stream = await this.stream(trackId, opts.quality, true);
-        if (generation !== this.generation) return;
-        this.current = { trackId, opts, stream };
-        await this.attach(stream, { ...opts, startAtMs: resumeAt, autoplay: wasPlaying }, generation);
-      } catch (error) {
-        this.cb.onError(error instanceof Error ? error.message : "Нет соединения");
+    if (data.type === HlsClass.ErrorTypes.NETWORK_ERROR) {
+      // Offline: retries would only burn out. Wait for the connection (the audio keeps its
+      // position), then resume in place — playing again unless the user paused meanwhile.
+      if (!navigator.onLine) {
+        if (this.waitingOnline) return;
+        this.waitingOnline = true;
+        const back = await this.untilOnline(generation);
+        this.waitingOnline = false;
+        if (!back) return;
+        this.recoveries = 0;
       }
-      return;
+      if (this.recoveries < 3) {
+        // Expired or revoked stream link, or a network blip: get a fresh URL and resume in place.
+        this.recoveries += 1;
+        const { trackId, opts } = this.current;
+        const resumeAt = this.audio.currentTime * 1000;
+        const wasPlaying = !this.audio.paused;
+        try {
+          const stream = await this.stream(trackId, opts.quality, true);
+          if (generation !== this.generation) return;
+          this.current = { trackId, opts, stream };
+          await this.attach(stream, { ...opts, startAtMs: resumeAt, autoplay: wasPlaying }, generation);
+        } catch (error) {
+          if (!navigator.onLine) return void this.onHlsError(data, generation);
+          this.cb.onError(error instanceof Error ? error.message : "Нет соединения");
+        }
+        return;
+      }
     }
     if (data.type === HlsClass.ErrorTypes.MEDIA_ERROR && this.current.opts.quality !== "high" && this.recoveries < 4) {
       // The decoder rejected this rendition: continue in AAC 256 rather than stopping.

@@ -99,7 +99,7 @@ function SearchBox() {
           e.preventDefault();
           go(active >= 0 ? (items[active] ?? null) : null);
         }}
-        className="liquid liquid-pill flex items-center gap-3 px-4 py-2.5 transition-shadow focus-within:shadow-[0_0_0_2px_var(--sonora-color-accent-muted)]"
+        className="liquid liquid-pill flex items-center gap-3 px-4 py-2.5 transition-shadow focus-within:shadow-[0_0_0_2px_var(--sonora-color-accent-default)]"
       >
         <SearchIcon size={18} className="shrink-0 text-text-secondary" />
         <input

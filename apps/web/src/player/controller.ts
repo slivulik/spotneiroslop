@@ -110,6 +110,7 @@ function getEngine(): PlayerEngine {
   installMediaSession();
   if (pendingEq) engine.setEqualizer(pendingEq);
   (window as unknown as { __sonoraEq?: () => unknown }).__sonoraEq = () => engine?.equalizerSnapshot() ?? null;
+  (window as unknown as { __sonoraPlayback?: () => unknown }).__sonoraPlayback = () => engine?.playbackSnapshot() ?? null;
   return engine;
 }
 

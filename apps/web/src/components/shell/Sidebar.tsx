@@ -213,7 +213,7 @@ export function Sidebar() {
             <SidebarIcon size={18} />
           </button>
         ) : null}
-        <nav className="flex flex-col gap-1 px-2">
+        <nav aria-label="Основная навигация" className="flex flex-col gap-1 px-2">
           {items.map((item) => (
             <NavLink key={item.href} item={item} active={item.match(path)} expanded={expanded} />
           ))}
