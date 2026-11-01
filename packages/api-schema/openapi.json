@@ -16554,6 +16554,7 @@
     },
     "/v1/tracks/{track_id}/lyrics": {
       "get": {
+        "description": "Synced (line) or plain lyrics; 204 when the track simply has none (not an error).",
         "operationId": "catalog_get_lyrics",
         "parameters": [
           {
@@ -16577,6 +16578,9 @@
               }
             },
             "description": "Successful Response"
+          },
+          "204": {
+            "description": "The track exists but has no lyrics"
           },
           "400": {
             "content": {

@@ -69,21 +69,28 @@ class LyricsOut(ApiModel):
     text: str | None = None
 
 
-@router.get("/tracks/{track_id}/lyrics")
-async def get_lyrics(track_id: uuid.UUID, viewer: CurrentViewer, session: Session) -> LyricsOut:
-    visible = await session.scalar(
-        select(Track.id).where(Track.id == track_id, Track.status == TrackStatus.READY, Track.has_lyrics)
-    )
-    lyrics = await session.get(Lyrics, track_id) if visible else None
+@router.get(
+    "/tracks/{track_id}/lyrics",
+    response_model=LyricsOut,
+    responses={204: {"description": "The track exists but has no lyrics"}},
+)
+async def get_lyrics(track_id: uuid.UUID, viewer: CurrentViewer, session: Session) -> Response:
+    """Synced (line) or plain lyrics; 204 when the track simply has none (not an error)."""
+    track = await session.scalar(select(Track).where(Track.id == track_id, Track.status == TrackStatus.READY))
+    if track is None:
+        raise NotFoundError("Track not found")
+    lyrics = await session.get(Lyrics, track_id) if track.has_lyrics else None
     if lyrics is None:
-        raise NotFoundError("No lyrics for this track")
+        return Response(status_code=204)
     if lyrics.type == LyricsType.LINE:
-        return LyricsOut(
+        out = LyricsOut(
             type=lyrics.type,
             language=lyrics.language,
             lines=[LyricsLine(**line) for line in lyrics.body["lines"]],
         )
-    return LyricsOut(type=lyrics.type, language=lyrics.language, text=str(lyrics.body.get("text", "")))
+    else:
+        out = LyricsOut(type=lyrics.type, language=lyrics.language, text=str(lyrics.body.get("text", "")))
+    return Response(out.model_dump_json(), media_type="application/json")
 
 
 @router.get("/platform")

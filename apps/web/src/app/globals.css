@@ -43,7 +43,8 @@
 
 /* Sidebar width animates; the content and the player follow it. */
 .sidebar { transition: width var(--sonora-duration-normal) var(--sonora-ease-standard); }
-.shell-main { transition: padding-left var(--sonora-duration-normal) var(--sonora-ease-standard); }
+.shell-main { transition: padding var(--sonora-duration-normal) var(--sonora-ease-standard); }
+@media (min-width: 1024px) { .shell-main { padding-right: var(--panel, 0px); } }
 
 /* Compact density: the whole interface a notch smaller (hit targets stay ≥ 24 px). */
 [data-density="compact"] body { zoom: 0.92; }
@@ -155,6 +156,19 @@
     background-clip: text;
     color: transparent;
   }
+  /* Player dock: opaque layered surface (no see-through), hairline on top, soft lift. */
+  .player-surface {
+    background:
+      linear-gradient(180deg, color-mix(in srgb, var(--sonora-color-text-primary) 5%, transparent), transparent 60%),
+      color-mix(in srgb, var(--sonora-color-bg-elevated) 94%, var(--bg-c1) 6%);
+    box-shadow:
+      inset 0 1px 0 color-mix(in srgb, var(--sonora-color-text-primary) 10%, transparent),
+      0 0 0 1px var(--sonora-color-border-default),
+      0 20px 50px -18px rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(24px) saturate(1.4);
+    -webkit-backdrop-filter: blur(24px) saturate(1.4);
+  }
+
   /* Primary action in the accent colour (play, save, primary buttons). */
   .btn-accent {
     background: radial-gradient(circle at 35% 30%, var(--sonora-color-accent-hover), var(--sonora-color-accent-default) 72%);

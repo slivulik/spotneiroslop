@@ -140,7 +140,22 @@ export function useLyrics(trackId: string | null, enabled: boolean) {
     enabled: Boolean(trackId) && enabled,
     retry: false,
     staleTime: 10 * 60_000,
-    queryFn: () =>
-      unwrap<S["LyricsOut"]>(api.GET("/v1/tracks/{track_id}/lyrics", { params: { path: { track_id: trackId! } } })),
+    // 204 = the track has no lyrics: resolve to null instead of failing.
+    queryFn: async ({ signal }) => {
+      const { data, response } = await api.GET("/v1/tracks/{track_id}/lyrics", { params: { path: { track_id: trackId! } }, signal });
+      if (response.status === 204) return null;
+      if (!response.ok || !data) throw new Error(`lyrics ${response.status}`);
+      return data as S["LyricsOut"];
+    },
+  });
+}
+
+export function useTrack(id: string | null) {
+  const viewer = useViewerKey();
+  return useQuery({
+    queryKey: ["track", id, viewer],
+    enabled: Boolean(id) && viewer !== "unknown",
+    staleTime: 5 * 60_000,
+    queryFn: ({ signal }) => unwrap(api.GET("/v1/tracks/{track_id}", { params: { path: { track_id: id! } }, signal })),
   });
 }

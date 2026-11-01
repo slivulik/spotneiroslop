@@ -1386,7 +1386,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Get Lyrics */
+        /**
+         * Get Lyrics
+         * @description Synced (line) or plain lyrics; 204 when the track simply has none (not an error).
+         */
         get: operations["catalog_get_lyrics"];
         put?: never;
         post?: never;
@@ -11799,6 +11802,13 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["LyricsOut"];
                 };
+            };
+            /** @description The track exists but has no lyrics */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Bad Request */
             400: {

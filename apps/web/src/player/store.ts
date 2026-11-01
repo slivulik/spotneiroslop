@@ -36,6 +36,8 @@ export interface PlayerState {
   renditions: Rendition[];
   normalization: NormalizationMode;
   nowPlayingOpen: boolean;
+  /** Docked right panel next to the content (desktop). */
+  sidePanel: "none" | "lyrics" | "info" | "queue";
   dispatch: (event: PlayerEvent) => void;
   patch: (partial: Partial<PlayerState>) => void;
 }
@@ -58,6 +60,7 @@ export const usePlayer = create<PlayerState>()(
       renditions: [],
       normalization: "auto",
       nowPlayingOpen: false,
+      sidePanel: "none",
       dispatch: (event) =>
         set((s) => {
           const status = transition(s.status, event);

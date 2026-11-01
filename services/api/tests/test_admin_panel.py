@@ -4,6 +4,7 @@ from typing import Any
 
 from PIL import Image
 
+from sonora_api.core.ids import uuid7
 from sonora_api.models import Track
 from sonora_api.models.enums import TrackStatus
 from tests.conftest import DEVICE, Catalog, Harness, bearer, make_admin, register
@@ -315,6 +316,11 @@ async def test_track_metadata_lyrics_and_delete(harness: Harness, catalog_data: 
     lyrics = (await harness.client.get(f"/v1/tracks/{track.id}/lyrics", headers=bearer(listener))).json()
     assert [line["start_ms"] for line in lyrics["lines"]] == [1000, 5500]
     assert lyrics["lines"][-1]["end_ms"] == track.duration_ms
+    other = catalog_data.tracks[2]
+    no_text = await harness.client.get(f"/v1/tracks/{other.id}/lyrics", headers=bearer(listener))
+    assert no_text.status_code == 204  # a track without lyrics is not an error
+    missing = await harness.client.get(f"/v1/tracks/{uuid7()}/lyrics", headers=bearer(listener))
+    assert missing.status_code == 404
     not_lrc = await harness.client.put(
         f"/v1/admin/tracks/{track.id}/lyrics",
         headers=bearer(admin),

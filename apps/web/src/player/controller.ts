@@ -351,6 +351,31 @@ export function handlePlayerHotkey(event: KeyboardEvent): boolean {
     case "KeyM":
       player.toggleMute();
       return true;
+    case "KeyS":
+      if (event.ctrlKey || event.metaKey || event.altKey) return false;
+      player.toggleShuffle();
+      return true;
+    case "KeyR":
+      if (event.ctrlKey || event.metaKey || event.altKey) return false;
+      player.cycleRepeat();
+      return true;
+    case "KeyF":
+      if (event.ctrlKey || event.metaKey || event.altKey) return false;
+      player.setNowPlaying(!state().nowPlayingOpen);
+      return true;
+    case "KeyL":
+    case "KeyQ":
+      if (event.ctrlKey || event.metaKey || event.altKey) return false;
+      state().patch({ sidePanel: state().sidePanel === (event.code === "KeyL" ? "lyrics" : "queue") ? "none" : event.code === "KeyL" ? "lyrics" : "queue" });
+      return true;
+    case "ArrowUp":
+      if (!event.shiftKey) return false;
+      player.setVolume(Math.min(1, state().volume + 0.05));
+      return true;
+    case "ArrowDown":
+      if (!event.shiftKey) return false;
+      player.setVolume(Math.max(0, state().volume - 0.05));
+      return true;
     default:
       return false;
   }

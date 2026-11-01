@@ -5,7 +5,8 @@ import { motion } from "motion/react";
 import { useLayoutEffect, useRef, useState } from "react";
 import { Artwork } from "@/components/Artwork";
 import { ExplicitBadge } from "@/components/Badges";
-import { NextIcon } from "@/components/icons";
+import { ExpandIcon, InfoIcon, LyricsIcon, NextIcon, QueueIcon } from "@/components/icons";
+import { LikeButton } from "@/components/LikeButton";
 import { PlayPauseButton, ProgressBar, QualitySelect, TransportControls, VolumeControl } from "@/components/player/Controls";
 import { useCurrentTrack } from "@/components/player/hooks";
 import { player } from "@/player/controller";
@@ -62,6 +63,26 @@ export function TrackTitle({ className = "", large = false }: { className?: stri
   );
 }
 
+function PanelButton({ kind, label, icon }: { kind: "lyrics" | "info" | "queue"; label: string; icon: React.ReactNode }) {
+  const active = usePlayer((s) => s.sidePanel === kind);
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      title={label}
+      aria-pressed={active}
+      onClick={() => usePlayer.getState().patch({ sidePanel: active ? "none" : kind })}
+      className={`hidden h-9 w-9 items-center justify-center rounded-md transition-colors lg:flex ${active ? "bg-accent-muted text-accent" : "text-text-secondary hover:bg-fg/8 hover:text-text-primary"}`}
+    >
+      {icon}
+    </button>
+  );
+}
+
+/**
+ * The player dock: an opaque, layered surface (tinted elevated ground + top hairline + soft
+ * shadow) so content behind never shows through; same radius and inset as the sidebar.
+ */
 export function PlayerBar() {
   const track = useCurrentTrack();
   const error = usePlayer((s) => s.error);
@@ -74,18 +95,19 @@ export function PlayerBar() {
     <motion.div
       initial={{ y: 120, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
-      transition={{ type: "spring", stiffness: 260, damping: 26 }}
-      className="fixed inset-x-3 bottom-[calc(76px+env(safe-area-inset-bottom))] z-[var(--sonora-layer-miniplayer)] md:inset-x-auto md:bottom-4 md:left-[calc(var(--rail)+16px)] md:right-4"
+      transition={{ type: "spring", stiffness: 260, damping: 28 }}
+      className="player-dock no-select fixed inset-x-3 bottom-[calc(76px+env(safe-area-inset-bottom))] z-[var(--sonora-layer-miniplayer)] md:bottom-3 md:left-[calc(var(--rail)+12px)] md:right-3"
       style={{ ["--slider-fill" as string]: "var(--sonora-color-accent-default)" }}
     >
       {/* Mobile capsule */}
-      <div className="liquid liquid-strong relative overflow-hidden rounded-lg md:hidden">
+      <div className="player-surface relative overflow-hidden rounded-lg md:hidden">
         <div className="flex items-center gap-3 p-2" onClick={() => player.setNowPlaying(true)}>
           <motion.div layoutId="now-playing-art" className="h-11 w-11 shrink-0 overflow-hidden rounded-md">
             <Artwork artwork={track.release.artwork} alt={track.release.title} sizes="44px" className="h-full w-full" />
           </motion.div>
           <TrackTitle className="flex-1" />
           <div onClick={(e) => e.stopPropagation()} className="flex items-center gap-1">
+            <LikeButton kind="tracks" id={track.id} size={20} />
             <PlayPauseButton size={38} />
             <button type="button" aria-label="Следующий" onClick={() => player.next()} className="p-2"><NextIcon size={20} /></button>
           </div>
@@ -95,24 +117,31 @@ export function PlayerBar() {
         </div>
       </div>
 
-      {/* Desktop capsule */}
-      <div className="liquid liquid-strong hidden h-[84px] grid-cols-[minmax(0,1fr)_minmax(380px,1.6fr)_minmax(0,1fr)] items-center gap-6 rounded-xl px-3 md:grid">
+      {/* Desktop dock */}
+      <div className="player-surface hidden h-[88px] grid-cols-[minmax(0,1fr)_minmax(360px,1.5fr)_minmax(0,1fr)] items-center gap-6 rounded-xl px-3 md:grid">
         <div className="flex min-w-0 items-center gap-3">
-          <button type="button" aria-label="Открыть плеер" onClick={() => player.setNowPlaying(true)} className="group relative shrink-0">
-            <motion.div layoutId="now-playing-art" className="h-[60px] w-[60px] overflow-hidden rounded-lg shadow-md transition-transform group-hover:scale-105">
+          <button type="button" aria-label="Открыть плеер на весь экран" onClick={() => player.setNowPlaying(true)} className="group relative shrink-0">
+            <motion.div layoutId="now-playing-art" className="h-[60px] w-[60px] overflow-hidden rounded-md shadow-md transition-transform group-hover:scale-105">
               <Artwork artwork={track.release.artwork} alt={track.release.title} sizes="60px" className="h-full w-full" />
             </motion.div>
           </button>
           <TrackTitle />
+          <LikeButton kind="tracks" id={track.id} size={20} />
         </div>
         <div className="flex flex-col items-center gap-1">
           <TransportControls />
           <ProgressBar />
         </div>
-        <div className="flex items-center justify-end gap-4 pr-2">
-          {error ? <span className="truncate text-caption text-state-danger">{error}</span> : null}
+        <div className="flex items-center justify-end gap-1.5 pr-1">
+          {error ? <span className="max-w-[160px] truncate text-caption text-state-danger" title={error}>{error}</span> : null}
           <QualitySelect />
+          <PanelButton kind="lyrics" label="Текст песни" icon={<LyricsIcon size={18} />} />
+          <PanelButton kind="info" label="О треке" icon={<InfoIcon size={18} />} />
+          <PanelButton kind="queue" label="Очередь" icon={<QueueIcon size={18} />} />
           <VolumeControl />
+          <button type="button" aria-label="Полноэкранный плеер" title="Полноэкранный плеер" onClick={() => player.setNowPlaying(true)} className="flex h-9 w-9 items-center justify-center rounded-md text-text-secondary transition-colors hover:bg-fg/8 hover:text-text-primary">
+            <ExpandIcon size={18} />
+          </button>
         </div>
       </div>
     </motion.div>

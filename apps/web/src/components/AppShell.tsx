@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import { NowPlaying } from "@/components/player/NowPlaying";
 import { PlayerBar } from "@/components/player/PlayerBar";
+import { SidePanel } from "@/components/player/Panels";
 import { Announcement } from "@/components/shell/Announcement";
 import { Sidebar } from "@/components/shell/Sidebar";
 import { MobileTabBar } from "@/components/shell/MobileTabBar";
@@ -42,6 +43,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </AnimatePresence>
       </div>
       <MobileTabBar />
+      <SidePanel />
       <PlayerBar />
       <NowPlaying />
     </>
