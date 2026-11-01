@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Media3's ExoPlayer customisation (cache, data sources, audio session) is @UnstableApi by design;
+     the app opts in project-wide instead of on every call site (Media3 docs recommend either). -->
+<lint>
+    <issue id="UnsafeOptInUsageError">
+        <option name="opt-in" value="androidx.media3.common.util.UnstableApi" />
+    </issue>
+</lint>
