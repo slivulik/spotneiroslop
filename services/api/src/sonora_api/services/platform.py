@@ -41,6 +41,8 @@ class PlatformConfig(_Strict):
     max_quality: Literal["hires", "lossless", "high", "normal", "low"] = "hires"
     announcement: Banner = Field(default_factory=Banner)
     maintenance: Maintenance = Field(default_factory=Maintenance)
+    #: Fill missing lyrics, covers and artist photos/bios from open databases.
+    metadata_lookup: bool = True
 
 
 async def get_config(session: AsyncSession) -> PlatformConfig:

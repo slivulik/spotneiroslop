@@ -16,15 +16,41 @@ function ArtistForm({ artist, onSaved }: { artist: Row; onSaved: () => void }) {
   const [bio, setBio] = useState(artist.bio ?? "");
   const [verified, setVerified] = useState(artist.verified);
   const [photo, setPhoto] = useState<{ ref: ImageRef | null; art: S["Artwork"] | null; changed: boolean }>({ ref: null, art: artist.artwork, changed: false });
+  const [credit, setCredit] = useState(artist.photo_credit ?? null);
+  const [bioSource, setBioSource] = useState(artist.bio_source ?? null);
   const save = useAction(
-    () => unwrap(api.PATCH("/v1/admin/artists/{artist_id}", { params: { path: { artist_id: artist.id } }, body: { name, bio: bio || null, verified, ...(photo.changed ? { photo: photo.ref } : {}) } })),
+    () =>
+      unwrap(api.PATCH("/v1/admin/artists/{artist_id}", {
+        params: { path: { artist_id: artist.id } },
+        body: { name, bio: bio || null, bio_source: bio ? bioSource : null, verified, ...(photo.changed ? { photo: photo.ref, photo_credit: credit } : {}) },
+      })),
     { success: "Артист сохранён" },
   );
+  const find = useAction(() => unwrap(api.POST("/v1/admin/artists/{artist_id}/lookup", { params: { path: { artist_id: artist.id } } })), { invalidate: [] });
+  const lookup = () =>
+    find.mutate(undefined, {
+      onSuccess: (s) => {
+        if (s.photo && (!photo.art || window.confirm("Заменить текущее фото найденным?"))) {
+          setPhoto({ ref: { key: s.photo.key, blurhash: s.photo.blurhash, palette: s.photo.palette }, art: s.photo.artwork, changed: true });
+          setCredit(s.photo_credit);
+        }
+        if (s.bio && (!bio.trim() || window.confirm("Заменить биографию текстом из Википедии?"))) {
+          setBio(s.bio);
+          setBioSource(s.bio_source);
+        }
+      },
+    });
   return (
     <div className="flex flex-col gap-5">
-      <ImageUploader kind="artist" round value={photo.ref} preview={photo.art} onChange={(ref, art) => setPhoto({ ref, art, changed: true })} />
+      <ImageUploader kind="artist" round value={photo.ref} preview={photo.art} onChange={(ref, art) => { setPhoto({ ref, art, changed: true }); setCredit(null); }} />
+      <div className="flex flex-col gap-1.5">
+        <Button tone="glass" disabled={find.isPending} onClick={lookup}>{find.isPending ? "Ищу в Wikidata…" : "Найти фото и биографию"}</Button>
+        <p className="text-caption text-text-tertiary">Wikimedia Commons и Википедия, только при однозначном совпадении имени. Сохраняется после «Сохранить».</p>
+        {credit ? <a href={credit} target="_blank" rel="noreferrer" className="text-caption text-text-secondary underline">Автор и лицензия фото</a> : null}
+      </div>
       <Field label="Имя"><Input value={name} onChange={(e) => setName(e.target.value)} /></Field>
-      <Field label="Биография"><TextArea className="min-h-40" value={bio} onChange={(e) => setBio(e.target.value)} /></Field>
+      <Field label="Биография"><TextArea className="min-h-40" value={bio} onChange={(e) => { setBio(e.target.value); setBioSource(null); }} /></Field>
+      {bioSource && bio ? <a href={bioSource} target="_blank" rel="noreferrer" className="-mt-3 text-caption text-text-secondary underline">Источник биографии</a> : null}
       <Toggle checked={verified} onChange={setVerified} label="Подтверждённый артист" description="Галочка на странице артиста" />
       <div className="flex gap-3 text-caption text-text-secondary"><Pill>{artist.release_count} релизов</Pill><Pill>{artist.track_count} треков</Pill><Pill>{artist.plays} прослушиваний</Pill></div>
       <div className="flex justify-end"><Button tone="primary" disabled={save.isPending} onClick={() => save.mutate(undefined, { onSuccess: onSaved })}>Сохранить</Button></div>

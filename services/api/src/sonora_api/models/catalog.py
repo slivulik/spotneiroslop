@@ -57,6 +57,12 @@ class Artist(Base):
     header_video_key: Mapped[str | None] = mapped_column(String(512))
     palette: Mapped[dict[str, Any] | None]
     monthly_listeners: Mapped[int] = mapped_column(Integer, server_default="0")
+    #: Attribution for an automatically found photo (Wikimedia Commons file page).
+    photo_credit: Mapped[str | None] = mapped_column(String(512))
+    #: Where the biography came from (Wikipedia article URL), shown under the text.
+    bio_source: Mapped[str | None] = mapped_column(String(512))
+    #: When open-database lookup last ran for this artist (so it isn't retried every upload).
+    enriched_at: Mapped[datetime | None]
     verified: Mapped[bool] = mapped_column(Boolean, server_default=text("false"))
     created_at: Mapped[datetime] = created_at()
     updated_at: Mapped[datetime] = updated_at()

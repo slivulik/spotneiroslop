@@ -14,12 +14,12 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from sonora_api.models import Release, Track, UploadJob
+from sonora_api.models import Release, Track, TrackArtist, UploadJob
 from sonora_api.models.enums import UPLOAD_STAGES, JobStatus, UploadStage
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session, sessionmaker
 
-from sonora_media import artwork, authenticity, catalog, loudness, preview, transcode, waveform
+from sonora_media import artwork, authenticity, catalog, enrich, loudness, preview, transcode, waveform
 from sonora_media import fingerprint as fp
 from sonora_media.config import WorkerSettings
 from sonora_media.errors import MediaError
@@ -219,10 +219,16 @@ def stage_waveform(ctx: JobContext) -> dict[str, Any]:
 def stage_artwork(ctx: JobContext) -> dict[str, Any]:
     data = ctx.cover_bytes() or embedded_cover(ctx.source)
     release_id = ctx.state[UploadStage.CATALOG]["release_id"]
+    has_cover = False
     if data is None:
         with ctx.sessions() as session:
             release = session.get(Release, uuid.UUID(release_id))
             has_cover = bool(release and release.cover_key)
+        if not has_cover and enrich.enabled(ctx):
+            data = enrich.cover(ctx)
+            if data:
+                ctx.warn("cover_found", "Обложка найдена в Cover Art Archive (MusicBrainz)")
+    if data is None:
         if not has_cover:
             ctx.warn("no_cover", "Нет обложки (ни встроенной, ни загруженной) — релиз останется без картинки")
         return {"cover_key": None}
@@ -249,7 +255,12 @@ def stage_preview(ctx: JobContext) -> dict[str, Any]:
 def stage_lyrics(ctx: JobContext) -> dict[str, Any]:
     document = catalog.lyrics_document(ctx.tags, ctx.probe.duration_ms)
     if document is None:
-        return {"lyrics": None}
+        found = enrich.lyrics(ctx) if enrich.enabled(ctx) else None
+        if found:
+            ctx.warn(
+                "lyrics_found", "Текст найден в LRCLIB" + (" (синхронный)" if found["type"] == "line" else "")
+            )
+        return {"lyrics": found}
     kind, body = document
     return {"lyrics": {"type": kind.value, "body": body}}
 
@@ -274,6 +285,12 @@ def stage_publish(ctx: JobContext) -> dict[str, Any]:
             target_lufs=ctx.settings.target_lufs,
             peak_ceiling=ctx.settings.peak_ceiling_db,
         )
+        artist_ids = list(
+            session.scalars(select(TrackArtist.artist_id).where(TrackArtist.track_id == ctx.track_id))
+        )
+    # Photos and biographies for newly seen artists (once each; never fails the upload).
+    if artist_ids and enrich.enabled(ctx):
+        enrich.artists(ctx, artist_ids)
     return {"published": bool(ctx.options.get("publish"))}
 
 

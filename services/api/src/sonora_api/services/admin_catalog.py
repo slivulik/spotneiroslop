@@ -489,6 +489,7 @@ async def list_artists(
             id=a.id, name=a.name, slug=a.slug, verified=a.verified, bio=a.bio,
             artwork=artwork(settings, a.photo_key, blurhash=a.photo_blurhash, palette=a.palette),
             track_count=int(nt), release_count=int(nr), plays=int(pl),
+            photo_credit=a.photo_credit, bio_source=a.bio_source,
         )
         for a, nt, nr, pl in rows
     ]  # fmt: skip
@@ -511,6 +512,13 @@ async def update_artist(
         a.name, a.sort_name = changes["name"], changes["name"].lower()
     if "bio" in changes:
         a.bio = changes["bio"] or None
+        a.bio_source = changes.get("bio_source") or None  # a hand-written bio has no source
+    elif "bio_source" in changes:
+        a.bio_source = changes["bio_source"] or None
+    if "photo_credit" in changes:
+        a.photo_credit = changes["photo_credit"] or None
+    elif "photo" in changes:
+        a.photo_credit = None  # a new photo invalidates the old attribution
     if changes.get("verified") is not None:
         a.verified = changes["verified"]
     if "photo" in changes:

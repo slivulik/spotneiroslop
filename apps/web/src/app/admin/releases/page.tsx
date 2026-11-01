@@ -38,10 +38,24 @@ function ReleaseForm({ release, onOpenTrack, onDeleted }: { release: Detail; onO
     })),
     { success: "Релиз сохранён" },
   );
+  const find = useAction(() => unwrap(api.POST("/v1/admin/releases/{release_id}/cover/lookup", { params: { path: { release_id: release.id } } })), { invalidate: [] });
+  const [coverSource, setCoverSource] = useState<string | null>(null);
+  const lookup = () =>
+    find.mutate(undefined, {
+      onSuccess: (s) => {
+        if (cover.art && !window.confirm("Заменить текущую обложку найденной?")) return;
+        setCover({ ref: { key: s.image.key, blurhash: s.image.blurhash, palette: s.image.palette }, art: s.image.artwork, changed: true });
+        setCoverSource(s.source);
+      },
+    });
   const remove = useAction(() => unwrap(api.DELETE("/v1/admin/releases/{release_id}", { params: { path: { release_id: release.id } } })), { success: "Релиз удалён" });
   return (
     <div className="flex flex-col gap-5">
-      <ImageUploader kind="release" value={cover.ref} preview={cover.art} onChange={(ref, art) => setCover({ ref, art, changed: true })} />
+      <ImageUploader kind="release" value={cover.ref} preview={cover.art} onChange={(ref, art) => { setCover({ ref, art, changed: true }); setCoverSource(null); }} />
+      <div className="flex flex-wrap items-center gap-3">
+        <Button tone="glass" disabled={find.isPending} onClick={lookup}>{find.isPending ? "Ищу в MusicBrainz…" : "Найти обложку"}</Button>
+        {coverSource ? <a href={coverSource} target="_blank" rel="noreferrer" className="text-caption text-text-secondary underline">Найдено: релиз в MusicBrainz</a> : <span className="text-caption text-text-tertiary">Cover Art Archive, при точном совпадении названия и артиста</span>}
+      </div>
       <div className="grid gap-3 sm:grid-cols-[1fr_180px]">
         <Field label="Название"><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} /></Field>
         <Field label="Тип"><Select value={form.type} onChange={(e) => setForm({ ...form, type: e.target.value as Detail["type"] })} options={[{ value: "album", label: "Альбом" }, { value: "ep", label: "EP" }, { value: "single", label: "Сингл" }, { value: "compilation", label: "Сборник" }]} /></Field>

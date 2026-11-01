@@ -115,6 +115,8 @@ class ArtistOut(ApiModel):
     palette: Palette | None
     monthly_listeners: int
     verified: bool
+    photo_credit: str | None = None
+    bio_source: str | None = None
 
 
 class GenreOut(ApiModel):

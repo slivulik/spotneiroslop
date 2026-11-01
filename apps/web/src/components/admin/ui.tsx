@@ -53,6 +53,7 @@ export function Toaster() {
 export function errorText(error: unknown): string {
   const e = error as { message?: string; code?: string; details?: { fields?: { loc: string[]; message: string }[] } };
   const field = e?.details?.fields?.[0];
+  if (e?.code === "nothing_found") return "В открытых базах ничего не нашлось";
   return field ? `${field.loc.at(-1)}: ${field.message}` : (e?.message ?? "Ошибка");
 }
 

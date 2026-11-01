@@ -15,7 +15,7 @@ from sonora_api.models.enums import (
 )
 from sonora_api.schemas.catalog import ArtistRef, Artwork, AudioBadges
 from sonora_api.schemas.common import ApiModel
-from sonora_api.schemas.media import ImageRef
+from sonora_api.schemas.media import ImageOut, ImageRef
 
 
 class ReleaseLite(ApiModel):
@@ -151,6 +151,8 @@ class AdminArtistRow(ApiModel):
     track_count: int
     release_count: int
     plays: int
+    photo_credit: str | None = None
+    bio_source: str | None = None
 
 
 class AdminArtistPatch(ApiModel):
@@ -158,6 +160,32 @@ class AdminArtistPatch(ApiModel):
     bio: str | None = Field(default=None, max_length=5000)
     verified: bool | None = None
     photo: ImageRef | None = None
+    photo_credit: str | None = Field(default=None, max_length=512)
+    bio_source: str | None = Field(default=None, max_length=512)
+
+
+class LyricsSuggestion(ApiModel):
+    """Lyrics found in LRCLIB for a track; apply with PUT /tracks/{id}/lyrics."""
+
+    format: Literal["plain", "lrc"]
+    text: str
+    source: str
+
+
+class CoverSuggestion(ApiModel):
+    """A front cover from the Cover Art Archive, already uploaded; apply with PATCH /releases/{id}."""
+
+    image: ImageOut
+    source: str
+
+
+class ArtistSuggestion(ApiModel):
+    """Photo (Wikimedia Commons) and biography (Wikipedia); apply with PATCH /artists/{id}."""
+
+    photo: ImageOut | None
+    photo_credit: str | None
+    bio: str | None
+    bio_source: str | None
 
 
 class SearchHit(ApiModel):

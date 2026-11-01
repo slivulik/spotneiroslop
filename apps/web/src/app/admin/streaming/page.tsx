@@ -40,6 +40,7 @@ function Switches() {
         <Toggle checked={draft.lossless_enabled ?? true} onChange={(v) => set("lossless_enabled", v)} label="Lossless (FLAC 16 бит)" description="Отключите, чтобы снизить трафик" />
         <Toggle checked={draft.hires_enabled ?? true} onChange={(v) => set("hires_enabled", v)} label="Hi-Res (FLAC 24 бит)" />
         <Toggle checked={draft.guest_previews ?? true} onChange={(v) => set("guest_previews", v)} label="Превью для гостей" description="30-секундные фрагменты без входа" />
+        <Toggle checked={draft.metadata_lookup ?? true} onChange={(v) => set("metadata_lookup", v)} label="Искать метаданные в открытых базах" description="При загрузке: тексты из LRCLIB, обложки из MusicBrainz, фото и биографии из Wikidata — только если в файле их нет" />
         <Field label="Максимальное качество потока" className="p-3">
           <Select value={draft.max_quality ?? "hires"} onChange={(e) => set("max_quality", e.target.value as Config["max_quality"])} options={[
             { value: "hires", label: "Hi-Res" }, { value: "lossless", label: "Lossless" }, { value: "high", label: "Высокое (AAC 256)" },

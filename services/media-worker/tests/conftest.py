@@ -32,7 +32,9 @@ def sh(*args: str) -> None:
 
 
 def make_settings(tmp: Path) -> WorkerSettings:
-    return WorkerSettings(_env_file=None, database_url=DATABASE_URL, workdir=tmp / "work", log_json=False)  # type: ignore[call-arg]
+    return WorkerSettings(
+        _env_file=None, database_url=DATABASE_URL, workdir=tmp / "work", log_json=False, metadata_lookup=False
+    )  # type: ignore[call-arg]
 
 
 def cover_png(size: int = 1400) -> bytes:

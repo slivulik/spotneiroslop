@@ -37,6 +37,9 @@ class WorkerSettings(BaseSettings):
     #: Max true peak after applying gain, dBTP.
     peak_ceiling_db: float = -1.0
     hls_segment_seconds: int = 6
+    #: Look up missing lyrics (LRCLIB), covers (Cover Art Archive) and artist photos/bios
+    #: (Wikidata/Wikipedia). Also switchable at runtime in admin → Стриминг.
+    metadata_lookup: bool = True
 
     @property
     def sync_database_url(self) -> str:

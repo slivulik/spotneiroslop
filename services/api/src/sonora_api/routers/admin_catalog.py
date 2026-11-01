@@ -17,11 +17,15 @@ from sonora_api.schemas.admin_catalog import (
     AdminTrackDetail,
     AdminTrackPatch,
     AdminTrackRow,
+    ArtistSuggestion,
+    CoverSuggestion,
     LyricsIn,
+    LyricsSuggestion,
     SearchHit,
 )
 from sonora_api.schemas.common import ERROR_RESPONSES, AdminPage
 from sonora_api.services import admin_catalog
+from sonora_api.services import lookup as metadata
 
 router = APIRouter(prefix=f"{API_V1}/admin", tags=["admin"], responses=ERROR_RESPONSES)
 log = get_logger("sonora.admin")
@@ -78,6 +82,12 @@ async def put_lyrics(
     """Plain text, or LRC (`[mm:ss.xx] line`) for line-synced lyrics."""
     await admin_catalog.set_lyrics(session, track_id, body)
     return await admin_catalog.track_detail(session, ctx.settings, track_id)
+
+
+@router.post("/tracks/{track_id}/lyrics/lookup")
+async def lookup_lyrics(track_id: uuid.UUID, admin: AdminViewer, session: Session) -> LyricsSuggestion:
+    """Search LRCLIB (synced first). Nothing is saved; 404 `nothing_found` when there is no match."""
+    return await metadata.track_lyrics(session, track_id)
 
 
 @router.delete("/tracks/{track_id}/lyrics", status_code=status.HTTP_204_NO_CONTENT)
@@ -141,6 +151,14 @@ async def delete_release(
     tasks.add_task(_purge, ctx, await admin_catalog.delete_release(session, release_id))
 
 
+@router.post("/releases/{release_id}/cover/lookup")
+async def lookup_cover(
+    release_id: uuid.UUID, admin: AdminViewer, session: Session, ctx: Ctx
+) -> CoverSuggestion:
+    """Find the front cover in MusicBrainz / Cover Art Archive; apply it with PATCH."""
+    return await metadata.release_cover(session, ctx, release_id)
+
+
 # --- artists -----------------------------------------------------------------------------
 
 
@@ -162,6 +180,14 @@ async def update_artist(
     artist_id: uuid.UUID, body: AdminArtistPatch, admin: AdminViewer, session: Session, ctx: Ctx
 ) -> AdminArtistRow:
     return await admin_catalog.update_artist(session, ctx.settings, artist_id, body)
+
+
+@router.post("/artists/{artist_id}/lookup")
+async def lookup_artist(
+    artist_id: uuid.UUID, admin: AdminViewer, session: Session, ctx: Ctx
+) -> ArtistSuggestion:
+    """Photo from Wikimedia Commons and a summary from Wikipedia via Wikidata; apply with PATCH."""
+    return await metadata.artist_info(session, ctx, artist_id)
 
 
 # --- pickers -----------------------------------------------------------------------------

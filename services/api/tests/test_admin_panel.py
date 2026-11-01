@@ -2,9 +2,11 @@ import io
 import uuid
 from typing import Any
 
+import pytest
 from PIL import Image
 
 from sonora_api.core.ids import uuid7
+from sonora_api.enrich import lrclib, musicbrainz, wikimedia
 from sonora_api.models import Track
 from sonora_api.models.enums import TrackStatus
 from tests.conftest import DEVICE, Catalog, Harness, bearer, make_admin, register
@@ -468,3 +470,73 @@ async def test_public_search(harness: Harness, catalog_data: Catalog) -> None:
     by_title = (await harness.client.get("/v1/search", params={"q": "afterglow"})).json()
     assert [r["title"] for r in by_title["releases"]] == ["Afterglow"]
     assert (await harness.client.get("/v1/search", params={"q": ""})).status_code == 422
+
+
+async def test_metadata_lookups_suggest_and_apply(
+    harness: Harness, catalog_data: Catalog, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Lookups only suggest; the admin applies through the regular edit endpoints."""
+    admin = await make_admin(harness)
+    track = catalog_data.tracks[0]
+    monkeypatch.setattr(
+        lrclib, "find", lambda *a, **k: lrclib.LyricsMatch("[00:01.00]Строка", "Строка", False, 42)
+    )
+    found = await harness.client.post(f"/v1/admin/tracks/{track.id}/lyrics/lookup", headers=bearer(admin))
+    assert found.status_code == 200, found.text
+    assert found.json() == {
+        "format": "lrc",
+        "text": "[00:01.00]Строка",
+        "source": "https://lrclib.net/api/get/42",
+    }
+    detail = (await harness.client.get(f"/v1/admin/tracks/{track.id}", headers=bearer(admin))).json()
+    assert detail["lyrics"] is None or "Строка" not in detail["lyrics"]["text"]  # nothing saved by a lookup
+
+    monkeypatch.setattr(lrclib, "find", lambda *a, **k: None)
+    missing = await harness.client.post(f"/v1/admin/tracks/{track.id}/lyrics/lookup", headers=bearer(admin))
+    assert (missing.status_code, missing.json()["error"]["code"]) == (404, "nothing_found")
+
+    monkeypatch.setattr(musicbrainz, "find_release_mbid", lambda *a, **k: "mbid-1")
+    monkeypatch.setattr(musicbrainz, "front_cover", lambda *a, **k: png((10, 120, 60)))
+    cover = await harness.client.post(
+        f"/v1/admin/releases/{catalog_data.album.id}/cover/lookup", headers=bearer(admin)
+    )
+    assert cover.status_code == 200, cover.text
+    assert cover.json()["image"]["key"].startswith("images/release/")
+    assert cover.json()["source"] == "https://musicbrainz.org/release/mbid-1"
+
+    artist = catalog_data.artist
+    monkeypatch.setattr(musicbrainz, "find_artist_wikidata", lambda *a, **k: "Q1")
+    monkeypatch.setattr(
+        wikimedia,
+        "artist_info",
+        lambda *a, **k: wikimedia.ArtistInfo(
+            png((90, 20, 140)),
+            "https://commons.wikimedia.org/wiki/File:X.jpg",
+            "Био",
+            "https://ru.wikipedia.org/wiki/X",
+        ),
+    )
+    hint = await harness.client.post(f"/v1/admin/artists/{artist.id}/lookup", headers=bearer(admin))
+    assert hint.status_code == 200, hint.text
+    s = hint.json()
+    applied = await harness.client.patch(
+        f"/v1/admin/artists/{artist.id}",
+        headers=bearer(admin),
+        json={
+            "photo": {"key": s["photo"]["key"]},
+            "photo_credit": s["photo_credit"],
+            "bio": s["bio"],
+            "bio_source": s["bio_source"],
+        },
+    )
+    assert applied.status_code == 200, applied.text
+    public = (await harness.client.get(f"/v1/artists/{artist.id}")).json()
+    assert (public["bio"], public["bio_source"]) == ("Био", "https://ru.wikipedia.org/wiki/X")
+    assert public["photo_credit"] == "https://commons.wikimedia.org/wiki/File:X.jpg"
+    # A hand-written bio drops the old source; a new photo without credit drops the old credit.
+    rewritten = await harness.client.patch(
+        f"/v1/admin/artists/{artist.id}",
+        headers=bearer(admin),
+        json={"bio": "Своё", "photo": {"key": s["photo"]["key"]}},
+    )
+    assert (rewritten.json()["bio_source"], rewritten.json()["photo_credit"]) == (None, None)

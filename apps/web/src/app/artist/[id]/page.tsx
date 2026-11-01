@@ -76,6 +76,7 @@ export default function ArtistPage({ params }: { params: Promise<{ id: string }>
           </motion.div>
         ) : null}
         <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-black/5" />
+        {data.photo_credit ? <a href={data.photo_credit} target="_blank" rel="noreferrer" className="absolute right-4 top-4 rounded-full bg-black/40 px-2.5 py-1 text-micro text-white/75 backdrop-blur hover:text-white md:right-6 md:top-6">Фото: Wikimedia Commons</a> : null}
         <div className="absolute inset-x-0 bottom-0 flex flex-col gap-3 p-6 text-white md:p-10">
           {data.verified ? <span className="mono-label text-white/80">✓ Подтверждённый артист</span> : <span className="mono-label text-white/70">Артист</span>}
           <motion.h1 initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ type: "spring", stiffness: 200, damping: 24, delay: 0.1 }} className="font-display text-display-l leading-[0.95] md:text-[clamp(56px,7vw,96px)]">
@@ -151,6 +152,7 @@ export default function ArtistPage({ params }: { params: Promise<{ id: string }>
               <h2 className="mb-2 font-display text-title-3">Об артисте</h2>
               <p className={`selectable whitespace-pre-line text-body text-text-secondary ${bioOpen ? "" : "line-clamp-6"}`}>{data.bio}</p>
               {data.bio.length > 320 ? <button type="button" onClick={() => setBioOpen((v) => !v)} className="mt-2 text-caption font-bold text-text-primary hover:underline">{bioOpen ? "Свернуть" : "Читать полностью"}</button> : null}
+              {data.bio_source ? <p className="mt-3 text-micro text-text-tertiary">Источник: <a href={data.bio_source} target="_blank" rel="noreferrer" className="underline hover:text-text-secondary">Википедия</a>, CC BY-SA</p> : null}
             </section>
           ) : null}
         </aside>

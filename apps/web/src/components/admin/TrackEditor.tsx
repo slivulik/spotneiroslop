@@ -113,6 +113,17 @@ function LyricsTab({ track }: { track: Detail }) {
     { success: "Текст сохранён" },
   );
   const remove = useAction(() => unwrap(api.DELETE("/v1/admin/tracks/{track_id}/lyrics", { params: { path: { track_id: track.id } } })), { success: "Текст удалён" });
+  const [source, setSource] = useState<string | null>(null);
+  const find = useAction(() => unwrap(api.POST("/v1/admin/tracks/{track_id}/lyrics/lookup", { params: { path: { track_id: track.id } } })), { invalidate: [] });
+  const lookup = () =>
+    find.mutate(undefined, {
+      onSuccess: (s) => {
+        if (text.trim() && !window.confirm("Заменить текст в редакторе найденным? Сохранится только после «Сохранить текст».")) return;
+        setFormat(s.format);
+        setText(s.text);
+        setSource(s.source);
+      },
+    });
 
   const startSync = async () => {
     const lines = (format === "lrc" ? parseLrc(text).map((l) => l.text) : text.split("\n")).map((l) => l.trim()).filter(Boolean);
@@ -170,7 +181,9 @@ function LyricsTab({ track }: { track: Detail }) {
       <div className="flex flex-wrap items-center gap-2">
         <Select className="!w-56" value={format} onChange={(e) => setFormat(e.target.value as "plain" | "lrc")} options={[{ value: "plain", label: "Обычный текст" }, { value: "lrc", label: "Синхронный (LRC)" }]} />
         <Button tone="ghost" onClick={() => void startSync()} disabled={!text.trim() || track.status !== "ready"}>⏱ Синхронизировать нажатием</Button>
+        <Button tone="ghost" onClick={lookup} disabled={find.isPending}>{find.isPending ? "Ищу…" : "Найти в LRCLIB"}</Button>
       </div>
+      {source ? <p className="text-caption text-text-secondary">Найдено в LRCLIB — проверьте и сохраните. <a href={source} target="_blank" rel="noreferrer" className="underline">Источник</a></p> : null}
       <TextArea className="min-h-72 font-mono text-caption" value={text} onChange={(e) => setText(e.target.value)} placeholder={format === "lrc" ? "[00:12.50] Первая строка\n[00:16.10] Вторая строка" : "Текст песни…"} />
       {format === "lrc" ? (
         <div className="text-caption text-text-secondary">

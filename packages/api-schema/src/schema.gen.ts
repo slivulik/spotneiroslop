@@ -38,6 +38,26 @@ export interface paths {
         patch: operations["admin_update_artist"];
         trace?: never;
     };
+    "/v1/admin/artists/{artist_id}/lookup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Lookup Artist
+         * @description Photo from Wikimedia Commons and a summary from Wikipedia via Wikidata; apply with PATCH.
+         */
+        post: operations["admin_lookup_artist"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/genres": {
         parameters: {
             query?: never;
@@ -341,6 +361,26 @@ export interface paths {
         patch: operations["admin_update_release"];
         trace?: never;
     };
+    "/v1/admin/releases/{release_id}/cover/lookup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Lookup Cover
+         * @description Find the front cover in MusicBrainz / Cover Art Archive; apply it with PATCH.
+         */
+        post: operations["admin_lookup_cover"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/search": {
         parameters: {
             query?: never;
@@ -450,6 +490,26 @@ export interface paths {
         post?: never;
         /** Delete Lyrics */
         delete: operations["admin_delete_lyrics"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/tracks/{track_id}/lyrics/lookup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Lookup Lyrics
+         * @description Search LRCLIB (synced first). Nothing is saved; 404 `nothing_found` when there is no match.
+         */
+        post: operations["admin_lookup_lyrics"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -1553,9 +1613,13 @@ export interface components {
         AdminArtistPatch: {
             /** Bio */
             bio?: string | null;
+            /** Bio Source */
+            bio_source?: string | null;
             /** Name */
             name?: string | null;
             photo?: components["schemas"]["ImageRef"] | null;
+            /** Photo Credit */
+            photo_credit?: string | null;
             /** Verified */
             verified?: boolean | null;
         };
@@ -1564,6 +1628,8 @@ export interface components {
             artwork: components["schemas"]["Artwork"] | null;
             /** Bio */
             bio: string | null;
+            /** Bio Source */
+            bio_source?: string | null;
             /**
              * Id
              * Format: uuid
@@ -1571,6 +1637,8 @@ export interface components {
             id: string;
             /** Name */
             name: string;
+            /** Photo Credit */
+            photo_credit?: string | null;
             /** Plays */
             plays: number;
             /** Release Count */
@@ -1941,6 +2009,8 @@ export interface components {
             artwork: components["schemas"]["Artwork"] | null;
             /** Bio */
             bio: string | null;
+            /** Bio Source */
+            bio_source?: string | null;
             /** Header Video Url */
             header_video_url: string | null;
             /**
@@ -1953,6 +2023,8 @@ export interface components {
             /** Name */
             name: string;
             palette: components["schemas"]["Palette"] | null;
+            /** Photo Credit */
+            photo_credit?: string | null;
             /** Slug */
             slug: string;
             /** Verified */
@@ -1994,6 +2066,19 @@ export interface components {
             total_plays: number;
             /** Weekly */
             weekly: components["schemas"]["WeeklyPlays"][];
+        };
+        /**
+         * ArtistSuggestion
+         * @description Photo (Wikimedia Commons) and biography (Wikipedia); apply with PATCH /artists/{id}.
+         */
+        ArtistSuggestion: {
+            /** Bio */
+            bio: string | null;
+            /** Bio Source */
+            bio_source: string | null;
+            photo: components["schemas"]["ImageOut"] | null;
+            /** Photo Credit */
+            photo_credit: string | null;
         };
         /** ArtistSummary */
         ArtistSummary: {
@@ -2100,6 +2185,15 @@ export interface components {
             filename: string;
             /** Size Bytes */
             size_bytes: number;
+        };
+        /**
+         * CoverSuggestion
+         * @description A front cover from the Cover Art Archive, already uploaded; apply with PATCH /releases/{id}.
+         */
+        CoverSuggestion: {
+            image: components["schemas"]["ImageOut"];
+            /** Source */
+            source: string;
         };
         /** CreditIn */
         CreditIn: {
@@ -2625,6 +2719,21 @@ export interface components {
             type: components["schemas"]["LyricsType"];
         };
         /**
+         * LyricsSuggestion
+         * @description Lyrics found in LRCLIB for a track; apply with PUT /tracks/{id}/lyrics.
+         */
+        LyricsSuggestion: {
+            /**
+             * Format
+             * @enum {string}
+             */
+            format: "plain" | "lrc";
+            /** Source */
+            source: string;
+            /** Text */
+            text: string;
+        };
+        /**
          * LyricsType
          * @enum {string}
          */
@@ -2850,6 +2959,11 @@ export interface components {
              * @enum {string}
              */
             max_quality: "hires" | "lossless" | "high" | "normal" | "low";
+            /**
+             * Metadata Lookup
+             * @default true
+             */
+            metadata_lookup: boolean;
             /**
              * Registration Open
              * @default true
@@ -3760,6 +3874,91 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdminArtistRow"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    admin_lookup_artist: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                artist_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ArtistSuggestion"];
                 };
             };
             /** @description Bad Request */
@@ -6065,6 +6264,91 @@ export interface operations {
             };
         };
     };
+    admin_lookup_cover: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                release_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CoverSuggestion"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     admin_search: {
         parameters: {
             query?: {
@@ -6769,6 +7053,91 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    admin_lookup_lyrics: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                track_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LyricsSuggestion"];
+                };
             };
             /** @description Bad Request */
             400: {

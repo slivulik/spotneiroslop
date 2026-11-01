@@ -217,6 +217,8 @@ async def get_artist(session: AsyncSession, settings: Settings, artist_id: uuid.
         palette=palette_out(artist.palette),
         monthly_listeners=artist.monthly_listeners,
         verified=artist.verified,
+        photo_credit=artist.photo_credit,
+        bio_source=artist.bio_source,
     )
 
 

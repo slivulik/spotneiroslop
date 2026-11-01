@@ -15,6 +15,18 @@
             ],
             "title": "Bio"
           },
+          "bio_source": {
+            "anyOf": [
+              {
+                "maxLength": 512,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bio Source"
+          },
           "name": {
             "anyOf": [
               {
@@ -37,6 +49,18 @@
                 "type": "null"
               }
             ]
+          },
+          "photo_credit": {
+            "anyOf": [
+              {
+                "maxLength": 512,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Photo Credit"
           },
           "verified": {
             "anyOf": [
@@ -76,6 +100,17 @@
             ],
             "title": "Bio"
           },
+          "bio_source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bio Source"
+          },
           "id": {
             "format": "uuid",
             "title": "Id",
@@ -84,6 +119,17 @@
           "name": {
             "title": "Name",
             "type": "string"
+          },
+          "photo_credit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Photo Credit"
           },
           "plays": {
             "title": "Plays",
@@ -1314,6 +1360,17 @@
             ],
             "title": "Bio"
           },
+          "bio_source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bio Source"
+          },
           "header_video_url": {
             "anyOf": [
               {
@@ -1347,6 +1404,17 @@
                 "type": "null"
               }
             ]
+          },
+          "photo_credit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Photo Credit"
           },
           "slug": {
             "title": "Slug",
@@ -1458,6 +1526,62 @@
           "genres"
         ],
         "title": "ArtistStatsOut",
+        "type": "object"
+      },
+      "ArtistSuggestion": {
+        "description": "Photo (Wikimedia Commons) and biography (Wikipedia); apply with PATCH /artists/{id}.",
+        "properties": {
+          "bio": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bio"
+          },
+          "bio_source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bio Source"
+          },
+          "photo": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ImageOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "photo_credit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Photo Credit"
+          }
+        },
+        "required": [
+          "photo",
+          "photo_credit",
+          "bio",
+          "bio_source"
+        ],
+        "title": "ArtistSuggestion",
         "type": "object"
       },
       "ArtistSummary": {
@@ -1703,6 +1827,24 @@
           "size_bytes"
         ],
         "title": "CoverFileIn",
+        "type": "object"
+      },
+      "CoverSuggestion": {
+        "description": "A front cover from the Cover Art Archive, already uploaded; apply with PATCH /releases/{id}.",
+        "properties": {
+          "image": {
+            "$ref": "#/components/schemas/ImageOut"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "image",
+          "source"
+        ],
+        "title": "CoverSuggestion",
         "type": "object"
       },
       "CreditIn": {
@@ -3305,6 +3447,34 @@
         "title": "LyricsOut",
         "type": "object"
       },
+      "LyricsSuggestion": {
+        "description": "Lyrics found in LRCLIB for a track; apply with PUT /tracks/{id}/lyrics.",
+        "properties": {
+          "format": {
+            "enum": [
+              "plain",
+              "lrc"
+            ],
+            "title": "Format",
+            "type": "string"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          },
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "format",
+          "text",
+          "source"
+        ],
+        "title": "LyricsSuggestion",
+        "type": "object"
+      },
       "LyricsType": {
         "enum": [
           "word",
@@ -3875,6 +4045,11 @@
             ],
             "title": "Max Quality",
             "type": "string"
+          },
+          "metadata_lookup": {
+            "default": true,
+            "title": "Metadata Lookup",
+            "type": "boolean"
           },
           "registration_open": {
             "default": true,
@@ -6319,6 +6494,115 @@
           }
         ],
         "summary": "Update Artist",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/admin/artists/{artist_id}/lookup": {
+      "post": {
+        "description": "Photo from Wikimedia Commons and a summary from Wikipedia via Wikidata; apply with PATCH.",
+        "operationId": "admin_lookup_artist",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "artist_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Artist Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ArtistSuggestion"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Lookup Artist",
         "tags": [
           "admin"
         ]
@@ -9179,6 +9463,115 @@
         ]
       }
     },
+    "/v1/admin/releases/{release_id}/cover/lookup": {
+      "post": {
+        "description": "Find the front cover in MusicBrainz / Cover Art Archive; apply it with PATCH.",
+        "operationId": "admin_lookup_cover",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "release_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Release Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoverSuggestion"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Lookup Cover",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/v1/admin/search": {
       "get": {
         "operationId": "admin_search",
@@ -10218,6 +10611,115 @@
           }
         ],
         "summary": "Put Lyrics",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/admin/tracks/{track_id}/lyrics/lookup": {
+      "post": {
+        "description": "Search LRCLIB (synced first). Nothing is saved; 404 `nothing_found` when there is no match.",
+        "operationId": "admin_lookup_lyrics",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "track_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Track Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LyricsSuggestion"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Lookup Lyrics",
         "tags": [
           "admin"
         ]

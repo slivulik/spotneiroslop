@@ -25,6 +25,7 @@ dependencies = [
     "pillow>=11.3",
     "numpy>=2.3",
     "python-multipart>=0.0.20",
+    "httpx>=0.28",
 ]
 
 [project.scripts]
