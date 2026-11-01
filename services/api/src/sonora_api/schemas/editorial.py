@@ -131,6 +131,8 @@ class HeroOut(ApiModel):
 class HomeBlock(ApiModel):
     id: str
     type: HomeSectionType
+    #: Where the items come from ("recent" is per listener); clients use it to avoid duplicates.
+    source: SectionSource = "manual"
     style: SectionStyle
     title: str
     subtitle: str | None

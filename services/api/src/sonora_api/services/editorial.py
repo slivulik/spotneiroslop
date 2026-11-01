@@ -264,7 +264,9 @@ async def resolve_block(
     config: SectionConfig,
     viewer: User | None,
 ) -> HomeBlock | None:
-    block = HomeBlock(id=block_id, type=type_, style=config.style, title=title, subtitle=subtitle)
+    block = HomeBlock(
+        id=block_id, type=type_, source=config.source, style=config.style, title=title, subtitle=subtitle
+    )
     match type_:
         case HomeSectionType.HERO:
             block.hero = _hero(settings, config)

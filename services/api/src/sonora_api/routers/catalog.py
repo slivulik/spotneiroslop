@@ -19,7 +19,7 @@ from sonora_api.schemas.catalog import (
     TrackOut,
 )
 from sonora_api.schemas.common import ERROR_RESPONSES, Page
-from sonora_api.services import catalog
+from sonora_api.services import catalog, recommend
 
 router = APIRouter(prefix=API_V1, tags=["catalog"], responses=ERROR_RESPONSES)
 
@@ -95,6 +95,8 @@ async def get_release(
 @router.get("/artists/{artist_id}", response_model=ArtistOut)
 async def get_artist(artist_id: uuid.UUID, request: Request, session: Session, ctx: Ctx) -> Response:
     artist = await catalog.get_artist(session, ctx.settings, artist_id)
+    # Live figure from SONORA's own history (distinct listeners, last 30 days).
+    artist.monthly_listeners = await recommend.monthly_listeners(session, artist_id)
     return cached_json(request, artist, max_age=PUBLIC_TTL, public=True, stale_while_revalidate=PUBLIC_TTL)
 
 

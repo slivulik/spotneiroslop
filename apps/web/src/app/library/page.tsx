@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { motion } from "motion/react";
 import { useState } from "react";
+import { ArtistCard } from "@/components/ArtistCard";
 import { Artwork } from "@/components/Artwork";
 import { PlaylistCard, ReleaseCard } from "@/components/home/Blocks";
 import { HeartIcon, PlayIcon, PlusIcon, ShuffleIcon } from "@/components/icons";
@@ -97,17 +98,11 @@ function Albums() {
 
 function Artists() {
   const artists = useFollowedArtists();
-  if (!artists.data) return <Grid>{Array.from({ length: 6 }, (_, i) => <Skeleton key={i} className="aspect-square rounded-full" />)}</Grid>;
+  if (!artists.data) return <Grid>{Array.from({ length: 6 }, (_, i) => <Skeleton key={i} className="aspect-[3/4] rounded-xl" />)}</Grid>;
   if (!artists.data.length) return <Empty title="Вы ни на кого не подписаны" text="Подпишитесь на артиста на его странице — новые релизы окажутся под рукой." />;
   return (
     <Grid>
-      {artists.data.map((a) => (
-        <Link key={a.id} href={`/artist/${a.id}`} className="group relative flex flex-col items-center gap-2 rounded-xl p-3 transition-colors hover:bg-fg/5">
-          <Artwork artwork={a.artwork} alt={a.name} seed={a.name} sizes="160px" className="aspect-square w-full rounded-full transition-transform duration-500 group-hover:scale-105" />
-          <span className="max-w-full truncate text-body font-bold">{a.name}</span>
-          <LikeButton kind="artists" id={a.id} size={16} className="absolute right-2 top-2" />
-        </Link>
-      ))}
+      {artists.data.map((a) => <ArtistCard key={a.id} artist={a} />)}
     </Grid>
   );
 }

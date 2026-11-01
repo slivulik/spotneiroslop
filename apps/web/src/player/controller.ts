@@ -34,6 +34,8 @@ const SAVE_EVERY_MS = 5_000;
 let engine: PlayerEngine | null = null;
 let pendingEq: Equalizer | null = null;
 let preloadNext = true;
+/** Endless contexts ("Моя волна") top the queue up through this callback when it runs low. */
+let onQueueLow: (() => void) | null = null;
 let lastSave = 0;
 let prefetchedFor: string | null = null;
 /** Track for which `play_start` was reported in the current load. */
@@ -82,6 +84,8 @@ function getEngine(): PlayerEngine {
         lastSave = now;
         saveResumePosition(track.id, positionMs);
       }
+      const s2 = state();
+      if (s2.context?.type === "wave" && s2.queue && upcoming(s2.queue, 3).length < 3) onQueueLow?.();
       if (durationMs - positionMs < PREFETCH_BEFORE_END_MS && prefetchedFor !== track.id) {
         prefetchedFor = track.id;
         const queue = state().queue;
@@ -250,6 +254,10 @@ export const player = {
     if (!s.queue || cursor < 0 || cursor >= s.queue.order.length) return;
     s.patch({ queue: { ...s.queue, cursor } });
     void loadCurrent(true);
+  },
+
+  setQueueLowHandler(fn: (() => void) | null): void {
+    onQueueLow = fn;
   },
 
   /** Settings → Playback: warm the next track before the current one ends. */

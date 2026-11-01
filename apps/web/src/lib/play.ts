@@ -7,7 +7,7 @@ import { useSession } from "@/lib/session";
 import { player } from "@/player/controller";
 import { type PlayContext, toQueueTrack } from "@/player/queue";
 
-function requireLogin(): boolean {
+export function requireLogin(): boolean {
   if (useSession.getState().status === "authenticated") return true;
   navigate(`/login?next=${encodeURIComponent(window.location.pathname)}`);
   return false;

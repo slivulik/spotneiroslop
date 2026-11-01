@@ -5,6 +5,7 @@ import { motion } from "motion/react";
 import { useSyncExternalStore } from "react";
 import { HeroCarousel, HomeBlockView, PromoBanner } from "@/components/home/Blocks";
 import { PageError } from "@/components/Page";
+import { ContinueListening, FavoriteArtists, MixesShelf, WaveCard, YourPlaylists } from "@/components/home/Personal";
 import { Oscilloscope } from "@/components/visual/Sonic";
 import { useHome } from "@/lib/queries";
 import { useSession } from "@/lib/session";
@@ -60,6 +61,7 @@ function arrange(sections: Block[]): (Block | Block[])[] {
 
 export default function HomePage() {
   const { status, user } = useSession();
+  const authed = status === "authenticated";
   const hello = useGreeting();
   const dateLine = useDateLine();
   const home = useHome();
@@ -87,12 +89,24 @@ export default function HomePage() {
         <Oscilloscope height={44} className="-mb-6 opacity-90" />
       </header>
 
+      {authed ? (
+        <section className="grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
+          <WaveCard />
+          <ContinueListening />
+        </section>
+      ) : null}
       {home.isPending ? <HomeSkeleton /> : null}
       {home.isError ? <PageError message="Не удалось загрузить главную" /> : null}
       {!hasHero && promo.length > 1 ? <PromoBanner releases={promo} /> : null}
-      {arranged.map((item, i) =>
-        Array.isArray(item) ? <HeroCarousel key="hero" blocks={item} /> : <HomeBlockView key={item.id} block={item} index={i} />,
-      )}
+      {authed ? <MixesShelf index={0} /> : null}
+      {arranged
+        // "Continue listening" is already at the top for signed-in listeners.
+        .filter((item) => !(authed && !Array.isArray(item) && item.source === "recent"))
+        .map((item, i) =>
+          Array.isArray(item) ? <HeroCarousel key="hero" blocks={item} /> : <HomeBlockView key={item.id} block={item} index={i + (authed ? 1 : 0)} />,
+        )}
+      {authed ? <FavoriteArtists index={arranged.length + 1} /> : null}
+      {authed ? <YourPlaylists index={arranged.length + 2} /> : null}
       {home.data && sections.length === 0 ? (
         <div className="liquid rounded-2xl px-6 py-20 text-center">
           <div className="font-display text-title-1">Здесь скоро будет музыка</div>
