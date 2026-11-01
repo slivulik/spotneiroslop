@@ -1,0 +1,74 @@
+[project]
+name = "sonora-media-worker"
+version = "0.1.0"
+description = "Sonora media pipeline: validation, tagging, loudness, transcoding, HLS, artwork."
+requires-python = ">=3.13"
+dependencies = [
+    "sonora-api",
+    "dramatiq[redis]>=2.0",
+    "sqlalchemy>=2.0.44",
+    "psycopg[binary]>=3.2",
+    "boto3>=1.40",
+    "mutagen>=1.47",
+    "numpy>=2.3",
+    "pillow>=11.3",
+    "structlog>=25.4",
+    "pydantic-settings>=2.11",
+]
+
+[project.scripts]
+sonora-media-worker = "sonora_media.cli:main"
+
+[tool.uv.sources]
+sonora-api = { path = "../api", editable = true }
+
+[dependency-groups]
+dev = [
+    "pytest>=8.4",
+    "pytest-cov>=7.0",
+    "ruff>=0.14",
+    "mypy>=1.18",
+    "boto3-stubs[s3]>=1.40",
+]
+
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/sonora_media"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py313"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "A", "C4", "SIM", "RUF", "S", "PT", "RET", "PL", "TRY", "DTZ", "PERF"]
+ignore = [
+    "PLR0913", "PLR0917", "PLR2004", "TRY003",
+    "S603",     # subprocess with argument lists (never shell=True) is how we drive ffmpeg
+    "RUF001", "RUF002", "RUF003",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S311", "S607", "PLR2004", "PLR0915"]
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+files = ["src", "tests"]
+
+[[tool.mypy.overrides]]
+module = ["mutagen.*", "dramatiq.*", "pgvector.*"]
+ignore_missing_imports = true
+
+# mutagen and dramatiq ship without annotations; only these modules call into them.
+[[tool.mypy.overrides]]
+module = ["sonora_media.tags", "sonora_media.probe", "sonora_media.actors", "sonora_media.cli", "tests.conftest"]
+disallow_untyped_calls = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-markers"
+filterwarnings = ["error"]
