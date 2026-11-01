@@ -1,0 +1,26 @@
+# Production edge. TLS is automatic (Let's Encrypt). Set SONORA_DOMAIN in the environment.
+{
+	email {$ACME_EMAIL}
+}
+
+api.{$SONORA_DOMAIN} {
+	encode zstd gzip
+	header {
+		Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
+	request_body {
+		max_size 10MB
+	}
+	reverse_proxy api:8000 {
+		header_up X-Request-ID {http.request.uuid}
+		health_uri /healthz
+		lb_try_duration 5s
+	}
+	log {
+		output stdout
+		format json
+	}
+}
