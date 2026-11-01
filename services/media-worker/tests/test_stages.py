@@ -26,7 +26,7 @@ def test_probe(settings: WorkerSettings, audio: AudioFiles) -> None:
 
 
 def test_probe_rejects_bad_files(settings: WorkerSettings, audio: AudioFiles) -> None:
-    with pytest.raises(MediaError, match="damaged"):
+    with pytest.raises(MediaError, match="повреждён"):
         probe(settings, audio.corrupt)
     with pytest.raises(MediaError):
         probe(settings, audio.not_audio)
@@ -168,7 +168,7 @@ def test_artwork(tmp_path: Path) -> None:
 
 
 def test_artwork_rejects_garbage(tmp_path: Path) -> None:
-    with pytest.raises(MediaError, match="unreadable"):
+    with pytest.raises(MediaError, match="не читается"):
         artwork.process(b"not an image", tmp_path)
 
 

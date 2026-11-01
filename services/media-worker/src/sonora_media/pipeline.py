@@ -3,10 +3,12 @@
 
 from __future__ import annotations
 
+import os
 import tempfile
 import traceback
 import uuid
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
@@ -101,8 +103,8 @@ def stage_authenticity(ctx: JobContext) -> dict[str, Any]:
     if result.suspicious:
         ctx.warn(
             "suspected_lossy_source",
-            f"Spectrum ends at ~{result.cutoff_hz / 1000:.1f} kHz: "
-            "the FLAC was probably made from a lossy file",
+            f"Спектр обрывается на ~{result.cutoff_hz / 1000:.1f} кГц: "
+            "FLAC, вероятно, сделан из MP3 или другого сжатого файла",
             cutoff_hz=result.cutoff_hz,
         )
     return result.to_dict()
@@ -111,13 +113,13 @@ def stage_authenticity(ctx: JobContext) -> dict[str, Any]:
 def stage_tags(ctx: JobContext) -> dict[str, Any]:
     tags = read_tags(ctx.source)
     if not tags.artists:
-        raise MediaError("Missing artist tag (ARTIST / TPE1)")
+        raise MediaError("Нет тега исполнителя (ARTIST / TPE1) — заполните его и загрузите снова")
     if not tags.title:
         stem = Path(next(f["filename"] for f in ctx.files if f["role"] == "source")).stem
         tags.title = stem.split(" - ", 1)[-1].strip() or stem
-        ctx.warn("title_from_filename", f"No title tag; using '{tags.title}' from the file name")
+        ctx.warn("title_from_filename", f"Нет тега названия — взято из имени файла: «{tags.title}»")
     if not tags.album:
-        ctx.warn("no_album", "No album tag: the track is filed as a single")
+        ctx.warn("no_album", "Нет тега альбома — трек оформлен как сингл")
     return tags.to_dict()
 
 
@@ -137,9 +139,10 @@ def stage_fingerprint(ctx: JobContext) -> dict[str, Any]:
         track_id, reason = duplicate
         if not ctx.options.get("allow_duplicate"):
             raise MediaError(
-                f"Duplicate of track {track_id}: {reason}. Re-upload with allow_duplicate to keep both"
+                f"Такой трек уже есть в каталоге ({reason}). "
+                "Чтобы оставить оба, загрузите с «Разрешить дубликаты»"
             )
-        ctx.warn("duplicate", f"Duplicate of track {track_id}: {reason}", track_id=str(track_id))
+        ctx.warn("duplicate", f"Дубликат трека из каталога ({reason})", track_id=str(track_id))
     return {"sha256": sha, "fingerprint": encoded}
 
 
@@ -173,16 +176,25 @@ def stage_transcode(ctx: JobContext) -> dict[str, Any]:
     plan = plan_ladder(ctx.probe, has_fdk_aac=has_encoder(ctx.settings, "libfdk_aac"))
     out_dir = ctx.workdir / "renditions"
     bucket, prefix = ctx.settings.s3_media_bucket, ctx.media_prefix
-    encoded = [transcode.encode(ctx.settings, ctx.source, ctx.probe, r, out_dir) for r in plan]
+    # Each rendition is an independent ffmpeg process: encode them side by side.
+    with ThreadPoolExecutor(max_workers=max(1, min(len(plan), os.cpu_count() or 2))) as pool:
+        encoded = list(
+            pool.map(lambda r: transcode.encode(ctx.settings, ctx.source, ctx.probe, r, out_dir), plan)
+        )
     master = out_dir / "hls" / "master.m3u8"
     master.write_text(transcode.master_playlist(encoded))
+
+    def push(e: transcode.EncodedRendition) -> None:
+        ctx.storage.upload_file(bucket, f"{prefix}/files/{e.file.name}", e.file)
+        upload_dir(ctx.storage, bucket, f"{prefix}/hls/{e.rendition.quality.value}", e.hls_dir)
+
+    with ThreadPoolExecutor(max_workers=max(1, len(encoded))) as pool:
+        list(pool.map(push, encoded))
 
     renditions = []
     for e in encoded:
         q = e.rendition.quality.value
         file_key = f"{prefix}/files/{e.file.name}"
-        ctx.storage.upload_file(bucket, file_key, e.file)
-        upload_dir(ctx.storage, bucket, f"{prefix}/hls/{q}", e.hls_dir)
         renditions.append(
             {
                 **e.rendition.to_dict(),
@@ -212,13 +224,13 @@ def stage_artwork(ctx: JobContext) -> dict[str, Any]:
             release = session.get(Release, uuid.UUID(release_id))
             has_cover = bool(release and release.cover_key)
         if not has_cover:
-            ctx.warn("no_cover", "No cover art (embedded or uploaded): the release has no artwork")
+            ctx.warn("no_cover", "Нет обложки (ни встроенной, ни загруженной) — релиз останется без картинки")
         return {"cover_key": None}
     result = artwork.process(data, ctx.workdir / "cover")
     if result.source_size < artwork.MIN_RECOMMENDED:
         ctx.warn(
             "small_cover",
-            f"Cover is {result.source_size}px; at least {artwork.MIN_RECOMMENDED}px recommended",
+            f"Обложка {result.source_size} px — лучше от {artwork.MIN_RECOMMENDED} px",
         )
     digest = fp.sha256_bytes(data)[:12]
     cover_key = f"covers/{release_id}/{digest}"
@@ -247,7 +259,7 @@ def stage_publish(ctx: JobContext) -> dict[str, Any]:
     with ctx.sessions.begin() as session:
         track = session.get(Track, ctx.track_id)
         if track is None:
-            raise MediaError("Track was deleted while processing")
+            raise MediaError("Трек удалили во время обработки")
         catalog.finalize_track(
             session,
             track,

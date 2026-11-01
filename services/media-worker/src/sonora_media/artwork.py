@@ -37,4 +37,4 @@ def process(data: bytes, out_dir: Path) -> ArtworkResult:
     try:
         return _process(data, out_dir)
     except ImageError as exc:
-        raise MediaError(f"Cover image is unreadable: {exc}") from exc
+        raise MediaError(f"Обложка не читается (повреждена): {exc}") from exc

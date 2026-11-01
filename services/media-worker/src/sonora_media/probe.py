@@ -48,21 +48,21 @@ def probe(settings: WorkerSettings, path: Path) -> ProbeResult:
     except ToolMissingError:
         raise
     except ToolError as exc:
-        raise MediaError("File is not a readable audio file") from exc
+        raise MediaError("Файл не читается как аудио") from exc
 
     audio = [s for s in info.get("streams", []) if s.get("codec_type") == "audio"]
     if not audio:
-        raise MediaError("File contains no audio stream")
+        raise MediaError("В файле нет аудиодорожки")
     stream = audio[0]
     codec = SUPPORTED.get(stream.get("codec_name", ""))
     if codec is None:
-        raise MediaError(f"Unsupported codec {stream.get('codec_name')!r}: upload FLAC or MP3")
+        raise MediaError(f"Неподдерживаемый кодек {stream.get('codec_name')!r}: загрузите FLAC или MP3")
 
     fmt = info.get("format", {})
     duration_s = float(stream.get("duration") or fmt.get("duration") or 0)
     duration_ms = round(duration_s * 1000)
     if not MIN_DURATION_MS <= duration_ms <= MAX_DURATION_MS:
-        raise MediaError(f"Implausible duration: {duration_ms} ms")
+        raise MediaError(f"Странная длительность: {duration_ms} мс")
 
     sample_rate = int(stream["sample_rate"])
     bit_depth = None
@@ -109,15 +109,15 @@ def verify_decodes(settings: WorkerSettings, path: Path, info: ProbeResult) -> N
                     "-f", "hash", "-hash", "md5", "-",
                 )  # fmt: skip
                 if out.decode().strip().removeprefix("MD5=") != expected:
-                    raise MediaError("File is damaged: decoded audio does not match its FLAC checksum")
+                    raise MediaError("Файл повреждён: звук не совпадает с контрольной суммой FLAC")
                 return
         stderr = ffmpeg_stderr(settings, "-xerror", "-i", str(path), "-map", "0:a:0", "-f", "null", "-")
     except ToolMissingError:
         raise
     except ToolError as exc:
-        raise MediaError(f"File is damaged and does not decode cleanly: {exc}") from exc
+        raise MediaError(f"Файл повреждён и не декодируется: {exc}") from exc
     if problem := _DECODE_PROBLEMS.search(stderr):
-        raise MediaError(f"File is damaged and does not decode cleanly: {problem.group(0)}")
+        raise MediaError(f"Файл повреждён и не декодируется: {problem.group(0)}")
 
 
 def _flac_md5(path: Path) -> str | None:

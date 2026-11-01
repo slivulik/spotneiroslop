@@ -197,7 +197,7 @@ def read_tags(path: Path) -> TrackTags:
     try:
         audio = mutagen.File(path)
     except mutagen.MutagenError as exc:
-        raise MediaError(f"Cannot read tags: {exc}") from exc
+        raise MediaError(f"Не удалось прочитать теги: {exc}") from exc
     if isinstance(audio, FLAC):
         raw = _read_flac(audio)
         has_cover = bool(audio.pictures)
@@ -205,7 +205,7 @@ def read_tags(path: Path) -> TrackTags:
         raw = _read_id3(audio.tags) if audio.tags is not None else _Raw({}, None, [])
         has_cover = bool(audio.tags and audio.tags.getall("APIC"))
     else:
-        raise MediaError("Unsupported container for tag reading")
+        raise MediaError("Теги в этом формате не читаются")
 
     tags = TrackTags(has_cover=has_cover)
     raw_title = raw.first("TITLE")

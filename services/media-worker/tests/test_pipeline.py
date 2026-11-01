@@ -177,7 +177,7 @@ def test_duplicates_rejected_unless_allowed(
     job = h.job(duplicate)
     assert job.stage == "fingerprint"
     assert job.error is not None
-    assert "identical file" in job.error
+    assert "тот же самый файл" in job.error
 
     allowed = h.submit(audio.flac16, allow_duplicate=True)
     assert h.pipeline.run(allowed) == JobStatus.FAILED  # identical bytes still collide on the unique hash
@@ -232,7 +232,7 @@ def test_corrupt_upload_fails_with_clear_message(
     job = h.job(job_id)
     assert job.stage == "probe"
     assert job.error is not None
-    assert "damaged" in job.error
+    assert "повреждён" in job.error
     assert job.track_id is None
 
 

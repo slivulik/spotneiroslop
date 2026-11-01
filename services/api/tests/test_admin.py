@@ -91,6 +91,18 @@ async def test_upload_validation(harness: Harness) -> None:
         json={"source": {"filename": "x.flac", "size_bytes": 3 * 1024**3}},
     )
     assert too_big.status_code == 413
+    # Russian (any Unicode) file names are fine: storage keys come from the job id, not the name.
+    cyrillic = await harness.client.post(
+        "/v1/admin/uploads",
+        headers=bearer(admin),
+        json={
+            "source": {"filename": "01 Мираж — Жара.FLAC", "size_bytes": 10},
+            "cover": {"filename": "обложка.JPG", "size_bytes": 5},
+        },
+    )
+    assert cyrillic.status_code == 201, cyrillic.text
+    keys = [u["url"] for u in cyrillic.json()["uploads"]]
+    assert all("/source.flac" in k or "/cover.jpg" in k for k in keys)
 
 
 async def test_retry_discards_later_checkpoints(harness: Harness) -> None:

@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import mimetypes
 import shutil
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import TYPE_CHECKING, Protocol
 
@@ -45,12 +46,16 @@ class MediaStorage(Protocol):
     def upload_file(self, bucket: str, key: str, path: Path) -> None: ...
 
 
+#: Parallel PUTs: an HLS rendition is hundreds of small segments, latency-bound when serial.
+UPLOAD_THREADS = 8
+
+
 def upload_dir(storage: MediaStorage, bucket: str, prefix: str, directory: Path) -> list[str]:
-    keys = []
-    for path in sorted(p for p in directory.rglob("*") if p.is_file()):
-        key = f"{prefix.rstrip('/')}/{path.relative_to(directory).as_posix()}"
-        storage.upload_file(bucket, key, path)
-        keys.append(key)
+    files = sorted(p for p in directory.rglob("*") if p.is_file())
+    keys = [f"{prefix.rstrip('/')}/{path.relative_to(directory).as_posix()}" for path in files]
+    with ThreadPoolExecutor(max_workers=UPLOAD_THREADS) as pool:
+        # list() re-raises the first upload error.
+        list(pool.map(lambda kp: storage.upload_file(bucket, kp[0], kp[1]), zip(keys, files, strict=True)))
     return keys
 
 

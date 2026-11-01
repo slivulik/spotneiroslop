@@ -57,7 +57,7 @@ def find_duplicate(
     if exclude:
         same_bytes = same_bytes.where(Track.id != exclude)
     if (track_id := session.scalar(same_bytes)) is not None:
-        return track_id, "identical file"
+        return track_id, "тот же самый файл"
 
     mine = fp.decode(fingerprint)
     if not fp.is_informative(mine):
@@ -78,7 +78,7 @@ def find_duplicate(
             continue
         score = fp.similarity(mine, theirs)
         if score >= fp.DUPLICATE_SIMILARITY:
-            return track_id, f"same recording (fingerprint similarity {score:.2f})"
+            return track_id, f"та же запись (сходство отпечатков {score:.2f})"
     return None
 
 
