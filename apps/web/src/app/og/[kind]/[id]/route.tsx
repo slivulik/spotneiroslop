@@ -17,8 +17,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ kind: s
     (
       <div style={{ width: "100%", height: "100%", display: "flex", background: `linear-gradient(135deg, ${a} 0%, ${b} 55%, #0B0A10 100%)`, padding: 64, gap: 56, alignItems: "center", fontFamily: "Onest, OnestLatin" }}>
         <div style={{ width: 440, height: 440, display: "flex", borderRadius: card.round ? 220 : 28, overflow: "hidden", boxShadow: "0 30px 80px rgba(0,0,0,.5)", background: "#1D1A26", flexShrink: 0 }}>
-          {/* eslint-disable-next-line @next/next/no-img-element -- rendered by the OG image generator, not the browser */}
           {img ? (
+            // eslint-disable-next-line @next/next/no-img-element -- rendered by the OG image generator, not the browser
             <img src={img} width={440} height={440} style={{ objectFit: "cover" }} alt="" />
           ) : (
             <div style={{ width: 440, height: 440, display: "flex", alignItems: "center", justifyContent: "center", background: "radial-gradient(circle at 35% 30%, #8669FF, #4B2FCC 75%)", color: "white", fontFamily: "Unbounded, UnboundedLatin", fontSize: 200 }}>
