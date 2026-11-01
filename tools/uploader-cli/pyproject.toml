@@ -1,0 +1,38 @@
+[project]
+name = "sonora-uploader"
+version = "0.1.0"
+description = "Bulk-upload FLAC/MP3 folders to Sonora through the admin API."
+requires-python = ">=3.12"
+dependencies = ["httpx>=0.28"]
+
+[project.scripts]
+sonora-upload = "sonora_uploader.cli:main"
+
+[dependency-groups]
+dev = ["pytest>=8.4", "ruff>=0.14", "mypy>=1.18"]
+
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/sonora_uploader"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "N", "UP", "B", "C4", "SIM", "RUF", "S", "PT", "RET", "PL", "TRY"]
+ignore = ["TRY003", "PLR2004", "PLR0913", "RUF001"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S105", "S106"]
+
+[tool.mypy]
+strict = true
+files = ["src", "tests"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = ["error"]
