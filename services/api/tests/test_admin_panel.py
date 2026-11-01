@@ -215,6 +215,15 @@ async def test_home_default_then_builder(harness: Harness, catalog_data: Catalog
         json={"type": "releases", "title": "Пусто", "config": {"source": "manual"}},
     )
     assert bad.status_code == 422
+    shelf = await harness.client.post(
+        "/v1/admin/home/sections",
+        headers=bearer(admin),
+        json={
+            "type": "releases",
+            "title": "Выбор редакции",
+            "config": {"source": "manual", "ids": [str(catalog_data.single.id), str(catalog_data.album.id)]},
+        },
+    )
     hero = await harness.client.post(
         "/v1/admin/home/sections",
         headers=bearer(admin),
@@ -230,20 +239,14 @@ async def test_home_default_then_builder(harness: Harness, catalog_data: Catalog
         },
     )
     assert hero.status_code == 201, hero.text
-    shelf = await harness.client.post(
-        "/v1/admin/home/sections",
-        headers=bearer(admin),
-        json={
-            "type": "releases",
-            "title": "Выбор редакции",
-            "config": {"source": "manual", "ids": [str(catalog_data.single.id), str(catalog_data.album.id)]},
-        },
-    )
     hidden = await harness.client.post(
         "/v1/admin/home/sections",
         headers=bearer(admin),
         json={"type": "tracks", "title": "Скрытый", "is_active": False, "config": {"source": "popular"}},
     )
+    listed = (await harness.client.get("/v1/admin/home/sections", headers=bearer(admin))).json()
+    # A new banner jumps to the top even though the shelf was created first.
+    assert [x["title"] for x in listed] == ["Tides — новый альбом", "Выбор редакции", "Скрытый"]
     order = [shelf.json()["id"], hero.json()["id"], hidden.json()["id"]]
     assert (
         await harness.client.put("/v1/admin/home/order", headers=bearer(admin), json={"ids": order})
@@ -449,3 +452,13 @@ async def test_quality_switches_clamp_streams(harness: Harness, catalog_data: Ca
         row = await s.get(Track, track.id)
         assert row is not None
         assert row.status == TrackStatus.READY
+
+
+async def test_public_search(harness: Harness, catalog_data: Catalog) -> None:
+    by_artist = (await harness.client.get("/v1/search", params={"q": "night shore"})).json()
+    assert {t["title"] for t in by_artist["tracks"]} == {"Tides #1", "Tides #2", "Tides #3", "Afterglow #1"}
+    assert {r["title"] for r in by_artist["releases"]} == {"Tides", "Afterglow"}  # embargoed one hidden
+    assert [a["name"] for a in by_artist["artists"]] == ["Night Shore"]
+    by_title = (await harness.client.get("/v1/search", params={"q": "afterglow"})).json()
+    assert [r["title"] for r in by_title["releases"]] == ["Afterglow"]
+    assert (await harness.client.get("/v1/search", params={"q": ""})).status_code == 422

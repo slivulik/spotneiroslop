@@ -43,6 +43,7 @@ from sonora_api.schemas.editorial import (
     PlaylistAdminPatch,
     PlaylistOut,
     PlaylistSummary,
+    SearchOut,
     SectionConfig,
 )
 from sonora_api.schemas.media import ImageRef
@@ -381,14 +382,20 @@ async def list_sections(session: AsyncSession) -> list[HomeSectionAdminOut]:
 
 
 async def create_section(session: AsyncSession, body: HomeSectionIn) -> HomeSectionAdminOut:
-    last = await session.scalar(select(func.max(HomeSection.position)))
+    # Banners belong at the top of the page; every other block is appended at the bottom.
+    if body.type == HomeSectionType.HERO:
+        first = await session.scalar(select(func.min(HomeSection.position)))
+        position = (first or 0) - 10
+    else:
+        last = await session.scalar(select(func.max(HomeSection.position)))
+        position = (last or 0) + 10
     section = HomeSection(
         id=uuid7(),
         type=body.type,
         title=body.title,
         subtitle=body.subtitle,
         is_active=body.is_active,
-        position=(last or 0) + 10,
+        position=position,
         config=body.config.model_dump(mode="json"),
     )
     session.add(section)
@@ -690,3 +697,56 @@ async def all_genres(
         .order_by(Genre.position, Genre.name)
     )
     return [(genre_out(settings, g), int(n), g.description, g.position) for g, n in rows]
+
+
+def _like(q: str) -> str:
+    return "%" + q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
+
+
+async def search(
+    session: AsyncSession, settings: Settings, q: str, limit: int, viewer: User | None
+) -> SearchOut:
+    pattern = _like(q)
+    artist_ids = select(Artist.id).where(Artist.name.ilike(pattern))
+    by_artist = select(TrackArtist.track_id).where(TrackArtist.artist_id.in_(artist_ids))
+    tracks = await session.scalars(
+        catalog._tracks_query(_now())
+        .where((Track.title.ilike(pattern)) | (Track.id.in_(by_artist)))
+        .order_by(Track.play_count.desc(), Track.id)
+        .limit(limit)
+    )
+    release_by_artist = select(ReleaseArtist.release_id).where(ReleaseArtist.artist_id.in_(artist_ids))
+    releases = await session.scalars(
+        select(Release)
+        .where(
+            release_visible(_now()),
+            exists().where(Track.release_id == Release.id, Track.status == TrackStatus.READY),
+            (Release.title.ilike(pattern)) | (Release.id.in_(release_by_artist)),
+        )
+        .options(selectinload(Release.artist_links).selectinload(ReleaseArtist.artist))
+        .order_by(Release.created_at.desc())
+        .limit(limit)
+    )
+    has_music = exists().where(
+        TrackArtist.artist_id == Artist.id,
+        TrackArtist.track_id == Track.id,
+        Track.status == TrackStatus.READY,
+    )
+    artists = await session.scalars(
+        select(Artist).where(Artist.name.ilike(pattern), has_music).order_by(Artist.name).limit(limit)
+    )
+    playlist_rows = list(
+        await session.scalars(
+            select(Playlist)
+            .where(Playlist.is_public, Playlist.track_count > 0, Playlist.title.ilike(pattern))
+            .order_by(Playlist.updated_at.desc())
+            .limit(limit)
+        )
+    )
+    mosaics = await _mosaics(session, settings, [p.id for p in playlist_rows])
+    return SearchOut(
+        tracks=[track_out(settings, t, viewer) for t in tracks],
+        releases=[catalog._release_summary(settings, r) for r in releases],
+        artists=[artist_summary(settings, a) for a in artists],
+        playlists=[_playlist_summary(settings, p, mosaics.get(p.id, []), None) for p in playlist_rows],
+    )

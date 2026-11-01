@@ -1,8 +1,9 @@
 """Home page, playlists, genres, lyrics, platform status, listening events."""
 
 import uuid
+from typing import Annotated
 
-from fastapi import APIRouter, Request, Response
+from fastapi import APIRouter, Query, Request, Response
 from pydantic import Field
 from sqlalchemy import select
 
@@ -14,7 +15,14 @@ from sonora_api.models.enums import HomeSectionType, LyricsType, TrackStatus
 from sonora_api.routers import API_V1
 from sonora_api.schemas.catalog import TrackList
 from sonora_api.schemas.common import ERROR_RESPONSES, ApiModel
-from sonora_api.schemas.editorial import GenreDetail, HomeOut, PlatformPublic, PlaylistOut, SectionConfig
+from sonora_api.schemas.editorial import (
+    GenreDetail,
+    HomeOut,
+    PlatformPublic,
+    PlaylistOut,
+    SearchOut,
+    SectionConfig,
+)
 from sonora_api.schemas.events import EventsIn, EventsOut
 from sonora_api.services import editorial, events, platform
 
@@ -101,3 +109,18 @@ async def recent_tracks(viewer: CurrentViewer, session: Session, ctx: Ctx) -> Tr
         title="", subtitle=None, config=SectionConfig(source="recent", limit=30), viewer=viewer.user,
     )  # fmt: skip
     return TrackList(items=block.tracks if block else [])
+
+
+@router.get("/search")
+async def search(
+    session: Session,
+    ctx: Ctx,
+    viewer: OptionalViewer,
+    q: Annotated[str, Query(min_length=1, max_length=100)],
+    limit: Annotated[int, Query(ge=1, le=30)] = 10,
+) -> SearchOut:
+    """Search published music by title or artist (substring, case-insensitive).
+
+    Typo tolerance and transliteration arrive with Meilisearch (ROADMAP, phase 5).
+    """
+    return await editorial.search(session, ctx.settings, q.strip(), limit, viewer.user if viewer else None)

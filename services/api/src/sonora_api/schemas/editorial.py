@@ -145,6 +145,13 @@ class HomeOut(ApiModel):
     is_default: bool
 
 
+class SearchOut(ApiModel):
+    tracks: list[TrackOut]
+    releases: list[ReleaseSummary]
+    artists: list[ArtistSummary]
+    playlists: list[PlaylistSummary]
+
+
 class GenreDetail(ApiModel):
     genre: GenreOut
     description: str | None
