@@ -12,16 +12,27 @@
 		Referrer-Policy strict-origin-when-cross-origin
 		-Server
 	}
-	request_body {
-		max_size 10MB
+
+	# Object storage (S3 path-style). Uploads and private media need a signature; the signature
+	# covers the Host header, which Caddy forwards unchanged. No body limit: sources reach 2 GB.
+	@storage path /sonora-uploads/* /sonora-media/* /sonora-public/*
+	handle @storage {
+		reverse_proxy s3:8333
 	}
-	reverse_proxy api:8000 {
-		header_up X-Request-ID {http.request.uuid}
-		health_uri /healthz
-		health_interval 5s
-		health_timeout 2s
-		lb_try_duration 5s
+
+	handle {
+		request_body {
+			max_size 10MB
+		}
+		reverse_proxy api:8000 {
+			header_up X-Request-ID {http.request.uuid}
+			health_uri /healthz
+			health_interval 5s
+			health_timeout 2s
+			lb_try_duration 5s
+		}
 	}
+
 	log {
 		output stdout
 		format json

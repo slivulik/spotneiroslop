@@ -1,7 +1,8 @@
 # Production stack for a single VPS. Usage (from repo root):
 #   ./infra/deploy/bootstrap.sh            # first install / update
 # Only Caddy publishes ports; databases are reachable on the internal network only.
-# ClickHouse, Meilisearch and MinIO are not used by the API yet (phases 2–5): they live in
+# Object storage is SeaweedFS (S3 API) behind Caddy; swap for R2 / B2 / Hetzner by pointing
+# SONORA_S3_* at them. ClickHouse and Meilisearch are not used yet (later phases): they live in
 # the `full` profile so a small VPS shared with other services isn't loaded for nothing.
 name: sonora
 
@@ -51,6 +52,38 @@ services:
       resources:
         limits: { memory: 256m }
 
+  s3:
+    <<: *restart
+    image: chrislusf/seaweedfs:latest
+    entrypoint: ["/bin/sh", "/init/entrypoint.sh"]
+    environment:
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+      S3_SECRET_KEY: ${S3_SECRET_KEY}
+    volumes:
+      - s3data:/data
+      - ./seaweedfs:/init:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8333/status || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+    deploy:
+      resources:
+        limits: { memory: 512m }
+
+  storage-init:
+    image: sonora-api:latest
+    command: ["sonora-api", "init-storage"]
+    env_file: [../.env]
+    environment:
+      SONORA_S3_ENDPOINT_URL: http://s3:8333
+      SONORA_S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+      SONORA_S3_SECRET_KEY: ${S3_SECRET_KEY}
+    depends_on:
+      s3: { condition: service_healthy }
+      api-migrate: { condition: service_completed_successfully }
+    restart: "no"
+
   api-migrate:
     build: ../services/api
     image: sonora-api:latest
@@ -71,13 +104,48 @@ services:
       SONORA_LOG_JSON: "true"
       SONORA_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       SONORA_REDIS_URL: redis://redis:6379/0
+      SONORA_QUEUE_URL: redis://redis:6379/1
+      SONORA_S3_ENDPOINT_URL: http://s3:8333
+      SONORA_S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+      SONORA_S3_SECRET_KEY: ${S3_SECRET_KEY}
+      # Presigned upload URLs and artwork go through Caddy on the public address.
+      SONORA_S3_PUBLIC_ENDPOINT_URL: ${SONORA_PUBLIC_URL}
+      SONORA_MEDIA_BASE_URL: ${SONORA_PUBLIC_URL}/sonora-public
       WEB_CONCURRENCY: ${WEB_CONCURRENCY:-2}
     depends_on:
       api-migrate: { condition: service_completed_successfully }
+      storage-init: { condition: service_completed_successfully }
       redis: { condition: service_healthy }
     deploy:
       resources:
         limits: { memory: 768m }
+
+  media-worker:
+    <<: *restart
+    build:
+      context: ../services
+      dockerfile: media-worker/Dockerfile
+    image: sonora-media-worker:latest
+    env_file: [../.env]
+    environment:
+      SONORA_ENV: prod
+      SONORA_LOG_JSON: "true"
+      SONORA_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      SONORA_QUEUE_URL: redis://redis:6379/1
+      SONORA_S3_ENDPOINT_URL: http://s3:8333
+      SONORA_S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+      SONORA_S3_SECRET_KEY: ${S3_SECRET_KEY}
+      # One transcode at a time by default: the VPS also runs a VPN.
+      SONORA_WORKER_PROCESSES: ${WORKER_PROCESSES:-1}
+    volumes:
+      - workerdata:/work
+    depends_on:
+      api-migrate: { condition: service_completed_successfully }
+      storage-init: { condition: service_completed_successfully }
+      redis: { condition: service_healthy }
+    deploy:
+      resources:
+        limits: { memory: 1536m }
 
   caddy:
     <<: *restart
@@ -93,7 +161,7 @@ services:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddydata:/data
       - caddyconfig:/config
-    depends_on: [api]
+    depends_on: [api, s3]
 
   clickhouse:
     <<: *restart
@@ -119,16 +187,6 @@ services:
       MEILI_NO_ANALYTICS: "true"
     volumes: [meilidata:/meili_data]
 
-  minio:
-    <<: *restart
-    profiles: [full]
-    image: minio/minio:latest
-    command: server /data
-    environment:
-      MINIO_ROOT_USER: ${S3_ACCESS_KEY}
-      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY}
-    volumes: [miniodata:/data]
-
 volumes:
   pgdata:
   redisdata:
@@ -136,4 +194,5 @@ volumes:
   caddyconfig:
   chdata:
   meilidata:
-  miniodata:
+  s3data:
+  workerdata:

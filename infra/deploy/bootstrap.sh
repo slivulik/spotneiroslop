@@ -99,13 +99,29 @@ else
   log "Keeping existing $ROOT/.env"
 fi
 
+# --- Keys added by later releases (existing installs keep their secrets) --------------
+ensure_env() {
+  grep -q "^$1=" "$ROOT/.env" || { echo "$1=$2" >>"$ROOT/.env"; log "added $1 to .env"; }
+}
+# shellcheck disable=SC1091
+source "$ROOT/.env"
+if [[ "$SONORA_API_ADDRESS" == :* ]]; then
+  public_url="http://$(public_ip)"
+  [[ "$CADDY_HTTP_PORT" == "80" ]] || public_url="$public_url:$CADDY_HTTP_PORT"
+else
+  public_url="https://$SONORA_API_ADDRESS"
+  [[ "$CADDY_HTTPS_PORT" == "443" ]] || public_url="$public_url:$CADDY_HTTPS_PORT"
+fi
+ensure_env SONORA_PUBLIC_URL "$public_url"
+ensure_env WORKER_PROCESSES 1
+
 # --- Start ----------------------------------------------------------------------
 if [[ "${SONORA_SKIP_BUILD:-0}" == "1" ]]; then
   log "Skipping build (SONORA_SKIP_BUILD=1): using existing sonora-api:latest"
   up_flags=(--no-build)
 else
-  log "Building API image"
-  "${COMPOSE[@]}" build api-migrate
+  log "Building images (API, media worker)"
+  "${COMPOSE[@]}" build api-migrate media-worker
   up_flags=()
 fi
 log "Starting stack"
@@ -119,11 +135,11 @@ for _ in $(seq 1 60); do
     # shellcheck disable=SC1091
     source "$ROOT/.env"
     log "Sonora API is up"
-    if [[ "$SONORA_API_ADDRESS" == :* ]]; then
-      echo "    http://$(public_ip):${CADDY_HTTP_PORT}/healthz"
-    else
-      echo "    https://${SONORA_API_ADDRESS}/healthz  (DNS A-record must point to this server)"
-    fi
+    echo "    ${SONORA_PUBLIC_URL}/healthz"
+    [[ "$SONORA_API_ADDRESS" == :* ]] || echo "    (DNS A-record for ${SONORA_API_ADDRESS} must point to this server)"
+    echo
+    echo "    Create the admin account (asks for a password):"
+    echo "    docker compose -f infra/docker-compose.prod.yml --env-file .env exec api sonora-api create-admin --email you@example.com"
     exit 0
   fi
   sleep 2
