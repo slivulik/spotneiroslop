@@ -251,8 +251,8 @@ export function WaveformSeek({
               background: played
                 ? "linear-gradient(to top, var(--sonora-color-wave-a), var(--sonora-color-wave-b))"
                 : previewed
-                  ? "rgba(255,255,255,.45)"
-                  : "rgba(255,255,255,.18)",
+                  ? "color-mix(in srgb, var(--sonora-color-text-primary) 45%, transparent)"
+                  : "color-mix(in srgb, var(--sonora-color-text-primary) 20%, transparent)",
               transform: hover !== null && Math.abs(at - hover) < 0.02 ? "scaleY(1.25)" : undefined,
             }}
           />

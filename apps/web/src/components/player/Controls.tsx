@@ -17,8 +17,8 @@ export function PlayPauseButton({ size = 40, className = "" }: { size?: number; 
       aria-label={playing ? "Пауза" : "Играть"}
       data-ripple
       onClick={() => player.toggle()}
-      className={`relative flex items-center justify-center rounded-full text-[#1a0d06] shadow-[0_8px_24px_-8px_rgba(255,90,54,.7)] transition-transform hover:scale-105 active:scale-95 ${className}`}
-      style={{ width: size, height: size, background: "radial-gradient(circle at 35% 30%, var(--sonora-color-wave-b), var(--sonora-color-wave-a) 75%)" }}
+      className={`relative flex items-center justify-center rounded-full btn-accent transition-transform hover:scale-105 active:scale-95 ${className}`}
+      style={{ width: size, height: size }}
     >
       {playing ? <PauseIcon size={size * 0.48} /> : <PlayIcon size={size * 0.48} style={{ marginLeft: size * 0.04 }} />}
       {loading ? (

@@ -70,7 +70,7 @@ function QueuePanel() {
       <div className="mb-2 px-2 text-micro uppercase text-text-primary/60">Далее</div>
       {next.length === 0 ? <div className="px-2 text-text-primary/60">Очередь пуста</div> : null}
       {next.map((t, i) => (
-        <button key={`${t.id}-${i}`} type="button" onClick={() => player.playAt(queue.cursor + 1 + i)} className="flex w-full items-center gap-3 rounded-2xl p-2 text-left hover:bg-white/10">
+        <button key={`${t.id}-${i}`} type="button" onClick={() => player.playAt(queue.cursor + 1 + i)} className="flex w-full items-center gap-3 rounded-lg p-2 text-left hover:bg-fg/10">
           <Artwork artwork={t.release.artwork} alt={t.title} sizes="44px" className="h-11 w-11 shrink-0 rounded-lg" />
           <div className="min-w-0 flex-1">
             <div className="truncate text-body font-semibold">{t.title}</div>
@@ -149,7 +149,7 @@ export function NowPlaying() {
             <div className="flex flex-col items-center gap-6">
               <motion.div
                 layoutId="now-playing-art"
-                className="aspect-square w-full max-w-[min(78vw,440px)] overflow-hidden rounded-[32px] shadow-artwork"
+                className="aspect-square w-full max-w-[min(78vw,440px)] overflow-hidden rounded-2xl shadow-artwork"
                 animate={{ scale: playing ? 1 : 0.86 }}
                 style={{ boxShadow: "0 40px 90px -20px rgba(0,0,0,.7), 0 0 calc(40px + var(--beat) * 60px) color-mix(in srgb, var(--bg-c2) 45%, transparent)" }}
                 transition={{ type: "spring", ...tokens.motion.spring.gentle }}
@@ -174,7 +174,7 @@ export function NowPlaying() {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 40 }}
                   transition={{ type: "spring", stiffness: 260, damping: 28 }}
-                  className="liquid h-[min(68vh,640px)] overflow-hidden rounded-[32px]"
+                  className="liquid h-[min(68vh,640px)] overflow-hidden rounded-2xl"
                 >
                   {panel === "lyrics" ? <LyricsPanel trackId={track.id} /> : <QueuePanel />}
                 </motion.div>

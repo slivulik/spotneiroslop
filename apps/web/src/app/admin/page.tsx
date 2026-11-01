@@ -20,7 +20,7 @@ export default function AdminOverview() {
       </div>
       <div className="grid gap-4 xl:grid-cols-[2fr_1fr]">
         <Panel title="Прослушивания за 14 дней">
-          {streaming.data ? <PlaysChart days={streaming.data.daily} /> : <div className="skeleton h-56 rounded-2xl" />}
+          {streaming.data ? <PlaysChart days={streaming.data.daily} /> : <div className="skeleton h-56 rounded-lg" />}
         </Panel>
         <Panel title="Каталог">
           <dl className="grid grid-cols-2 gap-4">
@@ -30,7 +30,7 @@ export default function AdminOverview() {
               ["Артисты", s?.artists],
               ["Плейлисты", s?.playlists],
             ].map(([label, value]) => (
-              <div key={label as string} className="rounded-2xl bg-white/[0.04] p-4">
+              <div key={label as string} className="rounded-lg bg-white/[0.04] p-4">
                 <dt className="text-caption text-text-secondary">{label}</dt>
                 <dd className="mt-1 font-display text-title-1 tabular-nums">{value ?? "—"}</dd>
               </div>

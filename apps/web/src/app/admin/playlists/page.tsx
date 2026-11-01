@@ -32,7 +32,7 @@ function PlaylistEditor({ id, onClose }: { id: string; onClose: () => void }) {
     return unwrap(api.PUT("/v1/admin/playlists/{playlist_id}/tracks", { params: { path: { playlist_id: id } }, body: { track_ids: tracks!.map((t) => t.id) } }));
   }, { success: "Плейлист сохранён" });
   const remove = useAction(() => unwrap(api.DELETE("/v1/admin/playlists/{playlist_id}", { params: { path: { playlist_id: id } } })), { success: "Плейлист удалён" });
-  if (!p || !form || !tracks) return <div className="skeleton h-96 rounded-2xl" />;
+  if (!p || !form || !tracks) return <div className="skeleton h-96 rounded-lg" />;
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-wrap items-start gap-5">
@@ -44,7 +44,7 @@ function PlaylistEditor({ id, onClose }: { id: string; onClose: () => void }) {
       </div>
       <Field label="Описание"><TextArea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></Field>
       <Field label="Треки"><Picker kind="track" value={tracks} onChange={setTracks} max={500} /></Field>
-      <div className="flex items-center justify-between border-t border-white/8 pt-4">
+      <div className="flex items-center justify-between border-t border-fg/8 pt-4">
         <ConfirmButton label="Удалить" confirm="Плейлист будет удалён. Треки останутся в каталоге." onConfirm={() => remove.mutate(undefined, { onSuccess: onClose })} />
         <div className="flex gap-2">
           <Link href={`/playlist/${id}`} className="rounded-full px-4 py-2 text-caption font-bold text-text-secondary hover:text-text-primary">Открыть на сайте</Link>
@@ -68,15 +68,15 @@ export default function PlaylistsPage() {
       />
       <SpotlightZone className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         {playlists.data?.map((p, i) => (
-          <motion.button key={p.id} type="button" onClick={() => setOpen(p.id)} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }} className="liquid spotlight rounded-3xl p-2.5 text-left">
+          <motion.button key={p.id} type="button" onClick={() => setOpen(p.id)} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }} className="liquid spotlight rounded-xl p-2.5 text-left">
             <div className="spotlight-glow" />
-            <PlaylistCover playlist={p} sizes="220px" className="aspect-square w-full rounded-2xl" />
+            <PlaylistCover playlist={p} sizes="220px" className="aspect-square w-full rounded-lg" />
             <div className="mt-2 truncate text-body font-bold">{p.title}</div>
             <div className="truncate text-caption text-text-secondary">{p.track_count} треков</div>
           </motion.button>
         ))}
       </SpotlightZone>
-      {playlists.data && playlists.data.length === 0 ? <div className="liquid rounded-[28px] py-14 text-center text-text-secondary">Плейлистов ещё нет — создайте первый</div> : null}
+      {playlists.data && playlists.data.length === 0 ? <div className="liquid rounded-xl py-14 text-center text-text-secondary">Плейлистов ещё нет — создайте первый</div> : null}
       <Drawer open={Boolean(open)} onClose={() => setOpen(null)} title="Плейлист" wide>
         {open ? <PlaylistEditor key={open} id={open} onClose={() => setOpen(null)} /> : null}
       </Drawer>

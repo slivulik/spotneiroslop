@@ -72,10 +72,10 @@ function SearchBox() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -6, scale: 0.98 }}
             transition={{ type: "spring", stiffness: 420, damping: 32 }}
-            className="liquid liquid-strong absolute inset-x-0 top-[calc(100%+8px)] z-50 max-h-[70vh] overflow-auto rounded-3xl p-2"
+            className="liquid liquid-strong absolute inset-x-0 top-[calc(100%+8px)] z-50 max-h-[70vh] overflow-auto rounded-xl p-2"
           >
             {items.map((item) => (
-              <Link key={item.key} href={item.href} onClick={() => setOpen(false)} className="flex items-center gap-3 rounded-2xl p-2 hover:bg-white/8">
+              <Link key={item.key} href={item.href} onClick={() => setOpen(false)} className="flex items-center gap-3 rounded-lg p-2 hover:bg-fg/8">
                 <Artwork artwork={item.art} alt={item.title} sizes="44px" className={`h-11 w-11 shrink-0 ${item.round ? "rounded-full" : "rounded-lg"}`} />
                 <div className="min-w-0">
                   <div className="truncate text-body font-semibold">{item.title}</div>
@@ -117,13 +117,13 @@ function Account() {
             initial={{ opacity: 0, y: -6, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -6, scale: 0.96 }}
-            className="liquid liquid-strong absolute right-0 top-[calc(100%+8px)] z-50 w-56 rounded-2xl p-1.5"
+            className="liquid liquid-strong absolute right-0 top-[calc(100%+8px)] z-50 w-56 rounded-lg p-1.5"
           >
             <div className="px-3 py-2 text-micro uppercase text-text-tertiary">{user?.email}</div>
             {user?.role === "admin" ? (
-              <Link href="/admin" onClick={() => setOpen(false)} className="block rounded-xl px-3 py-2 text-body hover:bg-white/8">Панель управления</Link>
+              <Link href="/admin" onClick={() => setOpen(false)} className="block rounded-md px-3 py-2 text-body hover:bg-fg/8">Панель управления</Link>
             ) : null}
-            <button type="button" onClick={() => { setOpen(false); void logout(); }} className="w-full rounded-xl px-3 py-2 text-left text-body hover:bg-white/8">
+            <button type="button" onClick={() => { setOpen(false); void logout(); }} className="w-full rounded-md px-3 py-2 text-left text-body hover:bg-fg/8">
               Выйти
             </button>
           </motion.div>

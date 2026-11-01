@@ -147,10 +147,10 @@ function LyricsTab({ track }: { track: Detail }) {
     const next = syncing.stamps.length;
     return (
       <div className="flex flex-col gap-4">
-        <div className="rounded-2xl bg-accent/15 p-4 text-body">Трек играет. Нажимайте <b>пробел</b> или кнопку в момент, когда начинается выделенная строка.</div>
-        <div className="max-h-80 overflow-auto rounded-2xl bg-white/[0.04] p-3">
+        <div className="rounded-lg bg-accent/15 p-4 text-body">Трек играет. Нажимайте <b>пробел</b> или кнопку в момент, когда начинается выделенная строка.</div>
+        <div className="max-h-80 overflow-auto rounded-lg bg-white/[0.04] p-3">
           {syncing.lines.map((l, i) => (
-            <div key={i} className={`flex gap-3 rounded-lg px-2 py-1.5 font-display ${i === next ? "bg-white/10 text-title-3" : i < next ? "text-text-tertiary" : "text-text-secondary"}`}>
+            <div key={i} className={`flex gap-3 rounded-lg px-2 py-1.5 font-display ${i === next ? "bg-fg/10 text-title-3" : i < next ? "text-text-tertiary" : "text-text-secondary"}`}>
               <span className="w-16 shrink-0 text-caption tabular-nums">{syncing.stamps[i] !== undefined ? stamp(syncing.stamps[i]!) : ""}</span>{l}
             </div>
           ))}
@@ -192,7 +192,7 @@ function FilesTab({ track }: { track: Detail }) {
         <thead className="text-micro uppercase text-text-secondary"><tr><th className="py-2">Качество</th><th>Кодек</th><th>Битрейт</th><th>Частота</th><th>Размер</th></tr></thead>
         <tbody>
           {track.files.map((f) => (
-            <tr key={f.quality} className="border-t border-white/5">
+            <tr key={f.quality} className="border-t border-fg/5">
               <td className="py-2"><Pill tone={f.quality === "hires" ? "warn" : f.quality === "lossless" ? "info" : "neutral"}>{f.quality}</Pill></td>
               <td>{f.codec.toUpperCase()}{f.bit_depth ? ` ${f.bit_depth} бит` : ""}</td>
               <td className="tabular-nums">{f.bitrate ? `${Math.round(f.bitrate / 1000)} кбит/с` : "—"}</td>
@@ -205,7 +205,7 @@ function FilesTab({ track }: { track: Detail }) {
       {track.files.length === 0 ? <div className="text-text-tertiary">Файлы ещё не готовы</div> : null}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[["Громкость", track.loudness.lufs, "LUFS"], ["True peak", track.loudness.true_peak, "dBTP"], ["Track gain", track.loudness.track_gain, "dB"], ["Album gain", track.loudness.album_gain, "dB"]].map(([label, value, unit]) => (
-          <div key={label as string} className="rounded-2xl bg-white/[0.04] p-3">
+          <div key={label as string} className="rounded-lg bg-white/[0.04] p-3">
             <div className="text-micro uppercase text-text-secondary">{label}</div>
             <div className="mt-1 font-display text-title-3 tabular-nums">{value ?? "—"} <span className="text-caption text-text-tertiary">{value !== null ? unit : ""}</span></div>
           </div>
@@ -226,10 +226,10 @@ export function TrackEditor({ trackId, onClose }: { trackId: string | null; onCl
   const t = detail.data;
   return (
     <Drawer open={Boolean(trackId)} onClose={onClose} title={t ? t.title : "Трек"} wide>
-      {!t ? <div className="skeleton h-80 rounded-2xl" /> : (
+      {!t ? <div className="skeleton h-80 rounded-lg" /> : (
         <div className="flex flex-col gap-5">
           <div className="flex items-center gap-4">
-            <Artwork artwork={t.release.artwork} alt="" sizes="80px" className="h-20 w-20 shrink-0 rounded-2xl" />
+            <Artwork artwork={t.release.artwork} alt="" sizes="80px" className="h-20 w-20 shrink-0 rounded-lg" />
             <div className="min-w-0 flex-1">
               <div className="truncate font-display text-title-2">{t.title}{t.version ? <span className="text-text-secondary"> ({t.version})</span> : null}</div>
               <div className="truncate text-body text-text-secondary">{t.artists.map((a) => a.name).join(", ")} · {t.release.title}</div>
@@ -242,7 +242,7 @@ export function TrackEditor({ trackId, onClose }: { trackId: string | null; onCl
             ))}
           </div>
           {tab === "meta" ? <MetadataTab key={t.id + t.title} track={t} /> : tab === "lyrics" ? <LyricsTab key={t.id} track={t} /> : <FilesTab track={t} />}
-          <div className="mt-4 flex justify-end border-t border-white/8 pt-4">
+          <div className="mt-4 flex justify-end border-t border-fg/8 pt-4">
             <ConfirmButton label="Удалить трек" confirm="Трек и все его файлы будут удалены безвозвратно." onConfirm={() => remove.mutate(undefined, { onSuccess: onClose })} />
           </div>
         </div>

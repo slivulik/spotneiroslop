@@ -31,7 +31,7 @@ export function CollectionHeader({
   disabled?: boolean;
 }) {
   return (
-    <header className="relative mx-4 mt-2 overflow-hidden rounded-[36px] md:mx-8">
+    <header className="relative mx-4 mt-2 overflow-hidden rounded-2xl md:mx-8">
       <div className="absolute inset-0 -z-10 opacity-80" style={{ background: `radial-gradient(120% 140% at 0% 0%, ${tint ?? "var(--bg-c1)"} 0%, transparent 65%)` }} />
       <div className="liquid flex flex-col items-center gap-6 p-6 md:flex-row md:items-end md:gap-10 md:p-10">
         <Tilt max={9} className="w-[68vw] max-w-[280px] shrink-0">{cover}</Tilt>
@@ -50,8 +50,8 @@ export function CollectionHeader({
               disabled={disabled}
               aria-label={playing ? "Пауза" : "Слушать"}
               data-ripple
-              style={{ background: "radial-gradient(circle at 35% 30%, var(--sonora-color-wave-b), var(--sonora-color-wave-a) 75%)" }}
-              className="flex h-16 w-16 items-center justify-center rounded-full text-[#1a0d06] shadow-[0_14px_40px_-10px_rgba(255,90,54,.7)] transition-transform hover:scale-105 active:scale-95 disabled:opacity-40"
+             
+              className="flex h-16 w-16 items-center justify-center rounded-full btn-accent transition-transform hover:scale-105 active:scale-95 disabled:opacity-40"
             >
               {playing ? <PauseIcon size={28} /> : <PlayIcon size={28} style={{ marginLeft: 3 }} />}
             </button>

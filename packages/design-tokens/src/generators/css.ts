@@ -23,6 +23,8 @@ export function flattenTokens(t: Tokens): Array<[string, string]> {
   }
   for (const [name, v] of Object.entries(t.space)) out.push([`space-${name}`, px(v)]);
   for (const [name, v] of Object.entries(t.radius)) out.push([`radius-${name}`, px(v)]);
+  for (const [name, v] of Object.entries(t.opacity)) out.push([`opacity-${name}`, String(v)]);
+  for (const [name, v] of Object.entries(t.border)) out.push([`border-${name}`, px(v)]);
   for (const [name, v] of Object.entries(t.shadow)) out.push([`shadow-${name}`, v]);
   for (const [name, v] of Object.entries(t.blur)) out.push([`blur-${name}`, px(v)]);
   for (const [name, v] of Object.entries(t.motion.duration)) out.push([`duration-${name}`, ms(v)]);
@@ -56,5 +58,13 @@ export function generateCss(t: Tokens): string {
       .map((name) => `    --${CSS_PREFIX}-duration-${name}: 0ms;`)
       .join("\n") +
     `\n  }\n}`;
-  return `${HEADER}:root {\n  color-scheme: dark;\n${vars}\n}\n\n${reducedMotion}\n\n${typeClasses}\n`;
+  const themes = Object.entries(t.themes)
+    .map(([theme, def]) => {
+      const body = Object.entries(def.color)
+        .flatMap(([group, entries]) => Object.entries(entries).map(([name, value]) => `  --${CSS_PREFIX}-color-${group}-${name}: ${value};`))
+        .join("\n");
+      return `[data-theme="${theme}"] {\n  color-scheme: ${theme};\n${body}\n}`;
+    })
+    .join("\n\n");
+  return `${HEADER}:root {\n  color-scheme: dark;\n${vars}\n}\n\n${themes}\n\n${reducedMotion}\n\n${typeClasses}\n`;
 }

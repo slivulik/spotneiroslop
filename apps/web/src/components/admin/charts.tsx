@@ -17,7 +17,7 @@ export function Counter({ value }: { value: number }) {
 /** KPI tile: one headline number, a label, an optional delta line. */
 export function StatTile({ label, value, hint, live = false }: { label: string; value: number; hint?: string; live?: boolean }) {
   return (
-    <div className="liquid spotlight rounded-[24px] p-5">
+    <div className="liquid spotlight rounded-xl p-5">
       <div className="spotlight-glow" />
       <div className="flex items-center gap-2 text-micro uppercase tracking-wide text-text-secondary">
         {live ? <span className="relative flex h-2 w-2"><span className="absolute inset-0 animate-ping rounded-full bg-state-success/70" /><span className="relative h-2 w-2 rounded-full bg-state-success" /></span> : null}
@@ -61,7 +61,7 @@ export function PlaysChart({ days }: { days: Day[] }) {
       <svg viewBox={`0 0 ${width} ${height}`} className="h-auto w-full" role="img" aria-label="Прослушивания по дням">
         {ticks.map((t) => (
           <g key={t}>
-            <line x1={pad.left} x2={width - pad.right} y1={y(t)} y2={y(t)} stroke="rgba(255,255,255,0.07)" />
+            <line x1={pad.left} x2={width - pad.right} y1={y(t)} y2={y(t)} stroke="color-mix(in srgb, var(--sonora-color-text-primary) 8%, transparent)" />
             <text x={pad.left - 8} y={y(t) + 4} textAnchor="end" className="fill-[var(--sonora-color-text-tertiary)] text-[11px]">{t}</text>
           </g>
         ))}
@@ -91,7 +91,7 @@ export function PlaysChart({ days }: { days: Day[] }) {
         })}
       </svg>
       {hover !== null && days[hover] ? (
-        <div className="liquid liquid-strong pointer-events-none absolute top-0 rounded-xl px-3 py-2 text-caption" style={{ left: `${((pad.left + hover * slot + slot / 2) / width) * 100}%`, transform: "translateX(-50%)" }}>
+        <div className="liquid liquid-strong pointer-events-none absolute top-0 rounded-md px-3 py-2 text-caption" style={{ left: `${((pad.left + hover * slot + slot / 2) / width) * 100}%`, transform: "translateX(-50%)" }}>
           <div className="font-semibold">{fmtDay(days[hover].day)}</div>
           <div className="text-text-secondary">Прослушиваний: <span className="text-text-primary">{days[hover].plays}</span></div>
           <div className="text-text-secondary">Слушателей: <span className="text-text-primary">{days[hover].listeners}</span></div>

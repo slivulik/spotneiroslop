@@ -73,7 +73,7 @@ describe("generators", () => {
 
   it("CSS contains vars, type classes and reduced-motion overrides", () => {
     const css = generateCss(tokens);
-    expect(css).toContain("--sonora-color-bg-base: #0A0908;");
+    expect(css).toContain("--sonora-color-bg-base: #0B0A10;");
     expect(css).toContain(".sonora-type-title-1 {");
     expect(css).toMatch(/prefers-reduced-motion[\s\S]*--sonora-duration-normal: 0ms;/);
   });
@@ -88,9 +88,36 @@ describe("generators", () => {
     expect(pascal("bg-base")).toBe("BgBase");
     expect(pascal("2")).toBe("X2");
     const kt = generateKotlin(tokens);
-    expect(kt).toContain("val BgBase: Color = Color(0xFF0A0908)");
+    expect(kt).toContain("val BgBase: Color = Color(0xFF0B0A10)");
     expect(kt).toContain("val X4: Dp = 16.dp");
     expect(kt).toMatch(/val Snappy: SpringToken = SpringToken\(stiffness = 520\.0f, dampingRatio = 0\.8332f\)/);
     expect(kt).not.toMatch(/val \d/);
+  });
+});
+
+describe("themes", () => {
+  const light = tokens.themes.light!.color;
+  const bg = parseColor(light.bg!.base!);
+  it("light theme text meets WCAG AA and the accent 3:1", () => {
+    expect(contrastRatio(parseColor(light.text!.primary!), bg)).toBeGreaterThanOrEqual(7);
+    expect(contrastRatio(parseColor(light.text!.secondary!), bg)).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(parseColor(light.accent!.default!), bg)).toBeGreaterThanOrEqual(4.5);
+  });
+  it("emits a data-theme override block and Kotlin light palette", () => {
+    expect(generateCss(tokens)).toContain('[data-theme="light"] {\n  color-scheme: light;');
+    expect(generateKotlin(tokens)).toContain("object LightColors");
+  });
+  it("rejects theme keys missing from the base palette", () => {
+    const raw = JSON.parse(JSON.stringify(tokens)) as { themes: { light: { color: Record<string, Record<string, string>> } } };
+    raw.themes.light.color.bg!.nope = "#000000";
+    expect(() => validateTokens(raw)).toThrow("themes.light.color.bg.nope");
+  });
+});
+
+describe("accent buttons", () => {
+  it("text on the accent meets 4.5:1 in both themes", () => {
+    const on = parseColor(tokens.color.accent!.on!);
+    expect(contrastRatio(on, parseColor(tokens.color.accent!.default!))).toBeGreaterThanOrEqual(4.5);
+    expect(contrastRatio(on, parseColor(tokens.themes.light!.color.accent!.default!))).toBeGreaterThanOrEqual(4.5);
   });
 });

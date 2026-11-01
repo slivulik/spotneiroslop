@@ -43,7 +43,7 @@ export default function UsersPage() {
       <Panel>
         <div className="flex flex-col">
           {users.data?.items.map((u, i) => (
-            <motion.div key={u.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 20) * 0.015 }} className="flex flex-wrap items-center gap-3 rounded-2xl p-3 hover:bg-white/[0.04]">
+            <motion.div key={u.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 20) * 0.015 }} className="flex flex-wrap items-center gap-3 rounded-lg p-3 hover:bg-white/[0.04]">
               <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-caption font-bold ${u.blocked_at ? "bg-state-danger/30" : "bg-gradient-to-br from-wave-a to-wave-b"}`}>{u.display_name.slice(0, 1).toUpperCase()}</span>
               <div className="min-w-[180px] flex-1">
                 <div className="flex items-center gap-2 truncate text-body font-semibold">

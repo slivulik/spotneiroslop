@@ -14,12 +14,12 @@ export default function GenrePage({ params }: { params: Promise<{ slug: string }
   const genre = useGenre(slug);
   if (genre.isError) return <PageError message="Жанр не найден" />;
   const data = genre.data;
-  if (!data) return <div className="p-8"><Skeleton className="h-64 w-full rounded-[36px]" /></div>;
+  if (!data) return <div className="p-8"><Skeleton className="h-64 w-full rounded-2xl" /></div>;
   const color = data.genre.color ?? "#7C5CFF";
   return (
     <div className="mx-auto flex max-w-[1680px] flex-col gap-10 px-4 md:px-8">
       <Reveal>
-        <header className="relative overflow-hidden rounded-[36px] p-8 md:p-14" style={{ background: `linear-gradient(135deg, ${color}, color-mix(in srgb, ${color} 35%, #07070a))` }}>
+        <header className="relative overflow-hidden rounded-2xl p-8 md:p-14" style={{ background: `linear-gradient(135deg, ${color}, color-mix(in srgb, ${color} 35%, #07070a))` }}>
           <div className="noise absolute inset-0 opacity-20 mix-blend-overlay" />
           <span className="relative text-micro uppercase tracking-[0.2em] text-white/80">Жанр</span>
           <h1 className="relative mt-2 font-display text-display-l leading-none md:text-display-xl">{data.genre.name}</h1>

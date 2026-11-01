@@ -207,9 +207,9 @@ export default function HomeBuilder() {
         {order.map((s) => {
           const meta = TYPES.find((t) => t.type === s.type)!;
           return (
-            <Reorder.Item key={s.id} value={s} onDragEnd={commitOrder} whileDrag={{ scale: 1.02, boxShadow: "0 20px 50px rgba(0,0,0,.5)" }} className={`liquid flex cursor-grab items-center gap-4 rounded-[22px] p-3 active:cursor-grabbing ${s.is_active ? "" : "opacity-50"}`}>
+            <Reorder.Item key={s.id} value={s} onDragEnd={commitOrder} whileDrag={{ scale: 1.02, boxShadow: "0 20px 50px rgba(0,0,0,.5)" }} className={`liquid flex cursor-grab items-center gap-4 rounded-lg p-3 active:cursor-grabbing ${s.is_active ? "" : "opacity-50"}`}>
               <span className="text-text-tertiary">⋮⋮</span>
-              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-wave-a to-wave-b text-title-3">{meta.icon}</span>
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-gradient-to-br from-wave-a to-wave-b text-title-3">{meta.icon}</span>
               <div className="min-w-0 flex-1">
                 <div className="truncate text-body font-bold">{s.title}</div>
                 <div className="truncate text-caption text-text-secondary">{meta.label} · {summary(s)}</div>
@@ -227,11 +227,11 @@ export default function HomeBuilder() {
       <AnimatePresence>
         {adding ? (
           <motion.div className="fixed inset-0 z-[130] flex items-center justify-center bg-black/55 p-4 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setAdding(false)}>
-            <motion.div onClick={(e) => e.stopPropagation()} initial={{ scale: 0.92, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0 }} className="liquid liquid-strong grid w-full max-w-2xl gap-3 rounded-[32px] p-6 sm:grid-cols-2">
+            <motion.div onClick={(e) => e.stopPropagation()} initial={{ scale: 0.92, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0 }} className="liquid liquid-strong grid w-full max-w-2xl gap-3 rounded-2xl p-6 sm:grid-cols-2">
               <h2 className="font-display text-title-2 sm:col-span-2">Какой блок добавить?</h2>
               {TYPES.map((t, i) => (
-                <motion.button key={t.type} type="button" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }} onClick={() => { setAdding(false); setEditing({ section: null, type: t.type }); }} className="flex items-start gap-3 rounded-2xl bg-white/[0.05] p-4 text-left transition-colors hover:bg-white/10">
-                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-wave-a to-wave-b">{t.icon}</span>
+                <motion.button key={t.type} type="button" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }} onClick={() => { setAdding(false); setEditing({ section: null, type: t.type }); }} className="flex items-start gap-3 rounded-lg bg-white/[0.05] p-4 text-left transition-colors hover:bg-fg/10">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-wave-a to-wave-b">{t.icon}</span>
                   <span><span className="block text-body font-bold">{t.label}</span><span className="block text-caption text-text-secondary">{t.description}</span></span>
                 </motion.button>
               ))}

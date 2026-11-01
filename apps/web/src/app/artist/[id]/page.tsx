@@ -19,11 +19,11 @@ export default function ArtistPage({ params }: { params: Promise<{ id: string }>
   const releases = useArtistReleases(id);
   if (artist.isError) return <PageError message="Артист не найден" />;
   const data = artist.data;
-  if (!data) return <div className="p-8"><Skeleton className="h-72 w-full rounded-[36px]" /></div>;
+  if (!data) return <div className="p-8"><Skeleton className="h-72 w-full rounded-2xl" /></div>;
   const tint = data.palette?.vibrant ?? data.artwork?.palette?.vibrant ?? "var(--bg-c1)";
   return (
     <div className="mx-auto flex max-w-[1680px] flex-col gap-10 px-4 md:px-8">
-      <header className="relative overflow-hidden rounded-[36px]">
+      <header className="relative overflow-hidden rounded-2xl">
         <div className="absolute inset-0 -z-10" style={{ background: `radial-gradient(120% 140% at 0% 100%, ${tint}, transparent 60%)` }} />
         {data.artwork ? (
           <div className="absolute inset-0 -z-10 opacity-40 blur-2xl saturate-150">
@@ -61,7 +61,7 @@ export default function ArtistPage({ params }: { params: Promise<{ id: string }>
       ) : null}
       {data.bio ? (
         <Reveal>
-          <section className="liquid max-w-3xl rounded-[28px] p-6">
+          <section className="liquid max-w-3xl rounded-xl p-6">
             <h2 className="mb-3 font-display text-title-2">Об артисте</h2>
             <p className="whitespace-pre-line text-body-l text-text-secondary">{data.bio}</p>
           </section>

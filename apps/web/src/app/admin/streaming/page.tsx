@@ -27,7 +27,7 @@ function Switches() {
     success: "Настройки сервиса сохранены",
     invalidate: [["admin", "platform"], ["platform"]],
   });
-  if (!draft) return <div className="skeleton h-96 rounded-[28px]" />;
+  if (!draft) return <div className="skeleton h-96 rounded-xl" />;
   const set = <K extends keyof Config>(key: K, value: Config[K]) => setDraft({ ...draft, [key]: value });
   const dirty = JSON.stringify(draft) !== JSON.stringify(config.data);
   return (
@@ -47,7 +47,7 @@ function Switches() {
           ]} />
         </Field>
       </div>
-      <div className="my-4 h-px bg-white/8" />
+      <div className="my-4 h-px bg-fg/8" />
       <Toggle
         checked={draft.announcement?.enabled ?? false}
         onChange={(v) => set("announcement", { ...(draft.announcement ?? { text: "", tone: "info" }), enabled: v } as Config["announcement"])}
@@ -97,9 +97,9 @@ export default function StreamingPage() {
           <Panel title="Сейчас в эфире">
             <AnimatePresence initial={false}>
               {d?.listening_now.map((entry) => (
-                <motion.div key={entry.user_id} layout initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="flex items-center gap-3 rounded-2xl p-2 hover:bg-white/5">
+                <motion.div key={entry.user_id} layout initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 20 }} className="flex items-center gap-3 rounded-lg p-2 hover:bg-fg/5">
                   <div className="relative">
-                    <Artwork artwork={entry.track.release.artwork} alt="" sizes="48px" className="h-12 w-12 rounded-xl" />
+                    <Artwork artwork={entry.track.release.artwork} alt="" sizes="48px" className="h-12 w-12 rounded-md" />
                     <span className="absolute -right-1 -top-1 flex h-3 w-3"><span className="absolute inset-0 animate-ping rounded-full bg-state-success/70" /><span className="relative h-3 w-3 rounded-full border-2 border-[#101015] bg-state-success" /></span>
                   </div>
                   <div className="min-w-0 flex-1">
@@ -111,10 +111,10 @@ export default function StreamingPage() {
             </AnimatePresence>
             {d && d.listening_now.length === 0 ? <div className="py-6 text-center text-text-tertiary">Сейчас никто не слушает</div> : null}
           </Panel>
-          <Panel title="Прослушивания за 14 дней">{d ? <PlaysChart days={d.daily} /> : <div className="skeleton h-56 rounded-2xl" />}</Panel>
+          <Panel title="Прослушивания за 14 дней">{d ? <PlaysChart days={d.daily} /> : <div className="skeleton h-56 rounded-lg" />}</Panel>
           <Panel title="Топ треков недели">
             {d?.top_tracks.map((t, i) => (
-              <div key={t.track.id} className="flex items-center gap-3 rounded-2xl p-2">
+              <div key={t.track.id} className="flex items-center gap-3 rounded-lg p-2">
                 <span className="w-6 text-center font-display text-title-3 text-text-tertiary">{i + 1}</span>
                 <Artwork artwork={t.track.release.artwork} alt="" sizes="44px" className="h-11 w-11 rounded-lg" />
                 <div className="min-w-0 flex-1">

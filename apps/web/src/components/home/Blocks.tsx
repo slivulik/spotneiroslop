@@ -44,8 +44,8 @@ export function PlayFab({ onClick, size = 44, className = "" }: { onClick: () =>
         e.stopPropagation();
         onClick();
       }}
-      className={`flex items-center justify-center rounded-full text-[#1a0d06] shadow-[0_10px_30px_-6px_rgba(255,90,54,.55)] transition-all duration-300 ease-standard hover:scale-110 active:scale-95 ${className}`}
-      style={{ width: size, height: size, background: "radial-gradient(circle at 35% 30%, var(--sonora-color-wave-b), var(--sonora-color-wave-a) 75%)" }}
+      className={`flex items-center justify-center rounded-full btn-accent transition-all duration-300 ease-standard hover:scale-110 active:scale-95 ${className}`}
+      style={{ width: size, height: size }}
     >
       <PlayIcon size={size * 0.42} style={{ marginLeft: size * 0.05 }} />
     </button>
@@ -84,7 +84,7 @@ export function HeroCarousel({ blocks }: { blocks: Block[] }) {
           card?.style.setProperty("--my", `${e.clientY - r.top}px`);
         }}
       >
-        <div className="spotlight relative aspect-[16/9] overflow-hidden rounded-[32px] shadow-lg sm:aspect-[16/6]">
+        <div className="spotlight relative aspect-[16/9] overflow-hidden rounded-2xl shadow-lg sm:aspect-[16/6]">
           <AnimatePresence mode="popLayout" initial={false}>
             <motion.div
               key={block.id}
@@ -106,7 +106,7 @@ export function HeroCarousel({ blocks }: { blocks: Block[] }) {
             <h2 className="font-display text-title-1 leading-[1.05] sm:text-display-l">{block.title}</h2>
             {block.subtitle ? <p className="text-body-l text-text-primary/80">{block.subtitle}</p> : null}
             {href ? (
-              <Link href={href} data-ripple className="mt-2 w-fit rounded-full px-6 py-3 text-body font-bold text-[#1a0d06] transition-transform hover:scale-105" style={{ background: "radial-gradient(circle at 30% 30%, var(--sonora-color-wave-b), var(--sonora-color-wave-a) 80%)" }}>
+              <Link href={href} data-ripple className="mt-2 w-fit rounded-full px-6 py-3 text-body font-bold btn-accent transition-transform hover:scale-105">
                 {hero.cta_label ?? "Открыть"}
               </Link>
             ) : null}
@@ -150,7 +150,7 @@ export function PromoBanner({ releases }: { releases: S["ReleaseSummary"][] }) {
   });
   return (
     <Reveal>
-      <div className="liquid spectrum relative flex flex-col gap-6 overflow-hidden rounded-[32px] p-6 sm:h-72 sm:flex-row sm:items-stretch sm:p-8">
+      <div className="liquid spectrum relative flex flex-col gap-6 overflow-hidden rounded-2xl p-6 sm:h-72 sm:flex-row sm:items-stretch sm:p-8">
         <div className="flex shrink-0 flex-col justify-end gap-3 sm:w-[38%]">
           <span className="mono-label flex items-center gap-2 text-text-secondary"><span className="on-air-dot" /> Эфир · новое на Sonora</span>
           <h2 className="font-display text-title-1 leading-[1.05] sm:text-display-l">
@@ -166,7 +166,7 @@ export function PromoBanner({ releases }: { releases: S["ReleaseSummary"][] }) {
                 href={`/album/${slot.release.id}`}
                 className="spectrum-item group/bar relative flex h-full w-10 min-w-0 shrink-0 items-end transition-[width] duration-500 ease-standard hover:w-48 sm:w-14 sm:hover:w-56"
               >
-                <span className="spectrum-bar relative block w-full overflow-hidden rounded-[18px] shadow-artwork group-hover/bar:!h-full group-hover/bar:![animation:none] group-hover/bar:!transform-none" style={barStyle(slot.peak, i)}>
+                <span className="spectrum-bar relative block w-full overflow-hidden rounded-lg shadow-artwork group-hover/bar:!h-full group-hover/bar:![animation:none] group-hover/bar:!transform-none" style={barStyle(slot.peak, i)}>
                   <Artwork artwork={slot.release.artwork} alt={slot.release.title} sizes="240px" className="absolute inset-0 h-full w-full" />
                   <span className="absolute inset-x-0 bottom-0 translate-y-full bg-gradient-to-t from-black/80 to-transparent p-3 pt-8 opacity-0 transition-all duration-300 group-hover/bar:translate-y-0 group-hover/bar:opacity-100">
                     <span className="block truncate text-caption font-bold">{slot.release.title}</span>
@@ -201,10 +201,10 @@ const ICONS: Record<string, React.ReactNode> = {
 export function ReleaseCard({ release }: { release: S["ReleaseSummary"] }) {
   return (
     <Tilt>
-      <Link href={`/album/${release.id}`} className="liquid spotlight group block rounded-3xl p-2.5">
+      <Link href={`/album/${release.id}`} className="liquid spotlight group block rounded-xl p-2.5">
         <div className="spotlight-glow" />
         <div className="relative">
-          <Artwork artwork={release.artwork} alt={release.title} sizes="220px" className="aspect-square w-full rounded-2xl shadow-md" />
+          <Artwork artwork={release.artwork} alt={release.title} sizes="220px" className="aspect-square w-full rounded-lg shadow-md" />
           <PlayFab onClick={() => void playRelease(release.id)} className="absolute bottom-2.5 right-2.5 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100" />
         </div>
         <div className="px-1 pb-1 pt-2.5">
@@ -241,14 +241,14 @@ function QuickTile({ track, all, index }: { track: TrackOut; all: TrackOut[]; in
   const isCurrent = current?.id === track.id;
   return (
     <Reveal index={index}>
-      <button type="button" onClick={() => (isCurrent ? player.toggle() : playTracks(all, track.id, { type: "home", id: null, title: "Продолжить слушать" }))} className="liquid spotlight group flex w-full items-center gap-3 overflow-hidden rounded-2xl pr-3 text-left">
+      <button type="button" onClick={() => (isCurrent ? player.toggle() : playTracks(all, track.id, { type: "home", id: null, title: "Продолжить слушать" }))} className="liquid spotlight group flex w-full items-center gap-3 overflow-hidden rounded-lg pr-3 text-left">
         <div className="spotlight-glow" />
         <Artwork artwork={track.release.artwork} alt={track.title} sizes="64px" className="h-16 w-16 shrink-0" />
         <div className="min-w-0 flex-1">
           <div className={`truncate text-body font-bold ${isCurrent ? "text-accent" : ""}`}>{track.title}</div>
           <div className="truncate text-caption text-text-secondary">{track.artists.map((a) => a.name).join(", ")}</div>
         </div>
-        <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[#1a0d06] transition-all ${isCurrent && playing ? "opacity-100" : "scale-90 opacity-0 group-hover:scale-100 group-hover:opacity-100"}`} style={{ background: "radial-gradient(circle at 35% 30%, var(--sonora-color-wave-b), var(--sonora-color-wave-a) 75%)" }}>
+        <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full btn-accent transition-all ${isCurrent && playing ? "opacity-100" : "scale-90 opacity-0 group-hover:scale-100 group-hover:opacity-100"}`}>
           {isCurrent && playing ? <PauseIcon size={16} /> : <PlayIcon size={16} style={{ marginLeft: 2 }} />}
         </span>
       </button>
@@ -261,11 +261,11 @@ function TrackLine({ track, all, rank, title }: { track: TrackOut; all: TrackOut
   const playing = useIsPlaying();
   const isCurrent = current?.id === track.id;
   return (
-    <button type="button" onClick={() => (isCurrent ? player.toggle() : playTracks(all, track.id, { type: "home", id: null, title }))} className="group flex items-center gap-3 rounded-2xl p-2 text-left transition-colors hover:bg-white/6">
+    <button type="button" onClick={() => (isCurrent ? player.toggle() : playTracks(all, track.id, { type: "home", id: null, title }))} className="group flex items-center gap-3 rounded-lg p-2 text-left transition-colors hover:bg-fg/6">
       <span className="w-7 text-center font-display text-title-3 tabular-nums text-text-tertiary group-hover:text-text-primary">{rank}</span>
       <div className="relative shrink-0">
-        <Artwork artwork={track.release.artwork} alt={track.title} sizes="52px" className="h-13 w-13 rounded-xl" />
-        <span className={`absolute inset-0 flex items-center justify-center rounded-xl bg-black/40 transition-opacity ${isCurrent ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}>
+        <Artwork artwork={track.release.artwork} alt={track.title} sizes="52px" className="h-13 w-13 rounded-md" />
+        <span className={`absolute inset-0 flex items-center justify-center rounded-md bg-black/40 transition-opacity ${isCurrent ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}>
           {isCurrent && playing ? <PauseIcon size={20} /> : <PlayIcon size={20} />}
         </span>
       </div>
@@ -284,10 +284,10 @@ function TrackLine({ track, all, rank, title }: { track: TrackOut; all: TrackOut
 function PlaylistCard({ playlist }: { playlist: S["PlaylistSummary"] }) {
   return (
     <Tilt>
-      <Link href={`/playlist/${playlist.id}`} className="liquid spotlight group block rounded-3xl p-2.5">
+      <Link href={`/playlist/${playlist.id}`} className="liquid spotlight group block rounded-xl p-2.5">
         <div className="spotlight-glow" />
         <div className="relative">
-          <PlaylistCover playlist={playlist} sizes="240px" className="aspect-square w-full rounded-2xl shadow-md" />
+          <PlaylistCover playlist={playlist} sizes="240px" className="aspect-square w-full rounded-lg shadow-md" />
           <PlayFab onClick={() => void playPlaylist(playlist.id)} className="absolute bottom-2.5 right-2.5 translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100" />
         </div>
         <div className="px-1 pb-1 pt-2.5">
@@ -302,7 +302,7 @@ function PlaylistCard({ playlist }: { playlist: S["PlaylistSummary"] }) {
 function ArtistBubble({ artist, index }: { artist: S["ArtistSummary"]; index: number }) {
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: index * 0.04, type: "spring", stiffness: 240, damping: 22 }}>
-      <Link href={`/artist/${artist.id}`} className="group flex flex-col items-center gap-3 rounded-3xl p-3 transition-colors hover:bg-white/5">
+      <Link href={`/artist/${artist.id}`} className="group flex flex-col items-center gap-3 rounded-xl p-3 transition-colors hover:bg-fg/5">
         <div className="relative w-full">
           <Artwork artwork={artist.artwork} alt={artist.name} sizes="160px" seed={artist.name} className="aspect-square w-full rounded-full shadow-lg transition-transform duration-500 ease-standard group-hover:scale-105" />
           <span className="pointer-events-none absolute inset-0 rounded-full opacity-0 shadow-[0_0_40px_8px_color-mix(in_srgb,var(--bg-c2)_45%,transparent)] transition-opacity duration-500 group-hover:opacity-100" />
@@ -323,7 +323,7 @@ function GenreTile({ genre, index }: { genre: S["GenreOut"]; index: number }) {
     <Reveal index={index}>
       <Link
         href={`/genre/${genre.slug}`}
-        className="spotlight group relative block aspect-[16/10] overflow-hidden rounded-3xl p-4 shadow-md transition-transform duration-300 hover:-translate-y-1"
+        className="spotlight group relative block aspect-[16/10] overflow-hidden rounded-xl p-4 shadow-md transition-transform duration-300 hover:-translate-y-1"
         style={{ background: `radial-gradient(120% 120% at 0% 0%, color-mix(in srgb, ${color} 85%, white 15%), color-mix(in srgb, ${color} 40%, var(--ink)) 70%)` }}
       >
         <div className="spotlight-glow" />
@@ -387,7 +387,7 @@ export function HomeBlockView({ block: raw, index }: { block: Block; index: numb
       <Reveal>
         <section>
           <SectionHeader title={block.title} subtitle={block.subtitle} icon={icon} index={index} />
-          <div className="liquid grid grid-cols-1 gap-x-4 rounded-[28px] p-3 lg:grid-cols-2">
+          <div className="liquid grid grid-cols-1 gap-x-4 rounded-xl p-3 lg:grid-cols-2">
             {block.tracks.map((t, i) => <TrackLine key={t.id} track={t} all={block.tracks} rank={i + 1} title={block.title} />)}
           </div>
         </section>

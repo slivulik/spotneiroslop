@@ -23,7 +23,7 @@ function RailLink({ item, active }: { item: Item; active: boolean }) {
   return (
     <Link href={item.href} aria-label={item.label} className="group relative flex h-12 w-12 items-center justify-center">
       {active ? (
-        <motion.span layoutId="rail-active" className="liquid liquid-strong absolute inset-0 rounded-2xl" transition={{ type: "spring", stiffness: 420, damping: 34 }} />
+        <motion.span layoutId="rail-active" className="liquid liquid-strong absolute inset-0 rounded-lg" transition={{ type: "spring", stiffness: 420, damping: 34 }} />
       ) : null}
       <span className={`relative transition-colors ${active ? "text-text-primary" : "text-text-secondary group-hover:text-text-primary"}`}>{item.icon}</span>
       <span className="liquid pointer-events-none absolute left-[calc(100%+12px)] whitespace-nowrap rounded-full px-3 py-1.5 text-caption font-semibold opacity-0 shadow-lg transition-all duration-200 group-hover:translate-x-0 group-hover:opacity-100 -translate-x-1">
@@ -41,7 +41,7 @@ export function IconRail() {
     : ITEMS;
   return (
     <aside className="fixed inset-y-0 left-0 z-[var(--sonora-layer-sticky)] hidden w-[var(--rail)] flex-col items-center gap-2 py-4 md:flex">
-      <div className="liquid flex h-full w-[60px] flex-col items-center gap-2 rounded-[28px] py-3">
+      <div className="liquid flex h-full w-[60px] flex-col items-center gap-2 rounded-xl py-3">
         <Link href="/" aria-label="Sonora" className="mb-3 transition-transform hover:scale-105 active:scale-95">
           <WaveLogo size={38} />
         </Link>

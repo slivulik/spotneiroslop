@@ -43,10 +43,10 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
     }
   };
 
-  const field = "w-full rounded-md border border-border-default bg-white/5 px-4 py-3 text-body outline-none transition-colors placeholder:text-text-tertiary focus:border-text-secondary";
+  const field = "w-full rounded-md border border-border-default bg-fg/5 px-4 py-3 text-body outline-none transition-colors placeholder:text-text-tertiary focus:border-text-secondary";
   return (
     <div className="flex min-h-[80vh] items-center justify-center px-4 py-12">
-      <form onSubmit={onSubmit} className="liquid liquid-strong w-full max-w-sm rounded-[32px] p-8">
+      <form onSubmit={onSubmit} className="liquid liquid-strong w-full max-w-sm rounded-2xl p-8">
         <div className="mb-8 flex flex-col items-center gap-3">
           <WaveLogo size={44} />
           <span className="mono-label flex items-center gap-2 text-text-secondary"><span className="on-air-dot" /> Sonora · эфир</span>

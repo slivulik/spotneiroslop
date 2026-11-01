@@ -33,7 +33,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
   return (
     <div className="flex min-h-dvh gap-4 p-3 md:p-4">
-      <nav className="liquid sticky top-4 hidden h-[calc(100dvh-32px)] w-56 shrink-0 flex-col gap-1 rounded-[28px] p-3 lg:flex">
+      <nav className="liquid sticky top-4 hidden h-[calc(100dvh-32px)] w-56 shrink-0 flex-col gap-1 rounded-xl p-3 lg:flex">
         <div className="mb-3 px-3 pt-2">
           <div className="text-micro uppercase tracking-[0.2em] text-text-tertiary">Sonora</div>
           <div className="font-display text-title-3">Управление</div>
@@ -41,14 +41,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         {TABS.map((tab) => {
           const active = tab.href === "/admin" ? path === "/admin" : path.startsWith(tab.href);
           return (
-            <Link key={tab.href} href={tab.href} className="relative flex items-center gap-3 rounded-2xl px-3 py-2.5 text-body font-semibold">
-              {active ? <motion.span layoutId="admin-tab" className="absolute inset-0 rounded-2xl bg-white/12 shadow-[inset_0_1px_0_rgba(255,255,255,.18)]" transition={{ type: "spring", stiffness: 420, damping: 34 }} /> : null}
+            <Link key={tab.href} href={tab.href} className="relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-body font-semibold">
+              {active ? <motion.span layoutId="admin-tab" className="absolute inset-0 rounded-lg bg-fg/12 shadow-[inset_0_1px_0_rgba(255,255,255,.18)]" transition={{ type: "spring", stiffness: 420, damping: 34 }} /> : null}
               <span className={`relative w-5 text-center ${active ? "text-accent" : "text-text-tertiary"}`}>{tab.emoji}</span>
               <span className={`relative ${active ? "text-text-primary" : "text-text-secondary"}`}>{tab.label}</span>
             </Link>
           );
         })}
-        <Link href="/" className="mt-auto rounded-2xl px-3 py-2.5 text-caption text-text-tertiary hover:text-text-primary">← На сайт</Link>
+        <Link href="/" className="mt-auto rounded-lg px-3 py-2.5 text-caption text-text-tertiary hover:text-text-primary">← На сайт</Link>
       </nav>
       <div className="min-w-0 flex-1">
         <div className="mb-4 flex gap-2 overflow-x-auto pb-1 lg:hidden">

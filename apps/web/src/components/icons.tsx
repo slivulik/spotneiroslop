@@ -68,20 +68,30 @@ export const UserIcon = (p: IconProps) => (
     <path d="M4 20.2C4.8 16.4 8 14 12 14s7.2 2.4 8 6.2a.7.7 0 0 1-.7.8H4.7a.7.7 0 0 1-.7-.8Z" />
   </Icon>
 );
-/** Sonora mark: a low sun (ember → amber) with sound radiating from it in resonance rings. */
-export const WaveLogo = (p: IconProps) => (
+/**
+ * Sonora mark: an S drawn as two opposite half-waves on an accent tile. Pure geometry, legible
+ * at 16 px, works on light and dark grounds; `mono` draws it in currentColor without the tile.
+ */
+export const WaveLogo = ({ mono = false, ...p }: IconProps & { mono?: boolean }) => (
   <Icon {...p} viewBox="0 0 32 32">
-    <defs>
-      <radialGradient id="sonora-sun" cx="0.35" cy="0.35" r="0.75">
-        <stop offset="0" stopColor="var(--sonora-color-wave-b)" />
-        <stop offset="1" stopColor="var(--sonora-color-wave-a)" />
-      </radialGradient>
-    </defs>
-    <rect width="32" height="32" rx="10" fill="#161310" />
-    <circle cx="13" cy="16" r="5.6" fill="url(#sonora-sun)" />
-    <path d="M20.2 10.6a8 8 0 0 1 0 10.8" fill="none" stroke="var(--sonora-color-wave-c)" strokeWidth="2.1" strokeLinecap="round" />
-    <path d="M24 7.8a12.4 12.4 0 0 1 0 16.4" fill="none" stroke="var(--sonora-color-wave-c)" strokeOpacity=".55" strokeWidth="2.1" strokeLinecap="round" />
+    {mono ? null : <rect width="32" height="32" rx="9" fill="var(--sonora-color-accent-default)" />}
+    <path
+      d="M21 11.4a5.1 5.1 0 1 0-5 4.6 5.1 5.1 0 1 1-5 4.6"
+      fill="none"
+      stroke={mono ? "currentColor" : "var(--sonora-color-accent-on)"}
+      strokeWidth="2.8"
+      strokeLinecap="round"
+    />
   </Icon>
+);
+export const Logo = WaveLogo;
+
+/** Mark + wordmark, for the expanded sidebar and the auth screens. */
+export const Wordmark = ({ size = 32 }: { size?: number }) => (
+  <span className="inline-flex items-center gap-2.5">
+    <WaveLogo size={size} />
+    <span className="font-display text-title-3 font-semibold tracking-tight">Sonora</span>
+  </span>
 );
 
 const stroke = { fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };

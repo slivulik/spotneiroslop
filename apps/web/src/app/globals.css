@@ -6,29 +6,43 @@
 @theme {
   --color-white: #ffffff;
   --color-black: #000000;
+  /* Foreground ink of the current theme: `bg-fg/5`, `border-fg/10` work in light and dark. */
+  --color-fg: var(--sonora-color-text-primary);
 }
 
 /* Animatable colour channels: changing them interpolates smoothly (cover → cover). */
-@property --bg-c1 { syntax: "<color>"; inherits: true; initial-value: #8a2a12; }
-@property --bg-c2 { syntax: "<color>"; inherits: true; initial-value: #2a2f8f; }
-@property --bg-c3 { syntax: "<color>"; inherits: true; initial-value: #0b5f56; }
+@property --bg-c1 { syntax: "<color>"; inherits: true; initial-value: #3d2a8f; }
+@property --bg-c2 { syntax: "<color>"; inherits: true; initial-value: #6d2a78; }
+@property --bg-c3 { syntax: "<color>"; inherits: true; initial-value: #1d4a80; }
 @property --energy { syntax: "<number>"; inherits: true; initial-value: 0; }
 @property --beat { syntax: "<number>"; inherits: true; initial-value: 0; }
 
 :root {
-  --bg-c1: #8a2a12;
-  --bg-c2: #2a2f8f;
-  --bg-c3: #0b5f56;
-  --ink: #0a0908;
+  --bg-c1: #3d2a8f;
+  --bg-c2: #6d2a78;
+  --bg-c3: #1d4a80;
+  --ink: var(--sonora-color-bg-base);
   --energy: 0;
   --beat: 0;
-  --glass-fill: rgba(255, 255, 255, 0.055);
-  --glass-fill-strong: rgba(255, 255, 255, 0.09);
-  --glass-stroke: rgba(255, 255, 255, 0.11);
-  --glass-highlight: rgba(255, 255, 255, 0.22);
+  /* Glass surfaces: opaque enough that content behind never fights the text on top. */
+  --glass-fill: var(--sonora-color-glass-thin);
+  --glass-fill-strong: var(--sonora-color-glass-regular);
+  --glass-stroke: var(--sonora-color-border-default);
+  --glass-highlight: rgba(255, 255, 255, 0.14);
+  --glass-sheen: rgba(255, 255, 255, 0.06);
+  --blob-opacity: 0.42;
   --rail: 76px;
   transition: --bg-c1 1.6s var(--sonora-ease-standard), --bg-c2 1.6s var(--sonora-ease-standard), --bg-c3 1.6s var(--sonora-ease-standard);
 }
+
+[data-theme="light"] {
+  --glass-highlight: rgba(255, 255, 255, 0.9);
+  --glass-sheen: rgba(255, 255, 255, 0.5);
+  --blob-opacity: 0.22;
+}
+
+/* Compact density: the whole interface a notch smaller (hit targets stay ≥ 24 px). */
+[data-density="compact"] body { zoom: 0.92; }
 
 @layer base {
   html {
@@ -40,9 +54,9 @@
     text-rendering: optimizeLegibility;
   }
   body { min-height: 100dvh; overflow-x: hidden; }
-  ::selection { background: color-mix(in srgb, var(--bg-c2) 55%, transparent); }
-  :focus-visible { outline: 2px solid var(--sonora-color-accent-default); outline-offset: 2px; border-radius: 8px; }
-  * { scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, 0.14) transparent; }
+  ::selection { background: color-mix(in srgb, var(--sonora-color-accent-default) 40%, transparent); }
+  :focus-visible { outline: var(--sonora-border-focus) solid var(--sonora-color-accent-default); outline-offset: 2px; border-radius: var(--sonora-radius-sm); }
+  * { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--sonora-color-text-primary) 16%, transparent) transparent; }
   button { cursor: pointer; }
 }
 
@@ -106,7 +120,7 @@
     appearance: none;
     height: 4px;
     border-radius: 9999px;
-    background: linear-gradient(to right, var(--slider-fill, #fff) var(--fill), rgba(255, 255, 255, 0.18) var(--fill));
+    background: linear-gradient(to right, var(--slider-fill, var(--sonora-color-text-primary)) var(--fill), color-mix(in srgb, var(--sonora-color-text-primary) 18%, transparent) var(--fill));
     cursor: pointer;
     transition: height var(--sonora-duration-fast) var(--sonora-ease-standard);
   }
@@ -126,6 +140,17 @@
     background-clip: text;
     color: transparent;
   }
+  /* Primary action in the accent colour (play, save, primary buttons). */
+  .btn-accent {
+    background: radial-gradient(circle at 35% 30%, var(--sonora-color-accent-hover), var(--sonora-color-accent-default) 72%);
+    color: var(--sonora-color-accent-on);
+    box-shadow: 0 8px 24px -10px color-mix(in srgb, var(--sonora-color-accent-default) 80%, transparent);
+  }
+  .btn-accent:active { background: var(--sonora-color-accent-pressed); }
+  /* Player chrome must not select text on taps and drags; copyable text opts back in. */
+  .no-select { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  .selectable { -webkit-user-select: text; user-select: text; }
+
   /* Small uppercase monospace labels: the "broadcast" voice of the interface. */
   .mono-label { font-family: var(--sonora-font-mono); font-size: 11px; line-height: 14px; font-weight: 500; letter-spacing: 0.16em; text-transform: uppercase; }
   /* Type that breathes with the music (variable weight driven by the analyser). */
@@ -140,7 +165,7 @@
   position: absolute;
   border-radius: 50%;
   filter: blur(90px);
-  opacity: calc(0.42 + var(--energy) * 0.35);
+  opacity: calc(var(--blob-opacity) + var(--energy) * 0.3);
   transform: translate3d(0, 0, 0) scale(calc(1 + var(--energy) * 0.18 + var(--beat) * 0.08));
   transition: opacity 400ms linear;
   will-change: transform;
@@ -148,7 +173,7 @@
 .live-bg .b1 { width: 62vmax; height: 62vmax; left: -14vmax; top: -22vmax; background: var(--bg-c1); animation: drift-a 26s ease-in-out infinite alternate; }
 .live-bg .b2 { width: 54vmax; height: 54vmax; right: -16vmax; top: -6vmax; background: var(--bg-c2); animation: drift-b 31s ease-in-out infinite alternate; }
 .live-bg .b3 { width: 48vmax; height: 48vmax; left: 22vmax; bottom: -30vmax; background: var(--bg-c3); animation: drift-c 37s ease-in-out infinite alternate; }
-.live-bg .veil { position: absolute; inset: 0; background: radial-gradient(120% 90% at 50% 0%, transparent 0%, rgba(10, 9, 8, 0.55) 55%, var(--ink) 100%); }
+.live-bg .veil { position: absolute; inset: 0; background: radial-gradient(120% 90% at 50% 0%, transparent 0%, color-mix(in srgb, var(--ink) 55%, transparent) 55%, var(--ink) 100%); }
 .live-bg .pulse { position: absolute; inset: 0; background: radial-gradient(60% 50% at 50% 30%, color-mix(in srgb, var(--bg-c2) 50%, transparent), transparent 70%); opacity: calc(var(--beat) * 0.35); mix-blend-mode: screen; }
 .live-bg .grain { position: absolute; inset: 0; opacity: 0.06; mix-blend-mode: overlay; }
 @keyframes drift-a { 0% { translate: 0 0; } 50% { translate: 9vmax 6vmax; } 100% { translate: -4vmax 12vmax; } }
@@ -184,6 +209,12 @@
 /* ---- Hand-drawn waveform rule under section titles ----------------------------------- */
 .wave-rule { clip-path: inset(0 100% 0 0); transition: clip-path 1.6s cubic-bezier(.2, 0, 0, 1); }
 .wave-rule.drawn { clip-path: inset(0 0 0 0); }
+
+[data-motion="reduced"] *, [data-motion="reduced"] *::before, [data-motion="reduced"] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+}
 
 @media (prefers-reduced-motion: reduce) {
   .ripple-ring, .beat-ring { display: none; }

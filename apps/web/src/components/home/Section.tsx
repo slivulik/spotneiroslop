@@ -38,10 +38,10 @@ export function SectionHeader({
       ) : null}
       {onPrev && onNext ? (
         <div className="hidden shrink-0 gap-1.5 md:flex">
-          <button type="button" aria-label="Назад" onClick={onPrev} className="flex h-8 w-8 items-center justify-center rounded-full border border-white/12 text-text-secondary transition-all hover:border-white/30 hover:text-text-primary active:scale-90">
+          <button type="button" aria-label="Назад" onClick={onPrev} className="flex h-8 w-8 items-center justify-center rounded-full border border-fg/12 text-text-secondary transition-all hover:border-fg/30 hover:text-text-primary active:scale-90">
             <ChevronLeftIcon size={16} />
           </button>
-          <button type="button" aria-label="Вперёд" onClick={onNext} className="flex h-8 w-8 items-center justify-center rounded-full border border-white/12 text-text-secondary transition-all hover:border-white/30 hover:text-text-primary active:scale-90">
+          <button type="button" aria-label="Вперёд" onClick={onNext} className="flex h-8 w-8 items-center justify-center rounded-full border border-fg/12 text-text-secondary transition-all hover:border-fg/30 hover:text-text-primary active:scale-90">
             <ChevronRightIcon size={16} />
           </button>
         </div>

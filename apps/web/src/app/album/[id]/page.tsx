@@ -22,14 +22,14 @@ export default function AlbumPage({ params }: { params: Promise<{ id: string }> 
   const playing = useIsPlaying();
   if (release.isError) return <PageError message="Релиз не найден или ещё не опубликован" />;
   const data = release.data;
-  if (!data) return <div className="p-8"><Skeleton className="h-80 w-full rounded-[36px]" /></div>;
+  if (!data) return <div className="p-8"><Skeleton className="h-80 w-full rounded-2xl" /></div>;
   const isThis = contextId === id && current !== null;
   const hires = data.tracks.some((t) => t.audio.hires);
   const lossless = data.tracks.length > 0 && data.tracks.every((t) => t.audio.lossless);
   return (
     <div className="flex flex-col gap-6">
       <CollectionHeader
-        cover={<Artwork artwork={data.artwork} alt={data.title} sizes="280px" priority className="aspect-square w-full rounded-[28px] shadow-artwork" />}
+        cover={<Artwork artwork={data.artwork} alt={data.title} sizes="280px" priority className="aspect-square w-full rounded-xl shadow-artwork" />}
         kicker={releaseTypeLabel(data.type)}
         title={data.title}
         tint={data.artwork?.palette?.vibrant}

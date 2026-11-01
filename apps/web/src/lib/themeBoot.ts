@@ -1,0 +1,2 @@
+/** Runs before first paint so a light-theme user never sees a dark flash. */
+export const THEME_BOOT_SCRIPT = `try{var s=JSON.parse(localStorage.getItem("sonora-settings")||"{}").state||{};var t=s.theme||"dark";if(t==="system")t=matchMedia("(prefers-color-scheme: light)").matches?"light":"dark";var d=document.documentElement;d.dataset.theme=t;d.dataset.density=s.density||"standard";d.dataset.motion=s.motion==="reduced"?"reduced":"auto";d.style.colorScheme=t}catch(e){}`;

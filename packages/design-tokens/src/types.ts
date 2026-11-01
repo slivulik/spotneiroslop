@@ -40,5 +40,9 @@ export interface Tokens {
     readonly spring: Readonly<Record<string, Spring>>;
   };
   readonly breakpoint: Readonly<Record<string, number>>;
+  /** Alternate themes override colours only; every key must exist in the base palette. */
+  readonly themes: Readonly<Record<string, { readonly color: ColorGroup }>>;
+  readonly opacity: Readonly<Record<string, number>>;
+  readonly border: Readonly<Record<string, number>>;
   readonly layer: Readonly<Record<string, number>>;
 }

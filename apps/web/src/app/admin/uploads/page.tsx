@@ -144,7 +144,7 @@ function ItemRow({ item, job, onRetry, onRemove, onForce }: { item: Item; job: S
   // Byte-identical files can't be stored twice; only a different file of the same recording can.
   const sameFile = duplicate && (job?.error ?? "").includes("тот же самый файл");
   return (
-    <motion.div layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl bg-white/[0.04] p-3">
+    <motion.div layout initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="rounded-lg bg-white/[0.04] p-3">
       <div className="flex items-center gap-3">
         <span className="min-w-0 flex-1 truncate text-body font-semibold">
           {item.file.name}
@@ -154,7 +154,7 @@ function ItemRow({ item, job, onRetry, onRemove, onForce }: { item: Item; job: S
       </div>
       {item.state === "uploading" || item.state === "waiting" ? (
         <>
-          <div className="mt-2 h-2 overflow-hidden rounded-full bg-white/10">
+          <div className="mt-2 h-2 overflow-hidden rounded-full bg-fg/10">
             <motion.div
               className="h-full rounded-full"
               style={{ background: "linear-gradient(90deg, var(--sonora-color-wave-a), var(--sonora-color-wave-b))" }}
@@ -215,7 +215,7 @@ function StageBar({ job }: { job: S["UploadJobOut"] }) {
         const failed = job.status === "failed" && job.stage === stage;
         const running = job.status === "running" && job.stage === stage;
         return (
-          <div key={stage} title={STAGE_LABELS[stage]} className={`relative h-1.5 flex-1 overflow-hidden rounded-full ${done.has(stage) ? "bg-state-success" : failed ? "bg-state-danger" : "bg-white/10"}`}>
+          <div key={stage} title={STAGE_LABELS[stage]} className={`relative h-1.5 flex-1 overflow-hidden rounded-full ${done.has(stage) ? "bg-state-success" : failed ? "bg-state-danger" : "bg-fg/10"}`}>
             {running ? <motion.span className="absolute inset-y-0 w-1/2 rounded-full bg-state-info" animate={{ x: ["-100%", "200%"] }} transition={{ repeat: Infinity, duration: 1.1, ease: "easeInOut" }} /> : null}
           </div>
         );
@@ -240,7 +240,7 @@ function Jobs() {
           {jobs.data?.items.map((job) => {
             const source = job.files.find((f) => (f as { role?: string }).role === "source") as { filename?: string } | undefined;
             return (
-              <motion.div key={job.id} layout initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="rounded-2xl bg-white/[0.04] p-4">
+              <motion.div key={job.id} layout initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="rounded-lg bg-white/[0.04] p-4">
                 <div className="mb-2 flex flex-wrap items-center gap-2">
                   <span className="min-w-0 flex-1 truncate text-body font-semibold">{source?.filename ?? job.id}</span>
                   {job.stage && job.status !== "succeeded" ? <Pill tone="info">{STAGE_LABELS[job.stage] ?? job.stage}</Pill> : null}
@@ -341,7 +341,7 @@ export default function UploadsPage() {
               addFiles(out);
             }}
             animate={{ scale: over ? 1.02 : 1 }}
-            className={`liquid relative flex h-60 flex-col items-center justify-center gap-3 overflow-hidden rounded-[32px] border-2 border-dashed transition-colors ${over ? "border-accent" : "border-white/15"}`}
+            className={`liquid relative flex h-60 flex-col items-center justify-center gap-3 overflow-hidden rounded-2xl border-2 border-dashed transition-colors ${over ? "border-accent" : "border-fg/15"}`}
           >
             <motion.div animate={{ y: over ? -6 : [0, -6, 0] }} transition={over ? { type: "spring" } : { repeat: Infinity, duration: 2.4, ease: "easeInOut" }} className="text-5xl">⇪</motion.div>
             <div className="font-display text-title-3">Перетащите треки или папки</div>
@@ -382,7 +382,7 @@ export default function UploadsPage() {
               actions={<Button tone="ghost" disabled={sending.length > 0} onClick={() => setItems([])}>Очистить список</Button>}
             >
               {sending.length ? (
-                <div className="mb-3 h-1 overflow-hidden rounded-full bg-white/10">
+                <div className="mb-3 h-1 overflow-hidden rounded-full bg-fg/10">
                   <motion.div className="h-full rounded-full bg-accent" animate={{ width: `${(sent / Math.max(total, 1)) * 100}%` }} transition={{ ease: "linear", duration: 0.2 }} />
                 </div>
               ) : null}

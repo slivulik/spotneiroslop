@@ -31,12 +31,12 @@ function greeting(): string {
 function HomeSkeleton() {
   return (
     <div className="flex flex-col gap-10">
-      <div className="skeleton h-56 rounded-[32px]" />
+      <div className="skeleton h-56 rounded-2xl" />
       {[0, 1].map((row) => (
         <div key={row} className="flex flex-col gap-3">
-          <div className="skeleton h-8 w-60 rounded-xl" />
+          <div className="skeleton h-8 w-60 rounded-md" />
           <div className="flex gap-4 overflow-hidden">
-            {Array.from({ length: 7 }, (_, i) => <div key={i} className="skeleton aspect-square w-48 shrink-0 rounded-3xl" />)}
+            {Array.from({ length: 7 }, (_, i) => <div key={i} className="skeleton aspect-square w-48 shrink-0 rounded-xl" />)}
           </div>
         </div>
       ))}
@@ -94,7 +94,7 @@ export default function HomePage() {
         Array.isArray(item) ? <HeroCarousel key="hero" blocks={item} /> : <HomeBlockView key={item.id} block={item} index={i} />,
       )}
       {home.data && sections.length === 0 ? (
-        <div className="liquid rounded-[32px] px-6 py-20 text-center">
+        <div className="liquid rounded-2xl px-6 py-20 text-center">
           <div className="font-display text-title-1">Здесь скоро будет музыка</div>
           <p className="mt-2 text-body-l text-text-secondary">Загрузите релизы в панели управления — главная заполнится сама.</p>
         </div>

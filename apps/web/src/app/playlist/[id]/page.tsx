@@ -20,12 +20,12 @@ export default function PlaylistPage({ params }: { params: Promise<{ id: string 
   const playing = useIsPlaying();
   if (playlist.isError) return <PageError message="Плейлист не найден" />;
   const data = playlist.data;
-  if (!data) return <div className="p-8"><Skeleton className="h-80 w-full rounded-[36px]" /></div>;
+  if (!data) return <div className="p-8"><Skeleton className="h-80 w-full rounded-2xl" /></div>;
   const isThis = contextId === id && current !== null;
   return (
     <div className="flex flex-col gap-6">
       <CollectionHeader
-        cover={<PlaylistCover playlist={data} sizes="280px" className="aspect-square w-full rounded-[28px] shadow-artwork" />}
+        cover={<PlaylistCover playlist={data} sizes="280px" className="aspect-square w-full rounded-xl shadow-artwork" />}
         kicker={data.type === "editorial" ? "Подборка редакции" : "Плейлист"}
         title={data.title}
         description={data.description}

@@ -23,9 +23,9 @@ function GenreForm({ genre, onDone }: { genre: Genre | null; onDone: () => void 
   const remove = useAction(() => unwrap(api.DELETE("/v1/admin/genres/{genre_id}", { params: { path: { genre_id: genre!.id } } })), { success: "Жанр удалён" });
   return (
     <div className="flex flex-col gap-4">
-      <div className="relative aspect-[16/8] overflow-hidden rounded-3xl p-4" style={{ background: `linear-gradient(135deg, ${form.color}, color-mix(in srgb, ${form.color} 45%, #07070a))` }}>
+      <div className="relative aspect-[16/8] overflow-hidden rounded-xl p-4" style={{ background: `linear-gradient(135deg, ${form.color}, color-mix(in srgb, ${form.color} 45%, #07070a))` }}>
         <span className="font-display text-title-2 font-bold">{form.name || "Название"}</span>
-        {cover.art ? <Artwork artwork={cover.art} alt="" sizes="120px" className="absolute -bottom-3 -right-3 h-24 w-24 rotate-[22deg] rounded-xl shadow-lg" /> : null}
+        {cover.art ? <Artwork artwork={cover.art} alt="" sizes="120px" className="absolute -bottom-3 -right-3 h-24 w-24 rotate-[22deg] rounded-md shadow-lg" /> : null}
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <Field label="Название"><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></Field>
@@ -58,10 +58,10 @@ export default function GenresAdminPage() {
       <PageTitle title="Жанры" subtitle="Плитки на главной и страницы жанров" actions={<Button tone="primary" onClick={() => setEdit("new")}><PlusIcon size={16} /> Новый жанр</Button>} />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5">
         {genres.data?.map((g, i) => (
-          <motion.button key={g.id} type="button" onClick={() => setEdit(g)} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.02 }} className="relative aspect-[16/10] overflow-hidden rounded-3xl p-4 text-left transition-transform hover:-translate-y-1" style={{ background: `linear-gradient(135deg, ${g.color ?? "#555"}, color-mix(in srgb, ${g.color ?? "#555"} 45%, #07070a))` }}>
+          <motion.button key={g.id} type="button" onClick={() => setEdit(g)} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.02 }} className="relative aspect-[16/10] overflow-hidden rounded-xl p-4 text-left transition-transform hover:-translate-y-1" style={{ background: `linear-gradient(135deg, ${g.color ?? "#555"}, color-mix(in srgb, ${g.color ?? "#555"} 45%, #07070a))` }}>
             <div className="font-display text-title-3 font-bold">{g.name}</div>
             <div className="text-caption text-white/75">{g.track_count} треков</div>
-            {g.artwork ? <Artwork artwork={g.artwork} alt="" sizes="100px" className="absolute -bottom-3 -right-3 h-20 w-20 rotate-[22deg] rounded-xl" /> : null}
+            {g.artwork ? <Artwork artwork={g.artwork} alt="" sizes="100px" className="absolute -bottom-3 -right-3 h-20 w-20 rotate-[22deg] rounded-md" /> : null}
           </motion.button>
         ))}
       </div>

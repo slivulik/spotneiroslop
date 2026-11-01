@@ -59,9 +59,9 @@ function ReleaseForm({ release, onOpenTrack, onDeleted }: { release: Detail; onO
       <div className="flex justify-end"><Button tone="primary" disabled={save.isPending} onClick={() => save.mutate(undefined)}>Сохранить</Button></div>
       <div>
         <div className="mb-2 text-micro uppercase text-text-secondary">Треки ({release.tracks.length})</div>
-        <div className="rounded-2xl bg-white/[0.03] p-1">
+        <div className="rounded-lg bg-white/[0.03] p-1">
           {release.tracks.map((t) => (
-            <button key={t.id} type="button" onClick={() => onOpenTrack(t.id)} className="flex w-full items-center gap-3 rounded-xl p-2 text-left hover:bg-white/8">
+            <button key={t.id} type="button" onClick={() => onOpenTrack(t.id)} className="flex w-full items-center gap-3 rounded-md p-2 text-left hover:bg-fg/8">
               <span className="w-8 text-center text-caption tabular-nums text-text-tertiary">{t.disc_number > 1 ? `${t.disc_number}.` : ""}{t.track_number}</span>
               <span className="min-w-0 flex-1 truncate text-body">{t.title}{t.version ? <span className="text-text-secondary"> ({t.version})</span> : null}</span>
               <span className="text-caption tabular-nums text-text-tertiary">{formatDuration(t.duration_ms)}</span>
@@ -70,7 +70,7 @@ function ReleaseForm({ release, onOpenTrack, onDeleted }: { release: Detail; onO
           ))}
         </div>
       </div>
-      <div className="flex justify-end border-t border-white/8 pt-4">
+      <div className="flex justify-end border-t border-fg/8 pt-4">
         <ConfirmButton label="Удалить релиз" confirm={`«${release.title}» и все его треки будут удалены вместе с файлами.`} onConfirm={() => remove.mutate(undefined, { onSuccess: onDeleted })} />
       </div>
     </div>
@@ -104,10 +104,10 @@ export default function ReleasesPage() {
       </div>
       <SpotlightZone className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6">
         {releases.data?.items.map((r, i) => (
-          <motion.div key={r.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 24) * 0.02 }} className="liquid spotlight flex flex-col gap-2 rounded-3xl p-2.5">
+          <motion.div key={r.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 24) * 0.02 }} className="liquid spotlight flex flex-col gap-2 rounded-xl p-2.5">
             <div className="spotlight-glow" />
             <button type="button" onClick={() => setOpen(r.id)} className="text-left">
-              <Artwork artwork={r.artwork} alt={r.title} sizes="200px" className="aspect-square w-full rounded-2xl" />
+              <Artwork artwork={r.artwork} alt={r.title} sizes="200px" className="aspect-square w-full rounded-lg" />
               <div className="mt-2 truncate text-body font-bold">{r.title}</div>
               <div className="truncate text-caption text-text-secondary">{releaseTypeLabel(r.type)} · {r.artists.map((a) => a.name).join(", ")}</div>
             </button>
@@ -120,7 +120,7 @@ export default function ReleasesPage() {
       </SpotlightZone>
       {releases.data ? <Pager offset={offset} limit={48} total={releases.data.total} onChange={setOffset} /> : null}
       <Drawer open={Boolean(open)} onClose={() => setOpen(null)} title={detail.data?.title ?? "Релиз"} wide>
-        {detail.data ? <ReleaseForm key={detail.data.id + detail.data.title + detail.data.status} release={detail.data} onOpenTrack={setTrack} onDeleted={() => setOpen(null)} /> : <div className="skeleton h-96 rounded-2xl" />}
+        {detail.data ? <ReleaseForm key={detail.data.id + detail.data.title + detail.data.status} release={detail.data} onOpenTrack={setTrack} onDeleted={() => setOpen(null)} /> : <div className="skeleton h-96 rounded-lg" />}
       </Drawer>
       <TrackEditor trackId={track} onClose={() => setTrack(null)} />
     </div>

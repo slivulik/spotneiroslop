@@ -39,7 +39,7 @@ export function Toaster() {
             initial={{ opacity: 0, y: 20, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, x: 40 }}
-            className={`liquid liquid-strong pointer-events-auto flex max-w-sm items-center gap-3 rounded-2xl px-4 py-3 text-left text-body ${t.tone === "error" ? "text-state-danger" : ""}`}
+            className={`liquid liquid-strong pointer-events-auto flex max-w-sm items-center gap-3 rounded-lg px-4 py-3 text-left text-body ${t.tone === "error" ? "text-state-danger" : ""}`}
           >
             <span className={`h-2 w-2 shrink-0 rounded-full ${t.tone === "error" ? "bg-state-danger" : "bg-state-success"}`} />
             {t.text}
@@ -62,10 +62,10 @@ export function errorText(error: unknown): string {
 
 type ButtonTone = "primary" | "glass" | "danger" | "ghost";
 const TONES: Record<ButtonTone, string> = {
-  primary: "bg-white text-black hover:bg-white/90",
+  primary: "btn-accent hover:brightness-110",
   glass: "liquid text-text-primary",
   danger: "bg-state-danger/90 text-white hover:bg-state-danger",
-  ghost: "text-text-secondary hover:bg-white/8 hover:text-text-primary",
+  ghost: "text-text-secondary hover:bg-fg/8 hover:text-text-primary",
 };
 
 export function Button({ tone = "glass", className = "", ...props }: React.ButtonHTMLAttributes<HTMLButtonElement> & { tone?: ButtonTone }) {
@@ -88,7 +88,7 @@ export function Field({ label, hint, children, className = "" }: { label: string
   );
 }
 
-const control = "w-full rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2.5 text-body outline-none transition-colors placeholder:text-text-tertiary focus:border-white/30 focus:bg-white/[0.08]";
+const control = "w-full rounded-md border border-fg/10 bg-white/[0.05] px-3 py-2.5 text-body outline-none transition-colors placeholder:text-text-tertiary focus:border-fg/30 focus:bg-white/[0.08]";
 
 export function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
   return <input {...props} className={`${control} ${props.className ?? ""}`} />;
@@ -112,12 +112,12 @@ export function Select({ options, ...props }: React.SelectHTMLAttributes<HTMLSel
 
 export function Toggle({ checked, onChange, label, description }: { checked: boolean; onChange: (v: boolean) => void; label: string; description?: string }) {
   return (
-    <button type="button" role="switch" aria-checked={checked} onClick={() => onChange(!checked)} className="flex w-full items-center justify-between gap-4 rounded-2xl p-3 text-left transition-colors hover:bg-white/5">
+    <button type="button" role="switch" aria-checked={checked} onClick={() => onChange(!checked)} className="flex w-full items-center justify-between gap-4 rounded-lg p-3 text-left transition-colors hover:bg-fg/5">
       <span>
         <span className="block text-body font-semibold">{label}</span>
         {description ? <span className="block text-caption text-text-secondary">{description}</span> : null}
       </span>
-      <span className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${checked ? "bg-accent" : "bg-white/15"}`}>
+      <span className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${checked ? "bg-accent" : "bg-fg/15"}`}>
         <motion.span layout transition={{ type: "spring", stiffness: 600, damping: 32 }} className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow ${checked ? "right-1" : "left-1"}`} />
       </span>
     </button>
@@ -126,7 +126,7 @@ export function Toggle({ checked, onChange, label, description }: { checked: boo
 
 export function Pill({ children, tone = "neutral" }: { children: React.ReactNode; tone?: "neutral" | "ok" | "warn" | "danger" | "info" }) {
   const map = {
-    neutral: "bg-white/10 text-text-secondary",
+    neutral: "bg-fg/10 text-text-secondary",
     ok: "bg-state-success/15 text-state-success",
     warn: "bg-state-warning/15 text-state-warning",
     danger: "bg-state-danger/15 text-state-danger",
@@ -155,7 +155,7 @@ export function StatusPill({ status }: { status: string }) {
 
 export function Panel({ title, actions, children, className = "" }: { title?: string; actions?: React.ReactNode; children: React.ReactNode; className?: string }) {
   return (
-    <section className={`liquid rounded-[28px] p-5 ${className}`}>
+    <section className={`liquid rounded-xl p-5 ${className}`}>
       {title || actions ? (
         <div className="mb-4 flex items-center justify-between gap-3">
           {title ? <h2 className="font-display text-title-3">{title}</h2> : <span />}
@@ -229,15 +229,15 @@ export function Drawer({ open, onClose, title, children, wide = false }: { open:
           <motion.aside
             role="dialog"
             aria-label={title}
-            className={`liquid liquid-strong fixed inset-y-3 right-3 z-[121] flex w-[calc(100%-24px)] flex-col overflow-hidden rounded-[32px] ${wide ? "max-w-4xl" : "max-w-2xl"}`}
+            className={`liquid liquid-strong fixed inset-y-3 right-3 z-[121] flex w-[calc(100%-24px)] flex-col overflow-hidden rounded-2xl ${wide ? "max-w-4xl" : "max-w-2xl"}`}
             initial={{ x: "110%" }}
             animate={{ x: 0 }}
             exit={{ x: "110%" }}
             transition={{ type: "spring", stiffness: 340, damping: 36 }}
           >
-            <div className="flex items-center justify-between gap-3 border-b border-white/8 px-6 py-4">
+            <div className="flex items-center justify-between gap-3 border-b border-fg/8 px-6 py-4">
               <h2 className="truncate font-display text-title-3">{title}</h2>
-              <button type="button" aria-label="Закрыть" onClick={onClose} className="rounded-full p-2 hover:bg-white/10"><CloseIcon size={20} /></button>
+              <button type="button" aria-label="Закрыть" onClick={onClose} className="rounded-full p-2 hover:bg-fg/10"><CloseIcon size={20} /></button>
             </div>
             <div className="flex-1 overflow-auto p-6">{children}</div>
           </motion.aside>
@@ -256,7 +256,7 @@ export function Modal({ open, onClose, title, children }: { open: boolean; onClo
             role="dialog"
             aria-label={title}
             onClick={(e) => e.stopPropagation()}
-            className="liquid liquid-strong max-h-[90vh] w-full max-w-lg overflow-auto rounded-[28px] p-6"
+            className="liquid liquid-strong max-h-[90vh] w-full max-w-lg overflow-auto rounded-xl p-6"
             initial={{ scale: 0.92, y: 20 }}
             animate={{ scale: 1, y: 0 }}
             exit={{ scale: 0.95, opacity: 0 }}
@@ -348,7 +348,7 @@ export function ImageUploader({
         onDragOver={(e) => { e.preventDefault(); setOver(true); }}
         onDragLeave={() => setOver(false)}
         onDrop={(e) => { e.preventDefault(); setOver(false); void handle(e.dataTransfer.files[0]); }}
-        className={`group relative shrink-0 overflow-hidden border-2 border-dashed transition-all ${over ? "scale-105 border-accent" : "border-white/15 hover:border-white/35"} ${wide ? "aspect-[16/7] w-full max-w-xl rounded-3xl" : `h-32 w-32 ${round ? "rounded-full" : "rounded-2xl"}`}`}
+        className={`group relative shrink-0 overflow-hidden border-2 border-dashed transition-all ${over ? "scale-105 border-accent" : "border-fg/15 hover:border-fg/35"} ${wide ? "aspect-[16/7] w-full max-w-xl rounded-xl" : `h-32 w-32 ${round ? "rounded-full" : "rounded-lg"}`}`}
       >
         {preview || value ? (
           <Artwork artwork={preview ?? null} alt="" sizes="300px" className="absolute inset-0 h-full w-full" />
@@ -392,9 +392,9 @@ export function Picker({ kind, value, onChange, max = 50 }: { kind: PickerKind; 
     <div className="grid gap-4 md:grid-cols-2">
       <div className="flex flex-col gap-2">
         <SearchBar value={q} onChange={setQ} placeholder="Найти и добавить" />
-        <div className="max-h-80 overflow-auto rounded-2xl bg-white/[0.03] p-1">
+        <div className="max-h-80 overflow-auto rounded-lg bg-white/[0.03] p-1">
           {hits.filter((h) => !chosen.has(h.id)).map((h) => (
-            <button key={h.id} type="button" disabled={value.length >= max} onClick={() => onChange([...value, h])} className="flex w-full items-center gap-3 rounded-xl p-2 text-left hover:bg-white/8 disabled:opacity-40">
+            <button key={h.id} type="button" disabled={value.length >= max} onClick={() => onChange([...value, h])} className="flex w-full items-center gap-3 rounded-md p-2 text-left hover:bg-fg/8 disabled:opacity-40">
               <Artwork artwork={h.artwork} alt="" sizes="40px" seed={h.title} className={`h-10 w-10 shrink-0 ${kind === "artist" ? "rounded-full" : "rounded-lg"}`} />
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-body font-semibold">{h.title}</span>
@@ -408,13 +408,13 @@ export function Picker({ kind, value, onChange, max = 50 }: { kind: PickerKind; 
       </div>
       <div className="flex flex-col gap-2">
         <div className="text-micro uppercase text-text-secondary">Выбрано: {value.length} — перетаскивайте, чтобы изменить порядок</div>
-        <Reorder.Group axis="y" values={value} onReorder={onChange} className="max-h-[22rem] overflow-auto rounded-2xl bg-white/[0.03] p-1">
+        <Reorder.Group axis="y" values={value} onReorder={onChange} className="max-h-[22rem] overflow-auto rounded-lg bg-white/[0.03] p-1">
           {value.map((h, i) => (
-            <Reorder.Item key={h.id} value={h} className="flex cursor-grab items-center gap-3 rounded-xl bg-[#121218]/60 p-2 active:cursor-grabbing" whileDrag={{ scale: 1.03, boxShadow: "0 12px 30px rgba(0,0,0,.5)" }}>
+            <Reorder.Item key={h.id} value={h} className="flex cursor-grab items-center gap-3 rounded-md bg-[#121218]/60 p-2 active:cursor-grabbing" whileDrag={{ scale: 1.03, boxShadow: "0 12px 30px rgba(0,0,0,.5)" }}>
               <span className="w-5 text-center text-caption tabular-nums text-text-tertiary">{i + 1}</span>
               <Artwork artwork={h.artwork} alt="" sizes="40px" seed={h.title} className={`h-10 w-10 shrink-0 ${kind === "artist" ? "rounded-full" : "rounded-lg"}`} />
               <span className="min-w-0 flex-1 truncate text-body">{h.title}</span>
-              <button type="button" aria-label="Убрать" onClick={() => onChange(value.filter((v) => v.id !== h.id))} className="rounded-full p-1.5 text-text-secondary hover:bg-white/10 hover:text-text-primary">
+              <button type="button" aria-label="Убрать" onClick={() => onChange(value.filter((v) => v.id !== h.id))} className="rounded-full p-1.5 text-text-secondary hover:bg-fg/10 hover:text-text-primary">
                 <CloseIcon size={16} />
               </button>
             </Reorder.Item>

@@ -33,8 +33,8 @@ export default function MusicPage() {
       <Panel>
         <div className="flex flex-col">
           {tracks.data?.items.map((t, i) => (
-            <motion.button key={t.id} type="button" onClick={() => setOpen(t.id)} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 20) * 0.015 }} className="grid grid-cols-[48px_1fr_auto] items-center gap-3 rounded-2xl p-2 text-left transition-colors hover:bg-white/6 sm:grid-cols-[48px_2fr_1.2fr_auto_auto_auto]">
-              <Artwork artwork={t.release.artwork} alt="" sizes="48px" className="h-12 w-12 rounded-xl" />
+            <motion.button key={t.id} type="button" onClick={() => setOpen(t.id)} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 20) * 0.015 }} className="grid grid-cols-[48px_1fr_auto] items-center gap-3 rounded-lg p-2 text-left transition-colors hover:bg-fg/6 sm:grid-cols-[48px_2fr_1.2fr_auto_auto_auto]">
+              <Artwork artwork={t.release.artwork} alt="" sizes="48px" className="h-12 w-12 rounded-md" />
               <div className="min-w-0">
                 <div className="truncate text-body font-semibold">{t.title}{t.version ? <span className="text-text-secondary"> ({t.version})</span> : null}</div>
                 <div className="truncate text-caption text-text-secondary">{t.artists.map((a) => a.name).join(", ")}</div>

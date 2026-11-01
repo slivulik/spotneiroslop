@@ -69,7 +69,6 @@ export function PlayerBar() {
   const duration = usePlayer((s) => s.durationMs);
   if (!track) return null;
   const fill = duration > 0 ? (position / duration) * 100 : 0;
-  const tint = track.release.artwork?.palette?.vibrant ?? "#ffffff";
 
   return (
     <motion.div
@@ -77,12 +76,12 @@ export function PlayerBar() {
       animate={{ y: 0, opacity: 1 }}
       transition={{ type: "spring", stiffness: 260, damping: 26 }}
       className="fixed inset-x-3 bottom-[calc(76px+env(safe-area-inset-bottom))] z-[var(--sonora-layer-miniplayer)] md:inset-x-auto md:bottom-4 md:left-[calc(var(--rail)+16px)] md:right-4"
-      style={{ ["--slider-fill" as string]: tint }}
+      style={{ ["--slider-fill" as string]: "var(--sonora-color-accent-default)" }}
     >
       {/* Mobile capsule */}
-      <div className="liquid liquid-strong relative overflow-hidden rounded-[22px] md:hidden">
+      <div className="liquid liquid-strong relative overflow-hidden rounded-lg md:hidden">
         <div className="flex items-center gap-3 p-2" onClick={() => player.setNowPlaying(true)}>
-          <motion.div layoutId="now-playing-art" className="h-11 w-11 shrink-0 overflow-hidden rounded-xl">
+          <motion.div layoutId="now-playing-art" className="h-11 w-11 shrink-0 overflow-hidden rounded-md">
             <Artwork artwork={track.release.artwork} alt={track.release.title} sizes="44px" className="h-full w-full" />
           </motion.div>
           <TrackTitle className="flex-1" />
@@ -91,16 +90,16 @@ export function PlayerBar() {
             <button type="button" aria-label="Следующий" onClick={() => player.next()} className="p-2"><NextIcon size={20} /></button>
           </div>
         </div>
-        <div className="absolute inset-x-3 bottom-0 h-[2px] overflow-hidden rounded-full bg-white/10">
-          <div className="h-full rounded-full" style={{ width: `${fill}%`, background: tint }} />
+        <div className="absolute inset-x-3 bottom-0 h-[2px] overflow-hidden rounded-full bg-fg/10">
+          <div className="h-full rounded-full" style={{ width: `${fill}%`, background: "var(--sonora-color-accent-default)" }} />
         </div>
       </div>
 
       {/* Desktop capsule */}
-      <div className="liquid liquid-strong hidden h-[84px] grid-cols-[minmax(0,1fr)_minmax(380px,1.6fr)_minmax(0,1fr)] items-center gap-6 rounded-[28px] px-3 md:grid">
+      <div className="liquid liquid-strong hidden h-[84px] grid-cols-[minmax(0,1fr)_minmax(380px,1.6fr)_minmax(0,1fr)] items-center gap-6 rounded-xl px-3 md:grid">
         <div className="flex min-w-0 items-center gap-3">
           <button type="button" aria-label="Открыть плеер" onClick={() => player.setNowPlaying(true)} className="group relative shrink-0">
-            <motion.div layoutId="now-playing-art" className="h-[60px] w-[60px] overflow-hidden rounded-2xl shadow-md transition-transform group-hover:scale-105">
+            <motion.div layoutId="now-playing-art" className="h-[60px] w-[60px] overflow-hidden rounded-lg shadow-md transition-transform group-hover:scale-105">
               <Artwork artwork={track.release.artwork} alt={track.release.title} sizes="60px" className="h-full w-full" />
             </motion.div>
           </button>

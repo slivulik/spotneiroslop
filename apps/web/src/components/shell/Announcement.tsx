@@ -29,15 +29,15 @@ export function Announcement() {
           exit={{ height: 0, opacity: 0 }}
           className="px-4 pt-3 md:px-8"
         >
-          <div className={`liquid relative flex items-center gap-3 overflow-hidden rounded-2xl bg-gradient-to-r px-4 py-3 ${TONES[tone] ?? TONES.info}`}>
-            <span className="relative flex h-2 w-2 shrink-0"><span className="absolute inset-0 animate-ping rounded-full bg-white/80" /><span className="relative h-2 w-2 rounded-full bg-white" /></span>
+          <div className={`liquid relative flex items-center gap-3 overflow-hidden rounded-lg bg-gradient-to-r px-4 py-3 ${TONES[tone] ?? TONES.info}`}>
+            <span className="relative flex h-2 w-2 shrink-0"><span className="absolute inset-0 animate-ping rounded-full bg-fg/80" /><span className="relative h-2 w-2 rounded-full bg-white" /></span>
             {a?.link && !m ? (
               <a href={a.link} className="flex-1 text-body font-semibold hover:underline">{text}</a>
             ) : (
               <span className="flex-1 text-body font-semibold">{text}</span>
             )}
             {!m ? (
-              <button type="button" aria-label="Скрыть" onClick={() => setDismissed(text ?? null)} className="rounded-full p-1 text-text-primary/70 hover:bg-white/10">
+              <button type="button" aria-label="Скрыть" onClick={() => setDismissed(text ?? null)} className="rounded-full p-1 text-text-primary/70 hover:bg-fg/10">
                 <CloseIcon size={18} />
               </button>
             ) : null}

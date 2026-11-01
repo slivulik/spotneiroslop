@@ -22,7 +22,7 @@ export function MobileTabBar() {
         {tabs.map((tab) => (
           <Link key={tab.href} href={tab.href} className="relative flex flex-1 flex-col items-center gap-0.5 rounded-full py-1.5 text-[10px] font-semibold">
             {tab.active ? (
-              <motion.span layoutId="tab-active" className="absolute inset-0 rounded-full bg-white/12" transition={{ type: "spring", stiffness: 420, damping: 32 }} />
+              <motion.span layoutId="tab-active" className="absolute inset-0 rounded-full bg-fg/12" transition={{ type: "spring", stiffness: 420, damping: 32 }} />
             ) : null}
             <span className={`relative ${tab.active ? "text-text-primary" : "text-text-secondary"}`}>{tab.icon}</span>
             <span className={`relative ${tab.active ? "text-text-primary" : "text-text-tertiary"}`}>{tab.label}</span>

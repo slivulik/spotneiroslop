@@ -64,6 +64,15 @@ export function generateKotlin(t: Tokens): string {
     }
   }
   obj("Colors", colors);
+  for (const [theme, def] of Object.entries(t.themes)) {
+    const overrides: string[] = [];
+    for (const [group, entries] of Object.entries(def.color)) {
+      for (const [name, value] of Object.entries(entries)) {
+        overrides.push(`val ${pascal(`${group}-${name}`)}: Color = Color(${toArgbHex(parseColor(value))})`);
+      }
+    }
+    obj(`${pascal(theme)}Colors`, overrides);
+  }
 
   obj(
     "Typography",

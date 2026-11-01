@@ -1,5 +1,6 @@
 "use client";
 
+import { ThemeController } from "@/components/ThemeController";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -30,5 +31,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  return <QueryClientProvider client={client}>{children}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={client}>
+      <ThemeController>{children}</ThemeController>
+    </QueryClientProvider>
+  );
 }

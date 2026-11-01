@@ -70,6 +70,27 @@ export function validateTokens(raw: unknown): Tokens {
     if (!FONT_ROLES.includes(style.family as FontRole)) fail(`${path}.family`, `expected one of ${FONT_ROLES.join(", ")}`);
   }
 
+  for (const [theme, def] of Object.entries(record(root.themes, "themes"))) {
+    const colors = record(isRecord(def) ? def.color : undefined, `themes.${theme}.color`);
+    const base = root.color as Record<string, Record<string, unknown>>;
+    for (const [group, entries] of Object.entries(colors)) {
+      for (const [name, value] of Object.entries(record(entries, `themes.${theme}.color.${group}`))) {
+        const path = `themes.${theme}.color.${group}.${name}`;
+        if (!base[group] || !(name in base[group])) fail(path, "not in the base palette");
+        if (typeof value !== "string") fail(path, "expected a colour string");
+        try {
+          parseColor(value);
+        } catch (error) {
+          fail(path, (error as Error).message);
+        }
+      }
+    }
+  }
+  for (const [k, v] of Object.entries(record(root.opacity, "opacity"))) {
+    const n = finiteNumber(v, `opacity.${k}`, 0);
+    if (n > 1) fail(`opacity.${k}`, "must be within [0, 1]");
+  }
+  numberMap(root.border, "border");
   numberMap(root.space, "space");
   numberMap(root.radius, "radius");
   numberMap(root.blur, "blur");

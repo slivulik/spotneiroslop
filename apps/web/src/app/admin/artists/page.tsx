@@ -48,7 +48,7 @@ export default function ArtistsPage() {
       <SearchBar value={q} onChange={(v) => { setQ(v); setOffset(0); }} placeholder="Имя артиста" />
       <SpotlightZone className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
         {artists.data?.items.map((a, i) => (
-          <motion.button key={a.id} type="button" onClick={() => setOpen(a)} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: Math.min(i, 30) * 0.015 }} className="liquid spotlight flex flex-col items-center gap-2 rounded-3xl p-4 text-center">
+          <motion.button key={a.id} type="button" onClick={() => setOpen(a)} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: Math.min(i, 30) * 0.015 }} className="liquid spotlight flex flex-col items-center gap-2 rounded-xl p-4 text-center">
             <div className="spotlight-glow" />
             <Artwork artwork={a.artwork} alt={a.name} seed={a.name} sizes="120px" className="aspect-square w-full rounded-full" />
             <div className="w-full truncate text-body font-bold">{a.verified ? "✓ " : ""}{a.name}</div>
