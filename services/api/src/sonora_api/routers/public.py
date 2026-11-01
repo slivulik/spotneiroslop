@@ -1,7 +1,7 @@
 """Home page, playlists, genres, lyrics, platform status, listening events."""
 
 import uuid
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Query, Request, Response
 from pydantic import Field
@@ -118,9 +118,10 @@ async def search(
     viewer: OptionalViewer,
     q: Annotated[str, Query(min_length=1, max_length=100)],
     limit: Annotated[int, Query(ge=1, le=30)] = 10,
+    sort: Literal["relevance", "new", "popular"] = "relevance",
 ) -> SearchOut:
-    """Search published music by title or artist (substring, case-insensitive).
-
-    Typo tolerance and transliteration arrive with Meilisearch (ROADMAP, phase 5).
-    """
-    return await editorial.search(session, ctx.settings, q.strip(), limit, viewer.user if viewer else None)
+    """Search published music: tracks, releases (albums and singles), artists, genres, playlists.
+    Case-insensitive substring match plus typo tolerance (trigram similarity)."""
+    return await editorial.search(
+        session, ctx.settings, q.strip(), limit, viewer.user if viewer else None, sort
+    )

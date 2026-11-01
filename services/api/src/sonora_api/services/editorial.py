@@ -3,8 +3,9 @@
 import uuid
 from collections.abc import Sequence
 from datetime import UTC, datetime
+from typing import Any, Literal
 
-from sqlalchemy import delete, exists, func, select
+from sqlalchemy import delete, exists, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -703,28 +704,67 @@ def _like(q: str) -> str:
     return "%" + q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
 
 
+#: Trigram word-similarity above which a near-miss still matches ("севрное" → "Северное сияние").
+FUZZY_THRESHOLD = 0.4
+SearchSort = Literal["relevance", "new", "popular"]
+
+
 async def search(
-    session: AsyncSession, settings: Settings, q: str, limit: int, viewer: User | None
+    session: AsyncSession,
+    settings: Settings,
+    q: str,
+    limit: int,
+    viewer: User | None,
+    sort: SearchSort = "relevance",
 ) -> SearchOut:
+    """Substring match plus typo tolerance (pg_trgm word similarity) over titles and names.
+    Relevance = best of whole-string and word similarity, so exact and prefix hits rank first."""
+    needle = q.lower()
     pattern = _like(q)
-    artist_ids = select(Artist.id).where(Artist.name.ilike(pattern))
+    fuzzy = len(needle) >= 3
+
+    def score(col: Any) -> Any:
+        return func.greatest(
+            func.similarity(func.lower(col), needle), func.word_similarity(needle, func.lower(col))
+        )
+
+    def matches(col: Any) -> Any:
+        hit = col.ilike(pattern)
+        return or_(hit, func.word_similarity(needle, func.lower(col)) >= FUZZY_THRESHOLD) if fuzzy else hit
+
+    artist_ids = select(Artist.id).where(matches(Artist.name))
     by_artist = select(TrackArtist.track_id).where(TrackArtist.artist_id.in_(artist_ids))
+    track_order = {
+        "relevance": (score(Track.title).desc(), Track.play_count.desc()),
+        "new": (Track.created_at.desc(),),
+        "popular": (Track.play_count.desc(),),
+    }[sort]
     tracks = await session.scalars(
         catalog._tracks_query(_now())
-        .where((Track.title.ilike(pattern)) | (Track.id.in_(by_artist)))
-        .order_by(Track.play_count.desc(), Track.id)
+        .where(matches(Track.title) | Track.id.in_(by_artist))
+        .order_by(*track_order, Track.id)
         .limit(limit)
     )
     release_by_artist = select(ReleaseArtist.release_id).where(ReleaseArtist.artist_id.in_(artist_ids))
+    release_plays = (
+        select(func.coalesce(func.sum(Track.play_count), 0))
+        .where(Track.release_id == Release.id)
+        .scalar_subquery()
+    )
+    release_order = {
+        "relevance": (score(Release.title).desc(), Release.created_at.desc()),
+        "new": (Release.release_date.desc().nulls_last(), Release.created_at.desc()),
+        "popular": (release_plays.desc(),),
+    }[sort]
     releases = await session.scalars(
         select(Release)
         .where(
             release_visible(_now()),
             exists().where(Track.release_id == Release.id, Track.status == TrackStatus.READY),
-            (Release.title.ilike(pattern)) | (Release.id.in_(release_by_artist)),
+            matches(Release.title) | Release.id.in_(release_by_artist),
         )
         .options(selectinload(Release.artist_links).selectinload(ReleaseArtist.artist))
-        .order_by(Release.created_at.desc())
+        .order_by(*release_order, Release.id)
         .limit(limit)
     )
     has_music = exists().where(
@@ -732,14 +772,25 @@ async def search(
         TrackArtist.track_id == Track.id,
         Track.status == TrackStatus.READY,
     )
+    artist_order = (
+        (Artist.monthly_listeners.desc(), Artist.name)
+        if sort == "popular"
+        else (score(Artist.name).desc(), Artist.name)
+    )
     artists = await session.scalars(
-        select(Artist).where(Artist.name.ilike(pattern), has_music).order_by(Artist.name).limit(limit)
+        select(Artist).where(matches(Artist.name), has_music).order_by(*artist_order).limit(limit)
+    )
+    genres = await session.scalars(
+        select(Genre)
+        .where(matches(Genre.name))
+        .order_by(score(Genre.name).desc(), Genre.position)
+        .limit(limit)
     )
     playlist_rows = list(
         await session.scalars(
             select(Playlist)
-            .where(Playlist.is_public, Playlist.track_count > 0, Playlist.title.ilike(pattern))
-            .order_by(Playlist.updated_at.desc())
+            .where(Playlist.is_public, Playlist.track_count > 0, matches(Playlist.title))
+            .order_by(score(Playlist.title).desc(), Playlist.updated_at.desc())
             .limit(limit)
         )
     )
@@ -749,4 +800,5 @@ async def search(
         releases=[catalog._release_summary(settings, r) for r in releases],
         artists=[artist_summary(settings, a) for a in artists],
         playlists=[_playlist_summary(settings, p, mosaics.get(p.id, []), None) for p in playlist_rows],
+        genres=[genre_out(settings, g) for g in genres],
     )

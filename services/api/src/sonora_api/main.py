@@ -26,6 +26,7 @@ from sonora_api.routers import (
     auth,
     catalog,
     health,
+    library,
     me,
     public,
     stream,
@@ -100,7 +101,7 @@ def create_app(
 
     app.include_router(health.router)
     routers = (
-        auth.router, me.router, catalog.router, public.router, stream.router,
+        auth.router, me.router, catalog.router, public.router, library.router, stream.router,
         admin.router, admin_content.router, admin_catalog.router, admin_users.router,
     )  # fmt: skip
     for router in routers:

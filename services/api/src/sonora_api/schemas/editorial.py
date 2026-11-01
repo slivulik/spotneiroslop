@@ -150,6 +150,7 @@ class SearchOut(ApiModel):
     releases: list[ReleaseSummary]
     artists: list[ArtistSummary]
     playlists: list[PlaylistSummary]
+    genres: list[GenreOut] = Field(default_factory=list)
 
 
 class GenreDetail(ApiModel):
