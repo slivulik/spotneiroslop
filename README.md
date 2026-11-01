@@ -4,9 +4,9 @@
 Главный экран — бесконечная персональная волна; плеер с Canvas и пословными текстами;
 качество до Hi-Res Lossless.
 
-> Статус: **фаза 1 — фундамент** (монорепо, дизайн-токены, инфраструктура, ядро API:
-> схема данных, авторизация, профиль и настройки, чтение каталога, OpenAPI + TS-клиент).
-> План остальных фаз — в [ROADMAP.md](ROADMAP.md).
+> Статус: **фаза 2 завершена** — фундамент (API, авторизация, каталог) + загрузка музыки:
+> админ-загрузка по подписанным ссылкам, media-worker (проверка, теги, громкость, лесенка
+> качеств, HLS, обложки, превью), CLI массовой загрузки. План — в [ROADMAP.md](ROADMAP.md).
 
 ## Быстрый старт (≈5 минут)
 
@@ -16,8 +16,9 @@
 cp .env.example .env
 # задайте SONORA_JWT_SECRET: python -c "import secrets; print(secrets.token_urlsafe(48))"
 
-make up            # Postgres+pgvector, Redis, MinIO, ClickHouse, Meilisearch
+make up            # Postgres+pgvector, Redis, SeaweedFS (S3), ClickHouse, Meilisearch + бакеты
 make api-dev       # миграции + API на http://localhost:8000 (Swagger: /docs)
+make worker-dev    # media-worker (нужен ffmpeg)
 pnpm install && pnpm -r run build
 ```
 
@@ -47,7 +48,23 @@ sudo SONORA_DOMAIN=example.com ./infra/deploy/bootstrap.sh   # без домен
 * Если порт 443/80 уже занят (например, VPN), Caddy публикуется на 8443/8080.
 * Без домена API доступно по `http://<IP>/`; с доменом — `https://api.<домен>` (нужна A-запись).
 * Обновление: `git pull && sudo ./infra/deploy/bootstrap.sh` (миграции применяются автоматически).
-* ClickHouse, Meilisearch и MinIO включаются профилем `full`, когда до них дойдут фазы 2–5.
+* Хранилище — SeaweedFS (S3 API) за Caddy; ClickHouse и Meilisearch включаются профилем `full`
+  в следующих фазах.
+
+## Загрузка музыки
+
+```bash
+# один раз на сервере: создать админа (спросит пароль)
+docker compose -f infra/docker-compose.prod.yml --env-file .env exec api sonora-api create-admin --email you@example.com
+
+# со своего компьютера: залить папку (FLAC/MP3, обложка cover.jpg рядом — по желанию)
+cd tools/uploader-cli && uv sync
+SONORA_API=http://<сервер> uv run sonora-upload ~/Music/Album --email you@example.com --publish --wait
+```
+
+Статус обработки, предупреждения (например, «FLAC, вероятно, сделан из MP3») и ошибки видны
+в выводе `--wait` и в `GET /v1/admin/uploads/{id}`; упавшую задачу можно перезапустить с любого
+этапа: `POST /v1/admin/jobs/{id}/retry`.
 
 ## Проверки
 
@@ -61,7 +78,9 @@ make check         # ruff, mypy --strict, pytest (+ миграции up/down/up)
 
 ```
 apps/             web (Next.js), android (Kotlin/Compose), admin — следующие фазы
-services/api      FastAPI: auth, профиль, каталог (готово), библиотека, стриминг, волна…
+services/api      FastAPI: auth, профиль, каталог, админ-загрузки (готово); библиотека, стриминг, волна…
+services/media-worker  конвейер обработки аудио (Dramatiq + ffmpeg)
+tools/uploader-cli     массовая загрузка папок
 packages/
   design-tokens   tokens.json → CSS-переменные, Tailwind v4 theme, TS, Kotlin
   api-schema      openapi.json + типизированный TS-клиент

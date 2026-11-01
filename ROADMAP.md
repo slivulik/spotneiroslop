@@ -8,7 +8,7 @@
 
 * Монорепо (pnpm workspaces + uv), CI, Makefile, `.env.example`.
 * `packages/design-tokens`: JSON → CSS, Tailwind v4, TS, Kotlin; проверка контраста.
-* `infra`: docker-compose (Postgres+pgvector, Redis, MinIO, ClickHouse, Meilisearch, API),
+* `infra`: docker-compose (Postgres+pgvector, Redis, S3, ClickHouse, Meilisearch, API),
   схема событий ClickHouse с материализованными представлениями, Caddy.
 * `services/api`: полная схема данных (34 таблицы, миграция 0001), auth (e-mail+пароль,
   Google, refresh-ротация с детектом повторов, подтверждение e-mail, сброс пароля), `/me`,
@@ -16,12 +16,14 @@
   артисты, топ-треки, релизы артиста, жанры, настроения), ETag, rate limit, единый формат ошибок.
 * `packages/api-schema`: OpenAPI 3.1 + TS-клиент с авто-refresh.
 
-## Фаза 2 — media-worker и админ-API загрузки
+## Фаза 2 — media-worker и админ-API загрузки ✅
 
-Пайплайн 5.1 целиком (ffprobe, проверка подделки lossless, теги, SHA-256 + Chromaprint,
-EBU R128, лесенка качеств, HLS fMP4 с gapless-метаданными, waveform, палитра, обложки
-AVIF/WebP/JPEG + blurhash, превью 30 с), Dramatiq, `upload_jobs`, `/admin/uploads` (tus),
-`tools/uploader-cli`.
+* `/v1/admin/uploads` (подписанные PUT прямо в S3 вместо tus — проще и не грузит API),
+  статус и логи задачи, перезапуск с любого этапа, публикация релиза.
+* `services/media-worker`: шаги 5.1 №1–7 и 9–12 (кроме ML-анализа, см. ниже), запись в каталог,
+  album gain, чекпоинты этапов.
+* `tools/uploader-cli`, команды `sonora-api create-admin` / `init-storage`.
+* Хранилище: SeaweedFS вместо MinIO (образы MinIO больше не публикуются).
 
 ## Фаза 3 — стриминг и библиотека
 
@@ -61,6 +63,19 @@ SSE/WebSocket-синхронизация плеера, FCM, `/share/*` с OG и 
 ## Фаза 9 — оптимизация и нагрузка
 
 `EXPLAIN ANALYZE` главных эндпоинтов, k6 (`tools/loadtest`), бэкапы, Grafana/Prometheus.
+
+## Осознанно отложено из фазы 2
+
+* **Шаг 8 (ML-анализ: Essentia BPM/тональность/настроения, Whisper язык вокала, аудио-эмбеддинги)**
+  → фаза 6: модели и их версии выбираются вместе с рекомендательной системой.
+* **Шаг 13 (индексация в поиске)** → фаза 5 вместе с Meilisearch.
+* Gapless для MP3-источника в HLS: задержка/padding из LAME-заголовка сохранены в `track_files`,
+  но `elst` в fMP4 для MP3 не переписывается (поведение декодеров MP3-в-MP4 различается);
+  проверить на клиентах в фазах 4/7. Для AAC обрезка в начале проверена, хвост (padding, ~5 мс)
+  ffmpeg на фрагментированных потоках не срезает — клиенты используют `encoder_padding`.
+* Формат текстов — временный документ v1 (`{"version":1,"type":"line"|"static",...}`) до
+  спецификации `packages/lyrics-core` (раздел 6 промта не получен). Пословные тексты (TTML) — там же.
+* Редактирование метаданных и UI админки (`apps/admin`) — фаза 8; сейчас — API.
 
 ## Осознанно отложено из фазы 1
 

@@ -4,6 +4,20 @@
 
 ## [Unreleased]
 
+### Added — фаза 2
+- Админ-загрузки: подписанные S3-ссылки, подтверждение с проверкой размера, очередь Dramatiq,
+  статус/логи/предупреждения задачи, перезапуск с любого этапа, публикация/эмбарго релиза.
+- `services/media-worker`: проверка целостности (MD5 FLAC), детект lossy-источника, теги
+  FLAC/ID3 (feat., версии, LRC/SYLT/USLT), дубликаты по SHA-256 и Chromaprint, EBU R128 и gain,
+  лесенка качеств без апскейла, HLS fMP4 с исправленным edit list, waveform, обложки
+  AVIF/WebP/JPEG + blurhash + палитра с контрастом WCAG, превью 30 с, album gain.
+- `tools/uploader-cli` (`sonora-upload`), `sonora-api create-admin`, `sonora-api init-storage`.
+- SeaweedFS (S3) в docker-compose и на VPS, маршрутизация бакетов через Caddy, сервис воркера.
+
+### Changed
+- Обложки в отдельном публичном бакете `sonora-public`; `SONORA_MEDIA_BASE_URL` указывает на него.
+- Все ORM-модели используют `eager_defaults` (серверные значения возвращаются через RETURNING).
+
 ### Added — фаза 1
 - Монорепозиторий (pnpm workspaces, uv), CI на GitHub Actions, Makefile.
 - `@sonora/design-tokens`: генерация CSS-переменных, Tailwind v4 theme, TS и Kotlin из `tokens.json`
