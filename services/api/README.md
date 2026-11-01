@@ -6,7 +6,7 @@ FastAPI (async) · SQLAlchemy 2 + asyncpg · Alembic · PostgreSQL 16 + pgvector
 ## Run locally
 
 ```bash
-# from the repo root: start Postgres, Redis, MinIO, ClickHouse, Meilisearch
+# from the repo root: start Postgres, Redis, SeaweedFS (S3), ClickHouse, Meilisearch
 docker compose -f infra/docker-compose.yml up -d postgres redis
 
 cd services/api

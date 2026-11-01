@@ -86,3 +86,10 @@ async def test_gcra_rate_limiter() -> None:
         assert (await limiter.hit("unit-2", per_minute=60, burst=1)).allowed
     finally:
         await redis.aclose()
+
+
+async def test_create_admin_rejects_unusable_email() -> None:
+    from sonora_api.cli import create_admin  # noqa: PLC0415
+
+    with pytest.raises(SystemExit, match="invalid e-mail"):
+        await create_admin("admin@e2e.test", "Admin", "long enough password")

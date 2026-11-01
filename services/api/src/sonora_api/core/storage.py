@@ -67,3 +67,22 @@ class ObjectStorage:
                 raise
 
         return await anyio.to_thread.run_sync(head)
+
+
+def ensure_buckets(settings: Settings) -> list[str]:
+    """Create the uploads, media (private) and public buckets if missing. Returns created names.
+
+    Anonymous read on the public bucket is storage-specific (SeaweedFS identity config, R2
+    "public bucket", B2 "allPublic") and configured outside the API.
+    """
+    client = _client(settings, settings.s3_endpoint_url)
+    created = []
+    for bucket in (settings.s3_uploads_bucket, settings.s3_media_bucket, settings.s3_public_bucket):
+        try:
+            client.head_bucket(Bucket=bucket)
+        except ClientError as exc:
+            if exc.response.get("Error", {}).get("Code") not in {"404", "NoSuchBucket", "NotFound"}:
+                raise
+            client.create_bucket(Bucket=bucket)
+            created.append(bucket)
+    return created

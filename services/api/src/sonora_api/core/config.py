@@ -32,7 +32,7 @@ class Settings(BaseSettings):
 
     google_client_ids: Annotated[list[str], NoDecode] = []
 
-    #: Object storage (MinIO locally, R2 / B2 / Hetzner in production).
+    #: Object storage (SeaweedFS locally, R2 / B2 / Hetzner in production).
     s3_endpoint_url: str = "http://localhost:9000"
     #: Endpoint clients can reach for presigned uploads (may differ from the internal one).
     s3_public_endpoint_url: str = "http://localhost:9000"
@@ -41,6 +41,7 @@ class Settings(BaseSettings):
     s3_secret_key: SecretStr = SecretStr("sonora-secret")
     s3_uploads_bucket: str = "sonora-uploads"
     s3_media_bucket: str = "sonora-media"
+    s3_public_bucket: str = "sonora-public"
     upload_url_ttl_seconds: int = 3600
     max_upload_bytes: int = 2 * 1024**3
 
@@ -48,7 +49,7 @@ class Settings(BaseSettings):
     queue_url: str = "redis://localhost:6379/1"
 
     web_base_url: str = "http://localhost:3000"
-    media_base_url: str = "http://localhost:9000/sonora-media"
+    media_base_url: str = "http://localhost:9000/sonora-public"
     cors_origins: Annotated[list[str], NoDecode] = ["http://localhost:3000", "http://localhost:3001"]
 
     email_backend: Literal["console", "smtp"] = "console"

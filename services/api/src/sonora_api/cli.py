@@ -6,19 +6,28 @@ import getpass
 import os
 import sys
 
+from pydantic import EmailStr, TypeAdapter, ValidationError
 from sqlalchemy import select
 
 from sonora_api.core.config import get_settings
 from sonora_api.core.db import create_engine, create_sessionmaker
 from sonora_api.core.ids import uuid7
 from sonora_api.core.security import hash_password
+from sonora_api.core.storage import ensure_buckets
 from sonora_api.models import User
 from sonora_api.models.enums import UserRole
 from sonora_api.schemas.auth import PASSWORD_MIN
 from sonora_api.services.auth import normalize_email
 
+_EMAIL = TypeAdapter(EmailStr)
+
 
 async def create_admin(email: str, display_name: str, password: str | None) -> str:
+    # Same validation as /v1/auth/login, so the account created here can actually sign in.
+    try:
+        email = _EMAIL.validate_python(email)
+    except ValidationError as exc:
+        raise SystemExit(f"invalid e-mail: {exc.errors()[0]['msg']}") from exc
     settings = get_settings()
     engine = create_engine(settings)
     try:
@@ -51,7 +60,13 @@ def main(argv: list[str] | None = None) -> int:
     admin = commands.add_parser("create-admin", help="create an admin account or promote an existing user")
     admin.add_argument("--email", required=True)
     admin.add_argument("--name", default="Admin")
+    commands.add_parser("init-storage", help="create object storage buckets (idempotent)")
     args = parser.parse_args(argv)
+
+    if args.command == "init-storage":
+        created = ensure_buckets(get_settings())
+        print(f"created buckets: {', '.join(created)}" if created else "buckets already exist")
+        return 0
 
     if args.command == "create-admin":
         # Password: env var for automation, interactive prompt otherwise (never a CLI argument).
