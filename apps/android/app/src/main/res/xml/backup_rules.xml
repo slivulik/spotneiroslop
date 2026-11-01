@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <!-- Tokens and the audio cache are device-specific. -->
+    <exclude domain="file" path="datastore/session.preferences_pb" />
+    <exclude domain="cache" path="." />
+</full-backup-content>
