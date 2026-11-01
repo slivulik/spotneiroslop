@@ -126,6 +126,9 @@ else
 fi
 log "Starting stack"
 "${COMPOSE[@]}" up -d --remove-orphans "${up_flags[@]}"
+# The Caddyfile is a bind-mounted file: `git pull` replaces it with a new inode that a running
+# container never sees, and compose doesn't recreate Caddy for it. Restart to load the new routes.
+"${COMPOSE[@]}" restart caddy
 
 log "Waiting for the API to become ready"
 for _ in $(seq 1 60); do
