@@ -23,7 +23,10 @@ class WorkerSettings(BaseSettings):
     s3_access_key: str = "sonora"
     s3_secret_key: SecretStr = SecretStr("sonora-secret")
     s3_uploads_bucket: str = "sonora-uploads"
+    #: Private: audio files, HLS, previews (served through signed URLs).
     s3_media_bucket: str = "sonora-media"
+    #: Anonymously readable: artwork. Its public URL is the API's SONORA_MEDIA_BASE_URL.
+    s3_public_bucket: str = "sonora-public"
 
     workdir: Path = Path("/tmp/sonora-media")  # noqa: S108 - per-job subdirectories, cleaned up
     ffmpeg: str = "ffmpeg"

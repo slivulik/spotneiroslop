@@ -32,6 +32,7 @@ from tests.conftest import AudioFiles, make_settings
 
 UPLOADS = "sonora-uploads"
 MEDIA = "sonora-media"
+PUBLIC = "sonora-public"
 
 
 class Harness:
@@ -139,8 +140,8 @@ def test_full_pipeline_hires_flac(tmp_path: Path, sessions: sessionmaker[Session
         assert release.cover_blurhash is not None
         assert release.palette is not None
         assert release.palette["text"] in {"#F5F5F7", "#0B0B0F"}
-        assert h.media_exists(f"public/{release.cover_key}/640.avif")
-        assert h.media_exists(f"public/{release.cover_key}/3000.jpg")
+        assert h.storage.path(PUBLIC, f"{release.cover_key}/640.avif").is_file()
+        assert h.storage.path(PUBLIC, f"{release.cover_key}/3000.jpg").is_file()
         assert s.scalar(select(Genre.slug).where(Genre.name == "Indie")) == "indie"
 
 
@@ -243,3 +244,16 @@ def test_duplicate_delivery_is_ignored(
     assert h.pipeline.run(job_id) == JobStatus.SUCCEEDED
     assert h.pipeline.run(job_id) == JobStatus.SUCCEEDED  # second message: job no longer queued
     assert h.job(job_id).attempts == 1
+
+
+def test_missing_tool_is_reported_as_internal_error(
+    tmp_path: Path, sessions: sessionmaker[Session], audio: AudioFiles
+) -> None:
+    h = Harness(tmp_path, sessions)
+    h.pipeline.settings = h.settings.model_copy(update={"ffprobe": "/nonexistent/ffprobe"})
+    job_id = h.submit(audio.flac16)
+    assert h.pipeline.run(job_id) == JobStatus.FAILED
+    error = h.job(job_id).error
+    assert error is not None
+    assert error.startswith("Internal error")
+    assert "is not installed" in error

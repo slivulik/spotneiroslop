@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Any
 
 from sonora_media.config import WorkerSettings
-from sonora_media.errors import ToolError
+from sonora_media.errors import ToolError, ToolMissingError
 
 _STDERR_TAIL = 2000
 
@@ -19,7 +19,7 @@ def run(
     except subprocess.TimeoutExpired as exc:
         raise ToolError(f"{Path(args[0]).name} timed out after {timeout}s") from exc
     except FileNotFoundError as exc:
-        raise ToolError(f"{args[0]} is not installed") from exc
+        raise ToolMissingError(f"{args[0]} is not installed") from exc
     if result.returncode != 0:
         tail = result.stderr.decode(errors="replace")[-_STDERR_TAIL:]
         raise ToolError(f"{Path(args[0]).name} exited with {result.returncode}: {tail}")
@@ -55,3 +55,9 @@ def ffprobe_json(settings: WorkerSettings, path: Path) -> dict[str, Any]:
 def has_encoder(settings: WorkerSettings, name: str) -> bool:
     out = run([settings.ffmpeg, "-hide_banner", "-encoders"], timeout=30).stdout.decode()
     return any(line.split()[1:2] == [name] for line in out.splitlines() if line.startswith(" "))
+
+
+def check_tools(settings: WorkerSettings) -> None:
+    """Fail fast at worker start-up instead of failing every job later."""
+    for tool in (settings.ffmpeg, settings.ffprobe):
+        run([tool, "-hide_banner", "-version"], timeout=30)

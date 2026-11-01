@@ -19,7 +19,12 @@ from sonora_media.tools import ffmpeg
 
 FINGERPRINT_SECONDS = 120
 MAX_OFFSET = 12  # fingerprint items (~1.5 s); re-encodes may shift slightly
-DUPLICATE_SIMILARITY = 0.85
+#: Measured: the same recording re-encoded (even MP3 128 / AAC 96) scores ≥ 0.999, different
+#: music ≈ 0.6. 0.95 leaves a wide margin on both sides.
+DUPLICATE_SIMILARITY = 0.95
+#: Fingerprints with fewer distinct items than this share of their length (drones, test tones,
+#: silence) carry too little information to identify a recording; never block on them.
+MIN_DISTINCT_RATIO = 0.2
 #: Candidates must be this close in duration to be compared at all.
 DURATION_TOLERANCE_MS = 3_000
 
@@ -48,6 +53,10 @@ def encode(fp: Fingerprint) -> str:
 
 def decode(value: str) -> Fingerprint:
     return np.frombuffer(base64.b64decode(value), dtype="<u4").astype(np.uint32)
+
+
+def is_informative(fp: Fingerprint) -> bool:
+    return fp.size >= 32 and np.unique(fp).size >= MIN_DISTINCT_RATIO * fp.size
 
 
 def similarity(a: Fingerprint, b: Fingerprint) -> float:

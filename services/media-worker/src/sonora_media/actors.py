@@ -15,9 +15,11 @@ from sonora_media.config import get_settings
 from sonora_media.logs import configure_logging, get_logger
 from sonora_media.pipeline import Pipeline
 from sonora_media.storage import S3Storage
+from sonora_media.tools import check_tools
 
 settings = get_settings()
 configure_logging(settings.log_level, json=settings.log_json)
+check_tools(settings)
 dramatiq.set_broker(RedisBroker(url=settings.queue_url))
 log = get_logger("sonora.media.actors")
 

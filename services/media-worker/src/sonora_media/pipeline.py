@@ -222,7 +222,7 @@ def stage_artwork(ctx: JobContext) -> dict[str, Any]:
         )
     digest = fp.sha256_bytes(data)[:12]
     cover_key = f"covers/{release_id}/{digest}"
-    upload_dir(ctx.storage, ctx.settings.s3_media_bucket, f"public/{cover_key}", ctx.workdir / "cover")
+    upload_dir(ctx.storage, ctx.settings.s3_public_bucket, cover_key, ctx.workdir / "cover")
     return {"cover_key": cover_key, **result.to_dict()}
 
 

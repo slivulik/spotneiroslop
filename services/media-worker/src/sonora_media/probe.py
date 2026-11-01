@@ -10,7 +10,7 @@ from typing import Any
 from mutagen.flac import FLAC
 
 from sonora_media.config import WorkerSettings
-from sonora_media.errors import MediaError, ToolError
+from sonora_media.errors import MediaError, ToolError, ToolMissingError
 from sonora_media.tools import ffmpeg, ffmpeg_stderr, ffprobe_json
 
 SUPPORTED = {"flac": "flac", "mp3": "mp3"}
@@ -45,6 +45,8 @@ class ProbeResult:
 def probe(settings: WorkerSettings, path: Path) -> ProbeResult:
     try:
         info = ffprobe_json(settings, path)
+    except ToolMissingError:
+        raise
     except ToolError as exc:
         raise MediaError("File is not a readable audio file") from exc
 
@@ -110,6 +112,8 @@ def verify_decodes(settings: WorkerSettings, path: Path, info: ProbeResult) -> N
                     raise MediaError("File is damaged: decoded audio does not match its FLAC checksum")
                 return
         stderr = ffmpeg_stderr(settings, "-xerror", "-i", str(path), "-map", "0:a:0", "-f", "null", "-")
+    except ToolMissingError:
+        raise
     except ToolError as exc:
         raise MediaError(f"File is damaged and does not decode cleanly: {exc}") from exc
     if problem := _DECODE_PROBLEMS.search(stderr):

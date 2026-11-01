@@ -7,6 +7,7 @@ from sonora_media import artwork, authenticity, blurhash, fingerprint, loudness,
 from sonora_media.config import WorkerSettings
 from sonora_media.errors import MediaError
 from sonora_media.ladder import plan_ladder
+from sonora_media.mp4 import read_edit_list
 from sonora_media.probe import probe
 from sonora_media.tags import embedded_cover, read_tags
 from sonora_media.tools import ffprobe_json
@@ -77,7 +78,8 @@ def test_fingerprint_matches_same_recording_only(
     sh("-i", str(audio.flac16), "-c:a", "libmp3lame", "-b:a", "192k", str(reencoded))
     original = fingerprint.chromaprint(settings, audio.flac16)
     assert fingerprint.decode(fingerprint.encode(original)).tolist() == original.tolist()
-    assert fingerprint.similarity(original, fingerprint.chromaprint(settings, reencoded)) >= 0.85
+    assert fingerprint.similarity(original, fingerprint.chromaprint(settings, reencoded)) >= 0.99
+    assert fingerprint.is_informative(original)
     assert fingerprint.similarity(original, fingerprint.chromaprint(settings, audio.other_flac)) < 0.75
     assert len(fingerprint.sha256_file(audio.flac16)) == 64
 
@@ -108,6 +110,10 @@ def test_transcode_ladder_and_hls(settings: WorkerSettings, audio: AudioFiles, t
     assert (high["codec_name"], high["sample_rate"]) == ("aac", "48000")
     assert by_quality["high"].encoder_delay == 1024
     assert by_quality["lossless"].encoder_delay == 0
+    # Gapless: the HLS init segment trims AAC priming and padding like the source .m4a does.
+    duration, media_time = read_edit_list(by_quality["high"].hls_dir / "init.mp4")
+    assert media_time == 1024
+    assert duration == round(source.duration_ms / 1000 * 1000)  # ffmpeg's movie timescale is 1000
 
     for e in encoded:
         playlist = (e.hls_dir / "playlist.m3u8").read_text()
@@ -173,3 +179,27 @@ def test_blurhash_encodes_average_colour() -> None:
     for ch in value[2:6]:
         dc = dc * 83 + blurhash._CHARS.index(ch)
     assert ((dc >> 16) & 255, (dc >> 8) & 255, dc & 255) == (200, 30, 30)
+
+
+def test_degenerate_fingerprints_are_not_informative(settings: WorkerSettings, tmp_path: Path) -> None:
+    from tests.conftest import sh  # noqa: PLC0415
+
+    tone_a, tone_b = tmp_path / "a.flac", tmp_path / "b.flac"
+    sh("-f", "lavfi", "-i", "sine=f=330:d=30", str(tone_a))
+    sh("-f", "lavfi", "-i", "sine=f=392:d=30", str(tone_b))
+    a, b = fingerprint.chromaprint(settings, tone_a), fingerprint.chromaprint(settings, tone_b)
+    # Steady tones produce near-constant fingerprints that look alike: never use them to block.
+    assert not fingerprint.is_informative(a)
+    assert not fingerprint.is_informative(b)
+
+
+def test_missing_ffmpeg_is_not_blamed_on_the_file(audio: AudioFiles, tmp_path: Path) -> None:
+    from sonora_media.errors import ToolMissingError  # noqa: PLC0415
+    from sonora_media.tools import check_tools  # noqa: PLC0415
+    from tests.conftest import make_settings  # noqa: PLC0415
+
+    broken = make_settings(tmp_path).model_copy(update={"ffprobe": "/nonexistent/ffprobe"})
+    with pytest.raises(ToolMissingError):
+        probe(broken, audio.flac16)
+    with pytest.raises(ToolMissingError):
+        check_tools(broken)

@@ -5,3 +5,7 @@ class MediaError(Exception):
 
 class ToolError(Exception):
     """An external tool (ffmpeg/ffprobe) failed unexpectedly. May be transient."""
+
+
+class ToolMissingError(ToolError):
+    """ffmpeg/ffprobe is not installed: an environment problem, never the file's fault."""

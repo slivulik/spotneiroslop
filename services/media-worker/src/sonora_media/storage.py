@@ -1,5 +1,5 @@
-"""Object storage for the worker. Keys under `public/` are anonymously readable (artwork);
-everything else is served through signed URLs."""
+"""Object storage for the worker. The public bucket (artwork) is anonymously readable; the
+media bucket (audio, HLS, previews) is private and served through signed URLs."""
 
 from __future__ import annotations
 

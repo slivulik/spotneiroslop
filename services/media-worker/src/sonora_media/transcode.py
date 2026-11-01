@@ -17,6 +17,7 @@ from typing import Any
 from sonora_media.config import WorkerSettings
 from sonora_media.fingerprint import sha256_file
 from sonora_media.ladder import AUTO_QUALITIES, Rendition
+from sonora_media.mp4 import set_edit_list
 from sonora_media.probe import ProbeResult
 from sonora_media.tools import ffmpeg, ffprobe_json
 
@@ -139,6 +140,9 @@ def encode(
         )
     hls_dir = out_dir / "hls" / r.quality.value
     peak, average = package_hls(settings, file, hls_dir)
+    if r.codec in {"aac", "he-aac"}:
+        # Restore the priming/padding trim that the fMP4 muxer drops (gapless albums).
+        set_edit_list(hls_dir / "init.mp4", priming_samples=delay, duration_s=probe.duration_ms / 1000)
     return EncodedRendition(
         rendition=r,
         file=file,
