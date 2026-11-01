@@ -1,4 +1,3 @@
-# syntax=docker/dockerfile:1.7
 # Build context: repository root (the app depends on workspace packages).
 FROM node:22-alpine AS build
 RUN corepack enable

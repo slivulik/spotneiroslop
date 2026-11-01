@@ -1,4 +1,3 @@
-# syntax=docker/dockerfile:1.7
 FROM python:3.13-slim AS build
 RUN pip install --no-cache-dir "uv>=0.11,<0.12"
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy UV_PYTHON_DOWNLOADS=never

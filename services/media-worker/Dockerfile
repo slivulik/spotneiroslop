@@ -1,4 +1,3 @@
-# syntax=docker/dockerfile:1.7
 # Build context: services/ (the worker depends on the sonora-api package for models).
 FROM python:3.13-slim AS build
 RUN pip install --no-cache-dir "uv>=0.11,<0.12"
