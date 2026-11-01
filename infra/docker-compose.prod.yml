@@ -155,6 +155,10 @@ services:
     image: sonora-web:latest
     environment:
       SONORA_API_INTERNAL_URL: http://api:8000
+      # Share cards: absolute links and in-cluster image fetches for /og previews.
+      SONORA_PUBLIC_URL: ${SONORA_PUBLIC_URL}
+      SONORA_MEDIA_BASE_URL: ${SONORA_PUBLIC_URL}/sonora-public
+      SONORA_MEDIA_INTERNAL_URL: http://s3:8333/sonora-public
     depends_on: [api]
     deploy:
       resources:

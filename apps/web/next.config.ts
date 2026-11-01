@@ -10,6 +10,10 @@ const config: NextConfig = {
   output: "standalone",
   // Monorepo: trace workspace packages from the repository root into the standalone output.
   outputFileTracingRoot: path.join(import.meta.dirname, "../.."),
+  // The share-card renderer reads static WOFF fonts (OFL) from assets/ — not imported, so not traced.
+  outputFileTracingIncludes: {
+    "/og/[kind]/[id]": ["./assets/fonts/*.woff"],
+  },
   reactStrictMode: true,
   poweredByHeader: false,
   transpilePackages: ["@sonora/api-schema", "@sonora/design-tokens"],

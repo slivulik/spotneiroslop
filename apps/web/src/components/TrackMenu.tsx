@@ -138,7 +138,7 @@ export function TrackMenu({
                   <span className="truncate">Артист: {a.name}</span>
                 </button>
               ))}
-              <button type="button" role="menuitem" onClick={() => { done(); void share(`/album/${track.release.id}?track=${track.id}`, `${track.title} — ${track.artists.map((a) => a.name).join(", ")}`); }} className={item}>
+              <button type="button" role="menuitem" onClick={() => { done(); void share(`/track/${track.id}`, `${track.title} — ${track.artists.map((a) => a.name).join(", ")}`); }} className={item}>
                 <ShareIcon size={18} /> Поделиться
               </button>
               {onRemove ? (
