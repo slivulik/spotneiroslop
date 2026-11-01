@@ -30,6 +30,9 @@ class User(Base):
     onboarding_completed: Mapped[bool] = mapped_column(Boolean, server_default=text("false"))
     #: Client preferences validated by `schemas.me.UserSettings`; defaults applied on read.
     settings: Mapped[dict[str, Any]] = mapped_column(server_default=text("'{}'::jsonb"))
+    #: Blocked accounts can't sign in, refresh or use existing access tokens.
+    blocked_at: Mapped[datetime | None]
+    block_reason: Mapped[str | None] = mapped_column(String(256))
     created_at: Mapped[datetime] = created_at()
     updated_at: Mapped[datetime] = updated_at()
 

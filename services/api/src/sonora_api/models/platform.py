@@ -2,11 +2,11 @@ import uuid
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import ForeignKey, Index, Integer, String, Text, text
+from sqlalchemy import Boolean, ForeignKey, Index, Integer, String, Text, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from sonora_api.models.base import Base, created_at, pk_uuid, str_enum, updated_at
-from sonora_api.models.enums import ExperimentStatus, JobStatus
+from sonora_api.models.enums import ExperimentStatus, HomeSectionType, JobStatus
 
 
 class WaveSession(Base):
@@ -83,4 +83,39 @@ class UploadJob(Base):
     track_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("tracks.id", ondelete="SET NULL"))
     finished_at: Mapped[datetime | None]
     created_at: Mapped[datetime] = created_at()
+    updated_at: Mapped[datetime] = updated_at()
+
+
+class HomeSection(Base):
+    """A block on the home page (hero banner or a shelf), composed in the admin panel.
+
+    `config` depends on `type` and is validated by `schemas.home` on write:
+    hero → {image_key, blurhash, palette, link}; shelves → {source, ids, limit}.
+    """
+
+    __tablename__ = "home_sections"
+    __table_args__ = (
+        Index("ix_home_sections_active_position", "position", postgresql_where=text("is_active")),
+    )
+
+    id: Mapped[uuid.UUID] = pk_uuid()
+    type: Mapped[HomeSectionType] = mapped_column(str_enum(HomeSectionType, "home_section_type"))
+    title: Mapped[str] = mapped_column(String(128))
+    subtitle: Mapped[str | None] = mapped_column(String(256))
+    position: Mapped[int] = mapped_column(Integer, server_default="0")
+    is_active: Mapped[bool] = mapped_column(Boolean, server_default=text("true"))
+    config: Mapped[dict[str, Any]] = mapped_column(server_default=text("'{}'::jsonb"))
+    created_at: Mapped[datetime] = created_at()
+    updated_at: Mapped[datetime] = updated_at()
+
+
+class PlatformSetting(Base):
+    """Service-wide switches controlled from the admin panel (registration, quality tiers,
+    previews, maintenance, announcement). Read through `services.platform` with defaults."""
+
+    __tablename__ = "platform_settings"
+
+    key: Mapped[str] = mapped_column(String(64), primary_key=True)
+    value: Mapped[dict[str, Any]] = mapped_column(server_default=text("'{}'::jsonb"))
+    updated_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
     updated_at: Mapped[datetime] = updated_at()

@@ -3,7 +3,7 @@ from datetime import timedelta
 from fastapi import APIRouter, BackgroundTasks, Depends, status
 
 from sonora_api.core.context import AppContext
-from sonora_api.core.errors import NotFoundError
+from sonora_api.core.errors import AppError, NotFoundError
 from sonora_api.deps import Ctx, CurrentViewer, Session, auth_rate_limit
 from sonora_api.models import Device, User
 from sonora_api.models.enums import TokenPurpose
@@ -21,7 +21,7 @@ from sonora_api.schemas.auth import (
 from sonora_api.schemas.common import ERROR_RESPONSES
 from sonora_api.schemas.me import MeOut
 from sonora_api.services import auth as auth_service
-from sonora_api.services import mail_templates
+from sonora_api.services import mail_templates, platform
 from sonora_api.services.email import send_safely
 from sonora_api.services.users import me_out
 
@@ -41,6 +41,8 @@ async def _send_verification(session: Session, ctx: AppContext, user: User, task
 @router.post("/register", status_code=status.HTTP_201_CREATED, dependencies=strict)
 async def register(body: RegisterIn, session: Session, ctx: Ctx, tasks: BackgroundTasks) -> TokenOut:
     """Create an account with e-mail + password and sign in on the given device."""
+    if not (await platform.get_config(session)).registration_open:
+        raise AppError("Registration is closed", code="registration_closed", status_code=403)
     user = await auth_service.register_user(
         session, email=body.email, password=body.password, display_name=body.display_name
     )

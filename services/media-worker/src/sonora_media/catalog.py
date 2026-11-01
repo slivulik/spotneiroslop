@@ -8,6 +8,8 @@ from datetime import date
 from typing import Any
 
 from sonora_api.core.ids import uuid7
+from sonora_api.core.slugs import slugify
+from sonora_api.media.lyrics import line_document, static_document
 from sonora_api.models import (
     Artist,
     Genre,
@@ -37,7 +39,6 @@ from sqlalchemy.orm import Session
 
 from sonora_media import fingerprint as fp
 from sonora_media.loudness import album_gain
-from sonora_media.slugs import slugify
 from sonora_media.tags import TrackTags
 
 VARIOUS_ARTISTS = {"various artists", "various", "va", "сборник", "разные исполнители"}
@@ -243,20 +244,10 @@ def upsert_track(
 
 
 def lyrics_document(tags: TrackTags, duration_ms: int) -> tuple[LyricsType, dict[str, Any]] | None:
-    """Provisional lyrics document (v1). Will follow packages/lyrics-core once specified."""
     if tags.synced_lyrics:
-        lines = tags.synced_lyrics
-        body_lines = [
-            {
-                "start_ms": line.start_ms,
-                "end_ms": lines[i + 1].start_ms if i + 1 < len(lines) else duration_ms,
-                "text": line.text,
-            }
-            for i, line in enumerate(lines)
-        ]
-        return LyricsType.LINE, {"version": 1, "type": "line", "lines": body_lines}
+        return LyricsType.LINE, line_document(tags.synced_lyrics, duration_ms)
     if tags.lyrics:
-        return LyricsType.STATIC, {"version": 1, "type": "static", "text": tags.lyrics}
+        return LyricsType.STATIC, static_document(tags.lyrics)
     return None
 
 

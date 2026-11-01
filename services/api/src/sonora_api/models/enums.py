@@ -136,3 +136,22 @@ class UploadStage(StrEnum):
 
 
 UPLOAD_STAGES: tuple[UploadStage, ...] = tuple(UploadStage)
+
+
+class HomeSectionType(StrEnum):
+    """Blocks the admin composes the home page from."""
+
+    HERO = "hero"
+    RELEASES = "releases"
+    TRACKS = "tracks"
+    PLAYLISTS = "playlists"
+    ARTISTS = "artists"
+    GENRES = "genres"
+
+
+class ImageKind(StrEnum):
+    PLAYLIST = "playlist"
+    GENRE = "genre"
+    HERO = "hero"
+    ARTIST = "artist"
+    RELEASE = "release"

@@ -2,8 +2,9 @@ from pathlib import Path
 
 import pytest
 from PIL import Image
+from sonora_api.media import blurhash
 
-from sonora_media import artwork, authenticity, blurhash, fingerprint, loudness, preview, transcode, waveform
+from sonora_media import artwork, authenticity, fingerprint, loudness, preview, transcode, waveform
 from sonora_media.config import WorkerSettings
 from sonora_media.errors import MediaError
 from sonora_media.ladder import plan_ladder

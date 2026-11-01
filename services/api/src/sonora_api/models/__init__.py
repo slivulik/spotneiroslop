@@ -31,7 +31,14 @@ from sonora_api.models.library import (
     PlaylistTrack,
     SearchHistory,
 )
-from sonora_api.models.platform import AbAssignment, AbExperiment, UploadJob, WaveSession
+from sonora_api.models.platform import (
+    AbAssignment,
+    AbExperiment,
+    HomeSection,
+    PlatformSetting,
+    UploadJob,
+    WaveSession,
+)
 from sonora_api.models.users import Device, RefreshToken, User, UserToken
 
 __all__ = [
@@ -45,12 +52,14 @@ __all__ = [
     "FollowArtist",
     "FollowPlaylist",
     "Genre",
+    "HomeSection",
     "IdempotencyKey",
     "LikeRelease",
     "LikeTrack",
     "ListeningHistory",
     "Lyrics",
     "Mood",
+    "PlatformSetting",
     "Playlist",
     "PlaylistCollaborator",
     "PlaylistTrack",

@@ -32,6 +32,10 @@ class Storage(Protocol):
 
     async def read_bytes(self, bucket: str, key: str) -> bytes | None: ...
 
+    async def put_bytes(self, bucket: str, key: str, body: bytes, content_type: str) -> None: ...
+
+    async def delete_prefix(self, bucket: str, prefix: str) -> int: ...
+
 
 def _client(settings: Settings, endpoint: str) -> S3Client:
     return boto3.client(
@@ -74,6 +78,35 @@ class ObjectStorage:
                 raise
 
         return await anyio.to_thread.run_sync(get)
+
+    async def put_bytes(self, bucket: str, key: str, body: bytes, content_type: str) -> None:
+        def put() -> None:
+            self._internal.put_object(
+                Bucket=bucket,
+                Key=key,
+                Body=body,
+                ContentType=content_type,
+                # Keys embed a content hash, so objects never change once written.
+                CacheControl="public, max-age=31536000, immutable",
+            )
+
+        await anyio.to_thread.run_sync(put)
+
+    async def delete_prefix(self, bucket: str, prefix: str) -> int:
+        """Delete every object under `prefix` (used when tracks/releases are removed)."""
+
+        def delete() -> int:
+            deleted = 0
+            paginator = self._internal.get_paginator("list_objects_v2")
+            for page in paginator.paginate(Bucket=bucket, Prefix=prefix):
+                keys = [{"Key": obj["Key"]} for obj in page.get("Contents", [])]
+                for start in range(0, len(keys), 1000):
+                    chunk = keys[start : start + 1000]
+                    self._internal.delete_objects(Bucket=bucket, Delete={"Objects": chunk, "Quiet": True})  # type: ignore[typeddict-item]
+                    deleted += len(chunk)
+            return deleted
+
+        return await anyio.to_thread.run_sync(delete)
 
     async def object_size(self, bucket: str, key: str) -> int | None:
         """Size of an uploaded object, or None when it doesn't exist."""

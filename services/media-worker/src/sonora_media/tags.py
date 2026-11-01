@@ -12,6 +12,7 @@ import mutagen
 from mutagen.flac import FLAC
 from mutagen.id3 import ID3
 from mutagen.mp3 import MP3
+from sonora_api.media.lyrics import SyncedLine, parse_lrc
 
 from sonora_media.errors import MediaError
 
@@ -23,15 +24,7 @@ _VERSION_RE = re.compile(
     r"ремикс|версия|акустика|live-версия)\b[^\)\]]*)[\)\]]|\s-\s(.*\b(?:remix|mix|live|edit|version|remaster(?:ed)?)\b.*))$",
     re.IGNORECASE,
 )
-_LRC_LINE_RE = re.compile(r"^\s*((?:\[\d{1,3}:\d{2}(?:[.:]\d{1,3})?\])+)\s*(.*)$")
-_LRC_TS_RE = re.compile(r"\[(\d{1,3}):(\d{2})(?:[.:](\d{1,3}))?\]")
 _YEAR_RE = re.compile(r"^(\d{4})(?:-(\d{2})(?:-(\d{2}))?)?")
-
-
-@dataclass(frozen=True, slots=True)
-class SyncedLine:
-    start_ms: int
-    text: str
 
 
 @dataclass(slots=True)
@@ -122,20 +115,6 @@ def parse_date(value: str | None) -> str | None:
         return date(year, month, day).isoformat()
     except ValueError:
         return date(year, 1, 1).isoformat()
-
-
-def parse_lrc(text: str) -> list[SyncedLine]:
-    """Line-synced LRC (`[mm:ss.xx] text`, several stamps per line allowed)."""
-    lines: list[SyncedLine] = []
-    for raw in text.splitlines():
-        match = _LRC_LINE_RE.match(raw)
-        if not match:
-            continue
-        for ts in _LRC_TS_RE.finditer(match.group(1)):
-            minutes, seconds, frac = int(ts.group(1)), int(ts.group(2)), ts.group(3) or "0"
-            ms = minutes * 60_000 + seconds * 1000 + int(frac.ljust(3, "0")[:3])
-            lines.append(SyncedLine(start_ms=ms, text=match.group(2).strip()))
-    return sorted(lines, key=lambda line: line.start_ms)
 
 
 def parse_gain(value: str | None) -> float | None:

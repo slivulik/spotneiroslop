@@ -18,7 +18,18 @@ from sonora_api.core.ratelimit import RateLimiter
 from sonora_api.core.storage import ObjectStorage, Storage
 from sonora_api.core.tasks import create_broker
 from sonora_api.deps import default_rate_limit
-from sonora_api.routers import admin, auth, catalog, health, me, stream
+from sonora_api.routers import (
+    admin,
+    admin_catalog,
+    admin_content,
+    admin_users,
+    auth,
+    catalog,
+    health,
+    me,
+    public,
+    stream,
+)
 from sonora_api.services.email import EmailSender, create_email_sender
 from sonora_api.services.google import GoogleIdTokenVerifier, GoogleVerifier
 
@@ -88,6 +99,10 @@ def create_app(
     install_error_handlers(app)
 
     app.include_router(health.router)
-    for router in (auth.router, me.router, catalog.router, stream.router, admin.router):
+    routers = (
+        auth.router, me.router, catalog.router, public.router, stream.router,
+        admin.router, admin_content.router, admin_catalog.router, admin_users.router,
+    )  # fmt: skip
+    for router in routers:
         app.include_router(router, dependencies=[Depends(default_rate_limit)])
     return app

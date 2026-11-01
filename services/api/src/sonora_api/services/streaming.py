@@ -14,6 +14,7 @@ from sonora_api.models import Release, Track, TrackFile
 from sonora_api.models.enums import Quality, TrackStatus
 from sonora_api.models.users import User
 from sonora_api.schemas.stream import RequestedQuality, StreamOut
+from sonora_api.services import platform
 from sonora_api.services.catalog import is_playable, release_visible
 
 #: Best first. A request for an unavailable tier falls back to the next one down.
@@ -28,6 +29,17 @@ _MAX_TOKEN_TTL = timedelta(hours=12)
 STREAM_PATH_RE = re.compile(
     r"^(?:master\.m3u8|(?:hires|lossless|high|normal|low)/(?:playlist\.m3u8|init\.mp4|seg_\d{5}\.m4s))$"
 )
+
+
+def allowed_qualities(config: platform.PlatformConfig) -> set[Quality]:
+    """Tiers the admin has switched on, capped at `max_quality`."""
+    cap = QUALITY_ORDER.index(Quality(config.max_quality))
+    allowed = set(QUALITY_ORDER[cap:])
+    if not config.hires_enabled:
+        allowed.discard(Quality.HIRES)
+    if not config.lossless_enabled:
+        allowed.discard(Quality.LOSSLESS)
+    return allowed
 
 
 def pick_quality(requested: Quality, available: list[Quality]) -> Quality:
@@ -55,7 +67,8 @@ async def stream_for(
     files = {
         f.quality: f for f in await session.scalars(select(TrackFile).where(TrackFile.track_id == track.id))
     }
-    available = [q for q in QUALITY_ORDER if q in files]
+    allowed = allowed_qualities(await platform.get_config(session))
+    available = [q for q in QUALITY_ORDER if q in files and q in allowed]
     if not available:
         raise AppError("Track has no playable renditions", code="not_playable", status_code=409)
 
@@ -82,6 +95,8 @@ async def stream_for(
 
 
 async def preview_key(session: AsyncSession, track_id: uuid.UUID) -> str:
+    if not (await platform.get_config(session)).guest_previews:
+        raise NotFoundError("Previews are disabled")
     now = datetime.now(UTC)
     key = await session.scalar(
         select(Track.preview_key)

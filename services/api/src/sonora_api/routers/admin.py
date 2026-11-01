@@ -1,5 +1,4 @@
 import uuid
-from datetime import UTC
 from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, Query, status
@@ -10,14 +9,13 @@ from sonora_api.core.ids import uuid7
 from sonora_api.core.pagination import MAX_PAGE_SIZE, decode_cursor, encode_cursor
 from sonora_api.core.tasks import enqueue_process_upload
 from sonora_api.deps import AdminViewer, Ctx, Session
-from sonora_api.models import Release, UploadJob
+from sonora_api.models import UploadJob
 from sonora_api.models.enums import UPLOAD_STAGES, JobStatus, UploadStage
 from sonora_api.routers import API_V1
 from sonora_api.schemas.admin import (
     AUDIO_TYPES,
     COVER_TYPES,
     PresignedUploadOut,
-    ReleasePatchIn,
     RetryIn,
     UploadCreatedOut,
     UploadCreateIn,
@@ -160,24 +158,3 @@ async def retry_job(
     await session.commit()
     await enqueue_process_upload(ctx.broker, job.id, from_stage.value)
     return _job_out(job)
-
-
-@router.patch("/releases/{release_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def patch_release(
-    release_id: uuid.UUID, body: ReleasePatchIn, admin: AdminViewer, session: Session
-) -> None:
-    """Publish/hide a release or set its embargo (`publish_at`)."""
-    release = await session.get(Release, release_id)
-    if release is None:
-        raise NotFoundError("Release not found")
-    changes = body.model_dump(exclude_unset=True)
-    if "status" in changes:
-        if changes["status"] is None:
-            raise AppError("status cannot be null", code="validation_error", status_code=422)
-        release.status = changes["status"]
-    if "publish_at" in changes:
-        publish_at = changes["publish_at"]
-        release.publish_at = (
-            publish_at.replace(tzinfo=UTC) if publish_at and publish_at.tzinfo is None else publish_at
-        )
-    await session.commit()

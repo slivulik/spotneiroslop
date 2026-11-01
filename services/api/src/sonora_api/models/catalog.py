@@ -298,6 +298,8 @@ class Genre(Base):
     )
     color: Mapped[str | None] = mapped_column(String(9))
     cover_key: Mapped[str | None] = mapped_column(String(512))
+    cover_blurhash: Mapped[str | None] = mapped_column(String(64))
+    description: Mapped[str | None] = mapped_column(Text)
     position: Mapped[int] = mapped_column(SmallInteger, server_default="0")
 
 

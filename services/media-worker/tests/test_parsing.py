@@ -2,14 +2,15 @@ import math
 
 import numpy as np
 import pytest
+from sonora_api.core.slugs import slugify
+from sonora_api.media.lyrics import parse_lrc
 from sonora_api.models.enums import Quality
 
 from sonora_media.ladder import plan_ladder
 from sonora_media.loudness import album_gain, parse_ebur128, replay_gain
 from sonora_media.preview import best_window_start_ms
 from sonora_media.probe import ProbeResult
-from sonora_media.slugs import slugify
-from sonora_media.tags import parse_date, parse_lrc, parse_position, split_artists, split_title
+from sonora_media.tags import parse_date, parse_position, split_artists, split_title
 from sonora_media.transcode import mp3_gapless
 from sonora_media.waveform import peaks
 

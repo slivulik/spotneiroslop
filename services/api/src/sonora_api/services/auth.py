@@ -160,6 +160,7 @@ async def refresh_session(
     device = await session.get(Device, token.device_id)
     if user is None or device is None:
         raise UnauthorizedError("Refresh token is invalid or expired", code="invalid_refresh_token")
+    ensure_not_blocked(user)
 
     successor, raw = _new_refresh(settings, user, device, family_id=token.family_id)
     session.add(successor)
@@ -199,11 +200,21 @@ async def register_user(session: AsyncSession, *, email: str, password: str, dis
     return user
 
 
+def ensure_not_blocked(user: User) -> None:
+    if user.blocked_at is not None:
+        raise AppError(
+            "Account is blocked" + (f": {user.block_reason}" if user.block_reason else ""),
+            code="account_blocked",
+            status_code=403,
+        )
+
+
 async def authenticate(session: AsyncSession, *, email: str, password: str) -> User:
     user = await session.scalar(select(User).where(User.email == normalize_email(email)))
     check = await verify_password(user.password_hash if user else None, password)
     if user is None or not check.ok:
         raise UnauthorizedError("Wrong e-mail or password", code="invalid_credentials")
+    ensure_not_blocked(user)
     if check.rehash:
         user.password_hash = check.rehash
     return user
@@ -213,6 +224,7 @@ async def google_account(session: AsyncSession, identity: GoogleIdentity) -> Use
     """Find the account for a Google identity: by `sub`, then by verified e-mail, else create."""
     user = await session.scalar(select(User).where(User.google_sub == identity.sub))
     if user is not None:
+        ensure_not_blocked(user)
         return user
     if not identity.email_verified:
         raise AppError(
@@ -220,6 +232,7 @@ async def google_account(session: AsyncSession, identity: GoogleIdentity) -> Use
         )
     user = await session.scalar(select(User).where(User.email == identity.email))
     if user is not None:
+        ensure_not_blocked(user)
         user.google_sub = identity.sub
         user.email_verified_at = user.email_verified_at or _now()
         return user
@@ -291,13 +304,21 @@ async def reset_password(
     user.password_hash = await hash_password(new_password)
     # Following the reset link proves control of the mailbox.
     user.email_verified_at = user.email_verified_at or _now()
-    device_ids = list(await session.scalars(select(Device.id).where(Device.user_id == user.id)))
+    signed_out = await sign_out_everywhere(session, redis, settings, user.id)
+    log.info("password_reset", user_id=str(user.id), devices_signed_out=signed_out)
+
+
+async def sign_out_everywhere(
+    session: AsyncSession, redis: Redis, settings: Settings, user_id: uuid.UUID
+) -> int:
+    """Revoke every session of a user (password reset, block, admin action). Commits."""
+    device_ids = list(await session.scalars(select(Device.id).where(Device.user_id == user_id)))
     await session.execute(
         update(RefreshToken)
-        .where(RefreshToken.user_id == user.id, RefreshToken.revoked_at.is_(None))
+        .where(RefreshToken.user_id == user_id, RefreshToken.revoked_at.is_(None))
         .values(revoked_at=_now())
     )
     await session.commit()
     for device_id in device_ids:
         await _mark_device_revoked(redis, settings, device_id)
-    log.info("password_reset", user_id=str(user.id), devices_signed_out=len(device_ids))
+    return len(device_ids)

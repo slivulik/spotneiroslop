@@ -23,6 +23,15 @@ class Page[T](ApiModel):
     next_cursor: str | None = Field(default=None, description="Pass as `cursor` to fetch the next page")
 
 
+class AdminPage[T](ApiModel):
+    """Offset page for admin tables (sortable, jump-to-page); public lists use cursors."""
+
+    items: list[T]
+    total: int
+    offset: int
+    limit: int
+
+
 #: Response documentation shared by all routers.
 ERROR_RESPONSES: dict[int | str, dict[str, Any]] = {
     status: {"model": ErrorResponse} for status in (400, 401, 403, 404, 409, 422, 429)

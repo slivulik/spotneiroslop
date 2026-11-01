@@ -6,6 +6,8 @@ from sonora_api.schemas.catalog import Artwork, Palette
 #: Square renditions produced by the media worker for every image.
 ARTWORK_SIZES = [64, 160, 300, 640, 1200, 3000]
 AVATAR_SIZES = [64, 160, 300, 640]
+#: Banner widths (16:7), see media.images.WIDE_SIZES.
+WIDE_ARTWORK_SIZES = [640, 1280, 1920, 2560]
 
 
 def media_url(settings: Settings, key: str) -> str:

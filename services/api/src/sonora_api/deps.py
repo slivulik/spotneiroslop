@@ -11,7 +11,7 @@ from sonora_api.core.errors import ForbiddenError, RateLimitedError, Unauthorize
 from sonora_api.core.security import AccessClaims, decode_access_token
 from sonora_api.models import User
 from sonora_api.models.enums import UserRole
-from sonora_api.services.auth import is_device_revoked
+from sonora_api.services.auth import ensure_not_blocked, is_device_revoked
 
 _bearer = HTTPBearer(auto_error=False, description="Access token from /v1/auth/*")
 
@@ -62,6 +62,7 @@ async def get_optional_viewer(session: Session, claims: Claims) -> Viewer | None
     user = await session.get(User, claims.user_id)
     if user is None:
         raise UnauthorizedError("Account no longer exists", code="invalid_token")
+    ensure_not_blocked(user)
     return Viewer(user=user, claims=claims)
 
 

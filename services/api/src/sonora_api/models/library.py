@@ -1,5 +1,6 @@
 import uuid
 from datetime import datetime
+from typing import Any
 
 from sqlalchemy import (
     Boolean,
@@ -38,6 +39,8 @@ class Playlist(Base):
     title: Mapped[str] = mapped_column(String(128))
     description: Mapped[str | None] = mapped_column(Text)
     cover_key: Mapped[str | None] = mapped_column(String(512))
+    cover_blurhash: Mapped[str | None] = mapped_column(String(64))
+    palette: Mapped[dict[str, Any] | None]
     cover_mode: Mapped[CoverMode] = mapped_column(
         str_enum(CoverMode, "cover_mode"), server_default=CoverMode.COLLAGE.value
     )
@@ -163,12 +166,20 @@ class ListeningHistory(Base):
     """Short history for "Recently played". Full event stream lives in ClickHouse."""
 
     __tablename__ = "listening_history"
-    __table_args__ = (Index("ix_listening_history_user_recent", "user_id", text("played_at DESC")),)
+    __table_args__ = (
+        Index("ix_listening_history_user_recent", "user_id", text("played_at DESC")),
+        Index("ix_listening_history_recent", text("played_at DESC")),
+    )
 
     id: Mapped[uuid.UUID] = pk_uuid()
+    #: Client-generated id: re-sent batches (offline queues, retries) are ignored.
+    event_id: Mapped[uuid.UUID | None] = mapped_column(unique=True)
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"))
     track_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("tracks.id", ondelete="CASCADE"), index=True)
     played_at: Mapped[datetime] = created_at()
+    #: Counted as a play (≥ 30 s or ≥ 50 % of the track).
+    counted: Mapped[bool] = mapped_column(Boolean, server_default=text("false"))
+    device_id: Mapped[uuid.UUID | None]
     ms_played: Mapped[int] = mapped_column(Integer)
     context_type: Mapped[str | None] = mapped_column(String(16))
     context_id: Mapped[uuid.UUID | None]

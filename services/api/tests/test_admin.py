@@ -142,7 +142,8 @@ async def test_publish_release(harness: Harness, catalog_data: Catalog) -> None:
     response = await harness.client.patch(
         f"/v1/admin/releases/{hidden_id}", headers=bearer(admin), json={"publish_at": None}
     )
-    assert response.status_code == 204
+    assert response.status_code == 200
+    assert response.json()["publish_at"] is None
     assert (await harness.client.get(f"/v1/releases/{hidden_id}")).status_code == 200
 
     await harness.client.patch(

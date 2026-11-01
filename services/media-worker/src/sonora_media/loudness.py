@@ -12,6 +12,8 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
+from sonora_api.media.gain import SILENCE_LUFS, album_gain, replay_gain
+
 from sonora_media.config import WorkerSettings
 from sonora_media.errors import ToolError
 from sonora_media.tools import ffmpeg_stderr
@@ -22,7 +24,6 @@ _SUMMARY = re.compile(
     r"True peak:\s*Peak:\s*(?P<peak>-?[\d.]+|-inf)\s*dBFS",
     re.S,
 )
-SILENCE_LUFS = -70.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -48,15 +49,6 @@ def parse_ebur128(stderr: str) -> tuple[float, float, float]:
     return _num(m["i"]), float(m["lra"]), _num(m["peak"])
 
 
-def replay_gain(integrated_lufs: float, true_peak_db: float, *, target: float, ceiling: float) -> float:
-    if integrated_lufs <= SILENCE_LUFS:
-        return 0.0
-    gain = target - integrated_lufs
-    if math.isfinite(true_peak_db):
-        gain = min(gain, ceiling - true_peak_db)
-    return round(gain, 2)
-
-
 def measure(settings: WorkerSettings, path: Path) -> Loudness:
     stderr = ffmpeg_stderr(
         settings, "-i", str(path), "-map", "0:a:0", "-af", "ebur128=peak=true", "-f", "null", "-"
@@ -73,15 +65,4 @@ def measure(settings: WorkerSettings, path: Path) -> Loudness:
     )
 
 
-def album_gain(tracks: list[tuple[float, float, int]], *, target: float, ceiling: float) -> float:
-    """Album gain from (integrated LUFS, true peak dB, duration ms) of every track.
-
-    Album loudness is the duration-weighted energy mean of track loudness; the cap uses the
-    loudest true peak on the album, so album mode never clips any track.
-    """
-    if not tracks:
-        return 0.0
-    total = sum(d for _, _, d in tracks) or 1
-    energy = sum(d * 10 ** (lufs / 10) for lufs, _, d in tracks) / total
-    album_lufs = 10 * math.log10(energy) if energy > 0 else SILENCE_LUFS
-    return replay_gain(album_lufs, max(p for _, p, _ in tracks), target=target, ceiling=ceiling)
+__all__ = ["SILENCE_LUFS", "Loudness", "album_gain", "measure", "parse_ebur128", "replay_gain"]

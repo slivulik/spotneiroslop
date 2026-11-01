@@ -122,6 +122,18 @@ class FakeStorage:
     async def read_bytes(self, bucket: str, key: str) -> bytes | None:
         return self.contents.get((bucket, key))
 
+    async def put_bytes(self, bucket: str, key: str, body: bytes, content_type: str) -> None:
+        self.contents[(bucket, key)] = body
+        self.objects[(bucket, key)] = len(body)
+
+    async def delete_prefix(self, bucket: str, prefix: str) -> int:
+        doomed = [k for k in self.objects if k[0] == bucket and k[1].startswith(prefix)]
+        doomed += [k for k in self.contents if k[0] == bucket and k[1].startswith(prefix) and k not in doomed]
+        for k in doomed:
+            self.objects.pop(k, None)
+            self.contents.pop(k, None)
+        return len(doomed)
+
     def presign_upload(self, bucket: str, key: str, content_type: str) -> PresignedUpload:
         return PresignedUpload(
             url=f"https://s3.test/{bucket}/{key}?sig=1", method="PUT", headers={"Content-Type": content_type}
