@@ -4,6 +4,104 @@
  */
 
 export interface paths {
+    "/v1/admin/jobs/{job_id}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Retry Job
+         * @description Re-run a job from a stage. Checkpoints of that stage and every later one are discarded.
+         */
+        post: operations["admin_retry_job"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/releases/{release_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Patch Release
+         * @description Publish/hide a release or set its embargo (`publish_at`).
+         */
+        patch: operations["admin_patch_release"];
+        trace?: never;
+    };
+    "/v1/admin/uploads": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Uploads */
+        get: operations["admin_list_uploads"];
+        put?: never;
+        /**
+         * Create Upload
+         * @description Start an upload: returns presigned PUT URLs; upload the files, then call `/complete`.
+         */
+        post: operations["admin_create_upload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/uploads/{job_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Upload */
+        get: operations["admin_get_upload"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/uploads/{job_id}/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Complete Upload
+         * @description Verify the files reached storage and queue the job for processing.
+         */
+        post: operations["admin_complete_upload"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/artists/{artist_id}": {
         parameters: {
             query?: never;
@@ -472,6 +570,13 @@ export interface components {
             /** Lossless */
             lossless: boolean;
         };
+        /** AudioFileIn */
+        AudioFileIn: {
+            /** Filename */
+            filename: string;
+            /** Size Bytes */
+            size_bytes: number;
+        };
         /** AudioSettings */
         AudioSettings: {
             /**
@@ -502,6 +607,13 @@ export interface components {
              * @default 4
              */
             wave_crossfade_seconds: number;
+        };
+        /** CoverFileIn */
+        CoverFileIn: {
+            /** Filename */
+            filename: string;
+            /** Size Bytes */
+            size_bytes: number;
         };
         /** DeviceIn */
         DeviceIn: {
@@ -629,6 +741,25 @@ export interface components {
             /** Id Token */
             id_token: string;
         };
+        /** JobLogEntry */
+        JobLogEntry: {
+            /** Level */
+            level: string;
+            /** Message */
+            message: string;
+            /** Stage */
+            stage?: string | null;
+            /**
+             * Ts
+             * Format: date-time
+             */
+            ts: string;
+        };
+        /**
+         * JobStatus
+         * @enum {string}
+         */
+        JobStatus: "pending_upload" | "queued" | "running" | "succeeded" | "failed";
         /** LoginIn */
         LoginIn: {
             device: components["schemas"]["DeviceIn"];
@@ -748,6 +879,16 @@ export interface components {
              */
             next_cursor?: string | null;
         };
+        /** Page[UploadJobOut] */
+        Page_UploadJobOut_: {
+            /** Items */
+            items: components["schemas"]["UploadJobOut"][];
+            /**
+             * Next Cursor
+             * @description Pass as `cursor` to fetch the next page
+             */
+            next_cursor?: string | null;
+        };
         /**
          * Palette
          * @description Colours extracted from artwork, so clients can tint UI before the image loads.
@@ -772,6 +913,22 @@ export interface components {
          * @enum {string}
          */
         Platform: "web" | "android";
+        /** PresignedUploadOut */
+        PresignedUploadOut: {
+            /** Headers */
+            headers: {
+                [key: string]: string;
+            };
+            /** Method */
+            method: string;
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "source" | "cover";
+            /** Url */
+            url: string;
+        };
         /** PrivacySettings */
         PrivacySettings: {
             /**
@@ -833,6 +990,12 @@ export interface components {
             /** Upc */
             upc: string | null;
         };
+        /** ReleasePatchIn */
+        ReleasePatchIn: {
+            /** Publish At */
+            publish_at?: string | null;
+            status?: components["schemas"]["ReleaseStatus"] | null;
+        };
         /** ReleaseRef */
         ReleaseRef: {
             artwork: components["schemas"]["Artwork"] | null;
@@ -847,6 +1010,11 @@ export interface components {
             title: string;
             type: components["schemas"]["ReleaseType"];
         };
+        /**
+         * ReleaseStatus
+         * @enum {string}
+         */
+        ReleaseStatus: "draft" | "published" | "hidden";
         /** ReleaseSummary */
         ReleaseSummary: {
             /** Artists */
@@ -880,6 +1048,11 @@ export interface components {
             password: string;
             /** Token */
             token: string;
+        };
+        /** RetryIn */
+        RetryIn: {
+            /** @description Re-run from this stage (later checkpoints are discarded); default: failed stage */
+            from_stage?: components["schemas"]["UploadStage"] | null;
         };
         /**
          * StreamQuality
@@ -958,6 +1131,135 @@ export interface components {
             /** Version */
             version: string | null;
         };
+        /** UploadCreateIn */
+        UploadCreateIn: {
+            /** @description Used when the file has no embedded artwork */
+            cover?: components["schemas"]["CoverFileIn"] | null;
+            options?: components["schemas"]["UploadOptions"];
+            source: components["schemas"]["AudioFileIn"];
+        };
+        /** UploadCreatedOut */
+        UploadCreatedOut: {
+            /** Expires In */
+            expires_in: number;
+            /**
+             * Job Id
+             * Format: uuid
+             */
+            job_id: string;
+            /** Uploads */
+            uploads: components["schemas"]["PresignedUploadOut"][];
+        };
+        /** UploadJobDetailOut */
+        UploadJobDetailOut: {
+            /** Attempts */
+            attempts: number;
+            /** Completed Stages */
+            completed_stages: string[];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Error */
+            error: string | null;
+            /** Files */
+            files: {
+                [key: string]: unknown;
+            }[];
+            /** Finished At */
+            finished_at: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Logs */
+            logs: components["schemas"]["JobLogEntry"][];
+            /** Options */
+            options: {
+                [key: string]: unknown;
+            };
+            /** Stage */
+            stage: string | null;
+            status: components["schemas"]["JobStatus"];
+            /** Track Id */
+            track_id: string | null;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Warnings */
+            warnings: {
+                [key: string]: unknown;
+            }[];
+        };
+        /** UploadJobOut */
+        UploadJobOut: {
+            /** Attempts */
+            attempts: number;
+            /** Completed Stages */
+            completed_stages: string[];
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Error */
+            error: string | null;
+            /** Files */
+            files: {
+                [key: string]: unknown;
+            }[];
+            /** Finished At */
+            finished_at: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Options */
+            options: {
+                [key: string]: unknown;
+            };
+            /** Stage */
+            stage: string | null;
+            status: components["schemas"]["JobStatus"];
+            /** Track Id */
+            track_id: string | null;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Warnings */
+            warnings: {
+                [key: string]: unknown;
+            }[];
+        };
+        /** UploadOptions */
+        UploadOptions: {
+            /**
+             * Allow Duplicate
+             * @description Process even if the same recording (hash or acoustic fingerprint) exists
+             * @default false
+             */
+            allow_duplicate: boolean;
+            /**
+             * Publish
+             * @description Publish the release as soon as processing succeeds
+             * @default false
+             */
+            publish: boolean;
+        };
+        /**
+         * UploadStage
+         * @description Media pipeline stages, in execution order. Each is idempotent and checkpointed in
+         *     `upload_jobs.state`, so a job can be retried from any stage.
+         * @enum {string}
+         */
+        UploadStage: "probe" | "authenticity" | "tags" | "fingerprint" | "loudness" | "catalog" | "transcode" | "waveform" | "artwork" | "preview" | "lyrics" | "publish";
         /**
          * UserRole
          * @enum {string}
@@ -985,6 +1287,526 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    admin_retry_job: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RetryIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UploadJobOut"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    admin_patch_release: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                release_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReleasePatchIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    admin_list_uploads: {
+        parameters: {
+            query?: {
+                status?: components["schemas"]["JobStatus"][] | null;
+                limit?: number;
+                cursor?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Page_UploadJobOut_"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    admin_create_upload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UploadCreateIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UploadCreatedOut"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    admin_get_upload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UploadJobDetailOut"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    admin_complete_upload: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UploadJobOut"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
     catalog_get_artist: {
         parameters: {
             query?: never;

@@ -11,6 +11,7 @@ from typing import Any
 import pytest
 from alembic import command
 from alembic.config import Config
+from dramatiq.brokers.stub import StubBroker
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 from redis.asyncio import Redis
@@ -21,9 +22,17 @@ from sonora_api.core.config import Settings
 from sonora_api.core.context import AppContext
 from sonora_api.core.errors import UnauthorizedError
 from sonora_api.core.ids import uuid7
+from sonora_api.core.storage import PresignedUpload
 from sonora_api.main import create_app
-from sonora_api.models import Artist, Base, Release, ReleaseArtist, Track, TrackArtist
-from sonora_api.models.enums import ArtistRole, ReleaseStatus, ReleaseType, SourceFormat, TrackStatus
+from sonora_api.models import Artist, Base, Release, ReleaseArtist, Track, TrackArtist, User
+from sonora_api.models.enums import (
+    ArtistRole,
+    ReleaseStatus,
+    ReleaseType,
+    SourceFormat,
+    TrackStatus,
+    UserRole,
+)
 from sonora_api.services.email import ConsoleEmailSender
 from sonora_api.services.google import GoogleIdentity
 
@@ -99,12 +108,29 @@ class FakeGoogle:
         return self.identities[id_token]
 
 
+class FakeStorage:
+    """In-memory object store: tests 'upload' by setting `objects[(bucket, key)] = size`."""
+
+    def __init__(self) -> None:
+        self.objects: dict[tuple[str, str], int] = {}
+
+    def presign_upload(self, bucket: str, key: str, content_type: str) -> PresignedUpload:
+        return PresignedUpload(
+            url=f"https://s3.test/{bucket}/{key}?sig=1", method="PUT", headers={"Content-Type": content_type}
+        )
+
+    async def object_size(self, bucket: str, key: str) -> int | None:
+        return self.objects.get((bucket, key))
+
+
 @dataclass
 class Harness:
     app: FastAPI
     client: AsyncClient
     email: ConsoleEmailSender
     google: FakeGoogle
+    storage: FakeStorage
+    broker: StubBroker
 
     @property
     def ctx(self) -> AppContext:
@@ -113,12 +139,14 @@ class Harness:
 
 
 async def _make_harness(settings: Settings) -> AsyncIterator[Harness]:
-    email, google = ConsoleEmailSender(), FakeGoogle()
-    app = create_app(settings, email=email, google=google)
+    email, google, storage = ConsoleEmailSender(), FakeGoogle(), FakeStorage()
+    broker = StubBroker()
+    broker.declare_queue("media")
+    app = create_app(settings, email=email, google=google, broker=broker, storage=storage)
     async with app.router.lifespan_context(app):
         transport = ASGITransport(app=app)
         async with AsyncClient(transport=transport, base_url="http://test") as client:
-            yield Harness(app=app, client=client, email=email, google=google)
+            yield Harness(app=app, client=client, email=email, google=google, storage=storage, broker=broker)
 
 
 @pytest.fixture
@@ -297,3 +325,13 @@ async def catalog_data(db: AsyncSession) -> Catalog:
         explicit_track=explicit,
         processing_track=processing,
     )
+
+
+async def make_admin(harness: Harness, email: str = "admin@example.com") -> dict[str, Any]:
+    tokens = await register(harness.client, email=email)
+    async with harness.ctx.sessionmaker() as s:
+        user = await s.get(User, uuid.UUID(tokens["user"]["id"]))
+        assert user is not None
+        user.role = UserRole.ADMIN
+        await s.commit()
+    return tokens

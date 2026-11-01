@@ -20,6 +20,10 @@ NAMING_CONVENTION = {
 
 class Base(DeclarativeBase):
     metadata = MetaData(naming_convention=NAMING_CONVENTION)
+    # Fetch server-generated values (created_at, onupdate updated_at) via RETURNING in the same
+    # statement. Otherwise reading them after commit triggers a lazy load, which async
+    # sessions can't do implicitly.
+    __mapper_args__ = {"eager_defaults": True}  # noqa: RUF012
     type_annotation_map = {  # noqa: RUF012 - SQLAlchemy reads this as a class attribute
         dict[str, Any]: JSONB,
         list[dict[str, Any]]: JSONB,

@@ -7,9 +7,10 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from sonora_api.core.context import AppContext
-from sonora_api.core.errors import RateLimitedError, UnauthorizedError
+from sonora_api.core.errors import ForbiddenError, RateLimitedError, UnauthorizedError
 from sonora_api.core.security import AccessClaims, decode_access_token
 from sonora_api.models import User
+from sonora_api.models.enums import UserRole
 from sonora_api.services.auth import is_device_revoked
 
 _bearer = HTTPBearer(auto_error=False, description="Access token from /v1/auth/*")
@@ -72,6 +73,16 @@ async def get_viewer(viewer: Annotated[Viewer | None, Depends(get_optional_viewe
 
 OptionalViewer = Annotated[Viewer | None, Depends(get_optional_viewer)]
 CurrentViewer = Annotated[Viewer, Depends(get_viewer)]
+
+
+async def get_admin(viewer: CurrentViewer) -> Viewer:
+    # The role is re-read from the database on every request, so demotion takes effect at once.
+    if viewer.user.role != UserRole.ADMIN:
+        raise ForbiddenError("Administrator role required")
+    return viewer
+
+
+AdminViewer = Annotated[Viewer, Depends(get_admin)]
 
 
 def _client_ip(request: Request) -> str:

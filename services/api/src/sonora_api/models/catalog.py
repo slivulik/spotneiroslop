@@ -117,6 +117,8 @@ class Track(Base):
             "ix_tracks_ready_play_count", text("play_count DESC"), postgresql_where=text("status = 'ready'")
         ),
         CheckConstraint("duration_ms >= 0", name="duration_non_negative"),
+        # Candidate lookup for acoustic-fingerprint duplicate detection.
+        Index("ix_tracks_duration_ms", "duration_ms"),
     )
 
     id: Mapped[uuid.UUID] = pk_uuid()
@@ -142,6 +144,10 @@ class Track(Base):
     track_gain: Mapped[float | None] = mapped_column(Float)
     album_gain: Mapped[float | None] = mapped_column(Float)
     preview_start_ms: Mapped[int | None] = mapped_column(Integer)
+    #: 30-second preview (guests, share pages).
+    preview_key: Mapped[str | None] = mapped_column(String(512))
+    #: ABR master playlist for "Auto" quality (lossy tiers).
+    hls_master_key: Mapped[str | None] = mapped_column(String(512))
     status: Mapped[TrackStatus] = mapped_column(
         str_enum(TrackStatus, "track_status"), server_default=TrackStatus.PROCESSING.value
     )

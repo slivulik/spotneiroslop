@@ -179,6 +179,27 @@
         "title": "AudioBadges",
         "type": "object"
       },
+      "AudioFileIn": {
+        "properties": {
+          "filename": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Filename",
+            "type": "string"
+          },
+          "size_bytes": {
+            "exclusiveMinimum": 0.0,
+            "title": "Size Bytes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "filename",
+          "size_bytes"
+        ],
+        "title": "AudioFileIn",
+        "type": "object"
+      },
       "AudioSettings": {
         "additionalProperties": false,
         "properties": {
@@ -224,6 +245,28 @@
           }
         },
         "title": "AudioSettings",
+        "type": "object"
+      },
+      "CoverFileIn": {
+        "properties": {
+          "filename": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Filename",
+            "type": "string"
+          },
+          "size_bytes": {
+            "exclusiveMinimum": 0.0,
+            "maximum": 52428800.0,
+            "title": "Size Bytes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "filename",
+          "size_bytes"
+        ],
+        "title": "CoverFileIn",
         "type": "object"
       },
       "DeviceIn": {
@@ -545,6 +588,52 @@
         "title": "GoogleLoginIn",
         "type": "object"
       },
+      "JobLogEntry": {
+        "properties": {
+          "level": {
+            "title": "Level",
+            "type": "string"
+          },
+          "message": {
+            "title": "Message",
+            "type": "string"
+          },
+          "stage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stage"
+          },
+          "ts": {
+            "format": "date-time",
+            "title": "Ts",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ts",
+          "level",
+          "message"
+        ],
+        "title": "JobLogEntry",
+        "type": "object"
+      },
+      "JobStatus": {
+        "enum": [
+          "pending_upload",
+          "queued",
+          "running",
+          "succeeded",
+          "failed"
+        ],
+        "title": "JobStatus",
+        "type": "string"
+      },
       "LoginIn": {
         "properties": {
           "device": {
@@ -863,6 +952,34 @@
         "title": "Page[ReleaseSummary]",
         "type": "object"
       },
+      "Page_UploadJobOut_": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/UploadJobOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Pass as `cursor` to fetch the next page",
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "Page[UploadJobOut]",
+        "type": "object"
+      },
       "Palette": {
         "description": "Colours extracted from artwork, so clients can tint UI before the image loads.",
         "properties": {
@@ -933,6 +1050,41 @@
         ],
         "title": "Platform",
         "type": "string"
+      },
+      "PresignedUploadOut": {
+        "properties": {
+          "headers": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Headers",
+            "type": "object"
+          },
+          "method": {
+            "title": "Method",
+            "type": "string"
+          },
+          "role": {
+            "enum": [
+              "source",
+              "cover"
+            ],
+            "title": "Role",
+            "type": "string"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "role",
+          "url",
+          "method",
+          "headers"
+        ],
+        "title": "PresignedUploadOut",
+        "type": "object"
       },
       "PrivacySettings": {
         "additionalProperties": false,
@@ -1105,6 +1257,34 @@
         "title": "ReleaseOut",
         "type": "object"
       },
+      "ReleasePatchIn": {
+        "properties": {
+          "publish_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Publish At"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReleaseStatus"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "ReleasePatchIn",
+        "type": "object"
+      },
       "ReleaseRef": {
         "properties": {
           "artwork": {
@@ -1143,6 +1323,15 @@
         ],
         "title": "ReleaseRef",
         "type": "object"
+      },
+      "ReleaseStatus": {
+        "enum": [
+          "draft",
+          "published",
+          "hidden"
+        ],
+        "title": "ReleaseStatus",
+        "type": "string"
       },
       "ReleaseSummary": {
         "properties": {
@@ -1244,6 +1433,23 @@
           "password"
         ],
         "title": "ResetPasswordIn",
+        "type": "object"
+      },
+      "RetryIn": {
+        "properties": {
+          "from_stage": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UploadStage"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Re-run from this stage (later checkpoints are discarded); default: failed stage"
+          }
+        },
+        "title": "RetryIn",
         "type": "object"
       },
       "StreamQuality": {
@@ -1429,6 +1635,338 @@
         "title": "TrackOut",
         "type": "object"
       },
+      "UploadCreateIn": {
+        "properties": {
+          "cover": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CoverFileIn"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Used when the file has no embedded artwork"
+          },
+          "options": {
+            "$ref": "#/components/schemas/UploadOptions"
+          },
+          "source": {
+            "$ref": "#/components/schemas/AudioFileIn"
+          }
+        },
+        "required": [
+          "source"
+        ],
+        "title": "UploadCreateIn",
+        "type": "object"
+      },
+      "UploadCreatedOut": {
+        "properties": {
+          "expires_in": {
+            "title": "Expires In",
+            "type": "integer"
+          },
+          "job_id": {
+            "format": "uuid",
+            "title": "Job Id",
+            "type": "string"
+          },
+          "uploads": {
+            "items": {
+              "$ref": "#/components/schemas/PresignedUploadOut"
+            },
+            "title": "Uploads",
+            "type": "array"
+          }
+        },
+        "required": [
+          "job_id",
+          "uploads",
+          "expires_in"
+        ],
+        "title": "UploadCreatedOut",
+        "type": "object"
+      },
+      "UploadJobDetailOut": {
+        "properties": {
+          "attempts": {
+            "title": "Attempts",
+            "type": "integer"
+          },
+          "completed_stages": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Completed Stages",
+            "type": "array"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "files": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Files",
+            "type": "array"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "logs": {
+            "items": {
+              "$ref": "#/components/schemas/JobLogEntry"
+            },
+            "title": "Logs",
+            "type": "array"
+          },
+          "options": {
+            "additionalProperties": true,
+            "title": "Options",
+            "type": "object"
+          },
+          "stage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stage"
+          },
+          "status": {
+            "$ref": "#/components/schemas/JobStatus"
+          },
+          "track_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Track Id"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "warnings": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "stage",
+          "error",
+          "files",
+          "warnings",
+          "options",
+          "attempts",
+          "completed_stages",
+          "track_id",
+          "created_at",
+          "updated_at",
+          "finished_at",
+          "logs"
+        ],
+        "title": "UploadJobDetailOut",
+        "type": "object"
+      },
+      "UploadJobOut": {
+        "properties": {
+          "attempts": {
+            "title": "Attempts",
+            "type": "integer"
+          },
+          "completed_stages": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Completed Stages",
+            "type": "array"
+          },
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "files": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Files",
+            "type": "array"
+          },
+          "finished_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Finished At"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "options": {
+            "additionalProperties": true,
+            "title": "Options",
+            "type": "object"
+          },
+          "stage": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stage"
+          },
+          "status": {
+            "$ref": "#/components/schemas/JobStatus"
+          },
+          "track_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Track Id"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "warnings": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "title": "Warnings",
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "stage",
+          "error",
+          "files",
+          "warnings",
+          "options",
+          "attempts",
+          "completed_stages",
+          "track_id",
+          "created_at",
+          "updated_at",
+          "finished_at"
+        ],
+        "title": "UploadJobOut",
+        "type": "object"
+      },
+      "UploadOptions": {
+        "properties": {
+          "allow_duplicate": {
+            "default": false,
+            "description": "Process even if the same recording (hash or acoustic fingerprint) exists",
+            "title": "Allow Duplicate",
+            "type": "boolean"
+          },
+          "publish": {
+            "default": false,
+            "description": "Publish the release as soon as processing succeeds",
+            "title": "Publish",
+            "type": "boolean"
+          }
+        },
+        "title": "UploadOptions",
+        "type": "object"
+      },
+      "UploadStage": {
+        "description": "Media pipeline stages, in execution order. Each is idempotent and checkpointed in\n`upload_jobs.state`, so a job can be retried from any stage.",
+        "enum": [
+          "probe",
+          "authenticity",
+          "tags",
+          "fingerprint",
+          "loudness",
+          "catalog",
+          "transcode",
+          "waveform",
+          "artwork",
+          "preview",
+          "lyrics",
+          "publish"
+        ],
+        "title": "UploadStage",
+        "type": "string"
+      },
       "UserRole": {
         "enum": [
           "user",
@@ -1490,6 +2028,704 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/v1/admin/jobs/{job_id}/retry": {
+      "post": {
+        "description": "Re-run a job from a stage. Checkpoints of that stage and every later one are discarded.",
+        "operationId": "admin_retry_job",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Job Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RetryIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadJobOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Retry Job",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/admin/releases/{release_id}": {
+      "patch": {
+        "description": "Publish/hide a release or set its embargo (`publish_at`).",
+        "operationId": "admin_patch_release",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "release_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Release Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReleasePatchIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Patch Release",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/admin/uploads": {
+      "get": {
+        "operationId": "admin_list_uploads",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "$ref": "#/components/schemas/JobStatus"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Page_UploadJobOut_"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Uploads",
+        "tags": [
+          "admin"
+        ]
+      },
+      "post": {
+        "description": "Start an upload: returns presigned PUT URLs; upload the files, then call `/complete`.",
+        "operationId": "admin_create_upload",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UploadCreateIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadCreatedOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Create Upload",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/admin/uploads/{job_id}": {
+      "get": {
+        "operationId": "admin_get_upload",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Job Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadJobDetailOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Upload",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/admin/uploads/{job_id}/complete": {
+      "post": {
+        "description": "Verify the files reached storage and queue the job for processing.",
+        "operationId": "admin_complete_upload",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Job Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadJobOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Complete Upload",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/v1/artists/{artist_id}": {
       "get": {
         "operationId": "catalog_get_artist",

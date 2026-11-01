@@ -109,7 +109,30 @@ class ExperimentStatus(StrEnum):
 
 
 class JobStatus(StrEnum):
+    #: Created; the client is uploading the source straight to object storage.
+    PENDING_UPLOAD = "pending_upload"
     QUEUED = "queued"
     RUNNING = "running"
     SUCCEEDED = "succeeded"
     FAILED = "failed"
+
+
+class UploadStage(StrEnum):
+    """Media pipeline stages, in execution order. Each is idempotent and checkpointed in
+    `upload_jobs.state`, so a job can be retried from any stage."""
+
+    PROBE = "probe"
+    AUTHENTICITY = "authenticity"
+    TAGS = "tags"
+    FINGERPRINT = "fingerprint"
+    LOUDNESS = "loudness"
+    CATALOG = "catalog"
+    TRANSCODE = "transcode"
+    WAVEFORM = "waveform"
+    ARTWORK = "artwork"
+    PREVIEW = "preview"
+    LYRICS = "lyrics"
+    PUBLISH = "publish"
+
+
+UPLOAD_STAGES: tuple[UploadStage, ...] = tuple(UploadStage)
