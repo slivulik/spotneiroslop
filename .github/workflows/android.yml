@@ -34,10 +34,10 @@ jobs:
           diff -u packages/design-tokens/dist/kotlin/SonoraTokens.kt apps/android/app/src/main/java/com/sonora/app/core/designsystem/tokens/SonoraTokens.kt
       - name: Unit tests
         run: ./gradlew --no-daemon testDebugUnitTest
-      - name: Lint
-        run: ./gradlew --no-daemon lintDebug
       - name: Build APK (debug) and AAB (release)
         run: ./gradlew --no-daemon assembleDebug assembleRelease bundleRelease
+      - name: Lint
+        run: ./gradlew --no-daemon lintDebug
       - uses: actions/upload-artifact@v4
         with:
           name: sonora-android
@@ -46,3 +46,4 @@ jobs:
             apps/android/app/build/outputs/bundle/**/*.aab
             apps/android/app/build/reports/lint-results-debug.html
           if-no-files-found: error
+        if: always()
