@@ -37,18 +37,26 @@ port_busy() {
   fi
 }
 
+first_free_port() {
+  local port
+  for port in "$@"; do
+    port_busy "$port" || { echo "$port"; return 0; }
+  done
+  return 1
+}
+
 if [[ ! -f "$ROOT/.env" ]]; then
   log "Creating $ROOT/.env with random secrets"
   domain="${SONORA_DOMAIN:-}"
   http_port="${CADDY_HTTP_PORT:-80}"
   https_port="${CADDY_HTTPS_PORT:-443}"
   if port_busy "$https_port"; then
-    warn "port $https_port is already used (VPN?) — Caddy will publish HTTPS on 8443 instead"
-    https_port=8443
+    https_port="$(first_free_port 8443 9443 10443 11443 12443)" || die "no free port for HTTPS"
+    warn "port 443 is already used (VPN?) — Caddy will publish HTTPS on $https_port instead"
   fi
   if port_busy "$http_port"; then
-    warn "port $http_port is already used — Caddy will publish HTTP on 8080 instead"
-    http_port=8080
+    http_port="$(first_free_port 8080 8081 8088 9080 10080)" || die "no free port for HTTP"
+    warn "port 80 is already used — Caddy will publish HTTP on $http_port instead"
   fi
   ip="$(public_ip)"
   if [[ -n "$domain" ]]; then
