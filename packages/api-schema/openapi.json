@@ -4214,6 +4214,60 @@
         "title": "ReleaseType",
         "type": "string"
       },
+      "RenditionOut": {
+        "description": "What one quality of this track really is (from the encoded file, not the upload).",
+        "properties": {
+          "bit_depth": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bit Depth"
+          },
+          "bitrate": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "bits/s for lossy codecs; null for lossless",
+            "title": "Bitrate"
+          },
+          "channels": {
+            "title": "Channels",
+            "type": "integer"
+          },
+          "codec": {
+            "description": "flac | aac | he-aac | mp3",
+            "title": "Codec",
+            "type": "string"
+          },
+          "quality": {
+            "$ref": "#/components/schemas/Quality"
+          },
+          "sample_rate": {
+            "title": "Sample Rate",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "quality",
+          "codec",
+          "bitrate",
+          "sample_rate",
+          "bit_depth",
+          "channels"
+        ],
+        "title": "RenditionOut",
+        "type": "object"
+      },
       "ReorderIn": {
         "properties": {
           "ids": {
@@ -4591,6 +4645,14 @@
             ],
             "description": "What `url` delivers after clamping to availability",
             "title": "Quality"
+          },
+          "renditions": {
+            "description": "Details of each quality, best first",
+            "items": {
+              "$ref": "#/components/schemas/RenditionOut"
+            },
+            "title": "Renditions",
+            "type": "array"
           },
           "track_gain": {
             "anyOf": [

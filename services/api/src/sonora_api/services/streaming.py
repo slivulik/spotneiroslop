@@ -2,6 +2,7 @@
 
 import re
 import uuid
+from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import select
@@ -13,7 +14,7 @@ from sonora_api.core.errors import AppError, ForbiddenError, NotFoundError
 from sonora_api.models import Release, Track, TrackFeatures, TrackFile
 from sonora_api.models.enums import Quality, TrackStatus
 from sonora_api.models.users import User
-from sonora_api.schemas.stream import WAVEFORM_BARS, RequestedQuality, StreamOut
+from sonora_api.schemas.stream import WAVEFORM_BARS, RenditionOut, RequestedQuality, StreamOut
 from sonora_api.services import platform
 from sonora_api.services.catalog import is_playable, release_visible
 
@@ -48,6 +49,26 @@ def pick_quality(requested: Quality, available: list[Quality]) -> Quality:
         if quality in available:
             return quality
     return available[-1]
+
+
+#: Segment links embedded in a media playlist: long enough for a paused session; on expiry the
+#: player refetches the stream and resumes in place.
+PLAYLIST_SEGMENT_TTL_SECONDS = 3 * 3600
+_MAP_URI = re.compile(r'(#EXT-X-MAP:URI=")([^"]+)(")')
+
+
+def inline_segment_urls(body: str, presign: Callable[[str], str]) -> str:
+    """Point a media playlist's init/media segments straight at storage (one round trip each,
+    instead of API redirect + storage). Master playlists (variant .m3u8 lines) pass unchanged."""
+
+    def rewrite(line: str) -> str:
+        if line.startswith("#EXT-X-MAP:"):
+            return _MAP_URI.sub(lambda m: m.group(1) + presign(m.group(2)) + m.group(3), line)
+        if line and not line.startswith("#") and not line.endswith(".m3u8") and "://" not in line:
+            return presign(line)
+        return line
+
+    return "\n".join(rewrite(line) for line in body.splitlines()) + "\n"
 
 
 def downsample(peaks: list[int] | None, bars: int = WAVEFORM_BARS) -> list[int] | None:
@@ -96,6 +117,17 @@ async def stream_for(
         url=f"/v1/stream/{token}/{path}",
         quality=quality,
         qualities=available,
+        renditions=[
+            RenditionOut(
+                quality=q,
+                codec=files[q].codec,
+                bitrate=files[q].bitrate,
+                sample_rate=files[q].sample_rate,
+                bit_depth=files[q].bit_depth,
+                channels=files[q].channels,
+            )
+            for q in available
+        ],
         codec=codec,
         duration_ms=track.duration_ms,
         track_gain=track.track_gain,

@@ -11,6 +11,47 @@ import type { StreamOut } from "@sonora/api-schema";
 import { api } from "@/lib/api";
 import type { PlayerEvent } from "@/player/machine";
 import type { RequestedQuality } from "@/player/store";
+import { cachingLoader, warmSegment } from "@/player/segmentCache";
+
+type Quality = Exclude<RequestedQuality, "auto">;
+const ORDER: Quality[] = ["hires", "lossless", "high", "normal", "low"];
+const MSE_CODECS: Record<string, string[]> = {
+  flac: ['audio/mp4; codecs="flac"', 'audio/mp4; codecs="fLaC"'],
+  aac: ['audio/mp4; codecs="mp4a.40.2"'],
+  "he-aac": ['audio/mp4; codecs="mp4a.40.5"'],
+  mp3: ['audio/mp4; codecs="mp4a.40.34"', 'audio/mp4; codecs="mp3"'],
+};
+
+/** Can this browser decode a rendition's codec on the path we play it (MSE or native HLS)? */
+export function canDecode(codec: string): boolean {
+  if (typeof window === "undefined") return true;
+  const types = MSE_CODECS[codec] ?? [];
+  const ms = (window as unknown as { MediaSource?: typeof MediaSource; ManagedMediaSource?: typeof MediaSource }).MediaSource
+    ?? (window as unknown as { ManagedMediaSource?: typeof MediaSource }).ManagedMediaSource;
+  if (ms?.isTypeSupported) return types.some((t) => ms.isTypeSupported(t));
+  // Native HLS (iOS without MSE): Safari plays FLAC and AAC in fMP4.
+  return codec !== "mp3" || document.createElement("audio").canPlayType("audio/mpeg") !== "";
+}
+
+/** Best decodable quality at or below `wanted` among a track's renditions. */
+export function decodableQuality(wanted: Quality, renditions: { quality: string; codec: string }[]): Quality | null {
+  const available = new Map(renditions.map((r) => [r.quality, r.codec]));
+  for (const q of ORDER.slice(ORDER.indexOf(wanted))) {
+    const codec = available.get(q);
+    if (codec && canDecode(codec)) return q;
+  }
+  return null;
+}
+
+/** Quality folder of a media playlist URL (…/high/playlist.m3u8 → high). */
+function qualityOf(url: string): Quality | null {
+  const m = url.match(/\/(hires|lossless|high|normal|low)\/playlist\.m3u8/);
+  return (m?.[1] as Quality | undefined) ?? null;
+}
+
+/** Only one Sonora tab plays at a time: starting playback pauses the others. */
+const channel = typeof BroadcastChannel === "undefined" ? null : new BroadcastChannel("sonora-player");
+const TAB_ID = Math.random().toString(36).slice(2);
 
 export interface EngineCallbacks {
   onEvent: (event: PlayerEvent) => void;
@@ -63,13 +104,22 @@ export class PlayerEngine {
   private recoveries = 0;
   /** hls.js/MSE (true) or native HLS (false); decided once per browser. */
   private mse: boolean | null = null;
+  /** Quality hls.js last settled on: the next track starts there instead of probing bandwidth. */
+  private lastLevel: Quality | null = null;
+  private preloading: AbortController | null = null;
 
   constructor(private readonly cb: EngineCallbacks) {
     const audio = new Audio();
     audio.preload = "auto";
     audio.crossOrigin = "anonymous";
     this.audio = audio;
-    audio.addEventListener("playing", () => cb.onEvent({ type: "PLAYING" }));
+    audio.addEventListener("playing", () => {
+      cb.onEvent({ type: "PLAYING" });
+      channel?.postMessage({ type: "playing", tab: TAB_ID });
+    });
+    channel?.addEventListener("message", (e: MessageEvent<{ type: string; tab: string }>) => {
+      if (e.data?.type === "playing" && e.data.tab !== TAB_ID && !audio.paused) audio.pause();
+    });
     audio.addEventListener("waiting", () => cb.onEvent({ type: "WAITING" }));
     audio.addEventListener("pause", () => {
       if (!audio.ended) cb.onEvent({ type: "PAUSE" });
@@ -97,14 +147,37 @@ export class PlayerEngine {
     const key = `${trackId}:${quality}`;
     const hit = this.cache.get(key);
     if (!fresh && hit && Date.now() - hit.at < STREAM_CACHE_MS) return hit.stream;
-    const stream = await fetchStream(trackId, quality);
+    let stream = await fetchStream(trackId, quality);
+    // The browser may not decode every codec (e.g. FLAC in MP4 on older engines): step down.
+    if (stream.quality !== "auto" && stream.codec && !canDecode(stream.codec)) {
+      const fallback = decodableQuality(stream.quality as Quality, stream.renditions ?? []);
+      if (fallback && fallback !== stream.quality) stream = await fetchStream(trackId, fallback);
+    }
     this.cache.set(key, { stream, at: Date.now() });
     return stream;
   }
 
-  /** Warm the stream URL for the next track so pressing "next" starts instantly. */
+  /**
+   * Warm the next track: its stream link, media playlist, init segment and first media segments
+   * go into the segment cache, so pressing "next" (or gapless advance) starts from memory.
+   */
   prefetch(trackId: string, quality: RequestedQuality): void {
-    void this.stream(trackId, quality).catch(() => undefined);
+    this.preloading?.abort();
+    const controller = new AbortController();
+    this.preloading = controller;
+    void (async () => {
+      const stream = await this.stream(trackId, quality);
+      if (!this.mse || controller.signal.aborted) return;
+      const level = stream.quality === "auto" ? (this.lastLevel ?? (stream.qualities.at(-1) as Quality | undefined)) : null;
+      const playlistUrl = level ? stream.url.replace(/master\.m3u8$/, `${level}/playlist.m3u8`) : stream.url;
+      const text = await (await fetch(playlistUrl, { signal: controller.signal })).text();
+      const init = text.match(/#EXT-X-MAP:URI="([^"]+)"/)?.[1];
+      const segments = text.split("\n").filter((l) => l && !l.startsWith("#")).slice(0, 2);
+      for (const url of [init, ...segments].filter(Boolean) as string[]) {
+        if (controller.signal.aborted) return;
+        await warmSegment(new URL(url, new URL(playlistUrl, location.href)).href, trackId, controller.signal);
+      }
+    })().catch(() => undefined);
   }
 
   async load(trackId: string, opts: LoadOptions): Promise<void> {
@@ -137,10 +210,17 @@ export class PlayerEngine {
     } else {
       const { default: HlsClass } = await import("hls.js");
       if (generation !== this.generation) return;
+      const trackId = this.current?.trackId ?? "";
       const hls = new HlsClass({
         startPosition: startAt > 0 ? startAt : -1,
-        maxBufferLength: 30,
-        backBufferLength: 30,
+        autoStartLoad: false,
+        // Buffer ahead by time only: hls.js otherwise uses max(maxBufferLength, maxBufferSize·8/bitrate),
+        // which for audio (60 MB at 256 kb/s ≈ 30 min) downloads the whole track up front.
+        maxBufferLength: 40,
+        maxBufferSize: 0,
+        // Played audio stays reusable in the segment cache; MSE keeps a short back buffer only.
+        backBufferLength: 60,
+        fLoader: cachingLoader(HlsClass.DefaultConfig.loader as never, trackId) as never,
         fragLoadPolicy: {
           default: {
             maxTimeToFirstByteMs: 8000,
@@ -152,6 +232,16 @@ export class PlayerEngine {
       });
       this.hls = hls;
       hls.on(HlsClass.Events.ERROR, (_event, data) => void this.onHlsError(data, generation));
+      hls.on(HlsClass.Events.MANIFEST_PARSED, (_event, data) => {
+        // Start where the previous track settled (no low-quality ramp-up on every track).
+        const preferred = this.lastLevel ? data.levels.findIndex((l) => qualityOf(l.url[0] ?? "") === this.lastLevel) : -1;
+        if (preferred >= 0) hls.startLevel = preferred;
+        hls.startLoad(startAt > 0 ? startAt : -1);
+      });
+      hls.on(HlsClass.Events.LEVEL_SWITCHED, (_event, data) => {
+        const q = qualityOf(hls.levels[data.level]?.url[0] ?? "");
+        if (q) this.lastLevel = q;
+      });
       hls.loadSource(stream.url);
       hls.attachMedia(audio);
     }
@@ -186,6 +276,22 @@ export class PlayerEngine {
         this.cb.onError(error instanceof Error ? error.message : "Нет соединения");
       }
       return;
+    }
+    if (data.type === HlsClass.ErrorTypes.MEDIA_ERROR && this.current.opts.quality !== "high" && this.recoveries < 4) {
+      // The decoder rejected this rendition: continue in AAC 256 rather than stopping.
+      this.recoveries = 4;
+      const { trackId, opts } = this.current;
+      const resumeAt = this.audio.currentTime * 1000;
+      try {
+        const stream = await this.stream(trackId, "high", true);
+        if (generation !== this.generation) return;
+        this.current = { trackId, opts: { ...opts, quality: "high" }, stream };
+        this.cb.onStream(stream);
+        await this.attach(stream, { ...opts, quality: "high", startAtMs: resumeAt, autoplay: true }, generation);
+        return;
+      } catch {
+        // fall through to the error below
+      }
     }
     this.cb.onError(data.type === HlsClass.ErrorTypes.NETWORK_ERROR ? "Нет соединения с сервером" : "Ошибка декодирования");
   }

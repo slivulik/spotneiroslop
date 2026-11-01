@@ -4,7 +4,7 @@ from typing import Any
 from sonora_api.core.ids import uuid7
 from sonora_api.models import Track, TrackFeatures, TrackFile
 from sonora_api.models.enums import Quality
-from sonora_api.services.streaming import STREAM_PATH_RE
+from sonora_api.services.streaming import STREAM_PATH_RE, inline_segment_urls
 from tests.conftest import Catalog, Harness, bearer, register
 
 MEDIA = "sonora-media"
@@ -71,7 +71,14 @@ async def test_stream_requires_auth_and_clamps_quality(harness: Harness, catalog
     playlist = await harness.client.get(hires["url"])
     assert playlist.status_code == 200
     assert playlist.headers["content-type"].startswith("application/vnd.apple.mpegurl")
-    assert playlist.text == "#EXTM3U\ninit.mp4\nseg_00000.m4s\n"
+    # Segments are inlined as direct storage links: one round trip per segment, not two.
+    seg_base = f"https://s3.test/{MEDIA}/{prefix}/lossless"
+    assert (
+        playlist.text
+        == f"#EXTM3U\n{seg_base}/init.mp4?ttl=10800&sig=1\n{seg_base}/seg_00000.m4s?ttl=10800&sig=1\n"
+    )
+    assert [r["quality"] for r in hires["renditions"]] == ["lossless", "high", "normal", "low"]
+    assert hires["renditions"][0]["codec"]
 
     # Segments redirect to short-lived presigned storage URLs.
     base = hires["url"].rsplit("/", 1)[0]
@@ -136,3 +143,18 @@ async def test_new_releases(harness: Harness, catalog_data: Catalog) -> None:
     # Embargoed and empty releases never show up.
     assert [r["title"] for r in rest["items"]] == ["Tides"]
     assert rest["next_cursor"] is None
+
+
+def test_inline_segment_urls_rewrites_init_and_segments_only() -> None:
+    media = (
+        '#EXTM3U\n#EXT-X-VERSION:7\n#EXT-X-TARGETDURATION:6\n#EXT-X-MAP:URI="init.mp4"\n'
+        "#EXTINF:6.0,\nseg_00000.m4s\n#EXTINF:2.5,\nseg_00001.m4s\n#EXT-X-ENDLIST\n"
+    )
+    out = inline_segment_urls(media, lambda name: f"https://s/{name}?sig")
+    assert '#EXT-X-MAP:URI="https://s/init.mp4?sig"' in out
+    assert "\nhttps://s/seg_00000.m4s?sig\n" in out
+    assert "\nhttps://s/seg_00001.m4s?sig\n" in out
+    assert "#EXTINF:6.0," in out
+    assert out.endswith("#EXT-X-ENDLIST\n")
+    master = "#EXTM3U\n#EXT-X-STREAM-INF:BANDWIDTH=1\nhigh/playlist.m3u8\n"
+    assert inline_segment_urls(master, lambda name: "x") == master

@@ -8,6 +8,15 @@ import type { PlayContext, Queue } from "@/player/queue";
 
 export type RequestedQuality = "auto" | "hires" | "lossless" | "high" | "normal" | "low";
 
+export interface Rendition {
+  quality: string;
+  codec: string;
+  bitrate?: number | null;
+  sample_rate: number;
+  bit_depth?: number | null;
+  channels: number;
+}
+
 export interface PlayerState {
   queue: Queue | null;
   context: PlayContext | null;
@@ -23,6 +32,8 @@ export interface PlayerState {
   activeQuality: string | null;
   /** Real waveform peaks (0–255) of the current track, when analysed. */
   waveform: number[] | null;
+  /** The current track's actual renditions (codec, rate, depth), best first. */
+  renditions: Rendition[];
   normalization: NormalizationMode;
   nowPlayingOpen: boolean;
   dispatch: (event: PlayerEvent) => void;
@@ -44,6 +55,7 @@ export const usePlayer = create<PlayerState>()(
       quality: "auto",
       activeQuality: null,
       waveform: null,
+      renditions: [],
       normalization: "auto",
       nowPlayingOpen: false,
       dispatch: (event) =>

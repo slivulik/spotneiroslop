@@ -52,8 +52,17 @@ async def stream_object(token: Annotated[str, Path()], path: str, ctx: Ctx) -> R
         body = await ctx.storage.read_bytes(ctx.settings.s3_media_bucket, key)
         if body is None:
             raise NotFoundError("Not found")
+        folder = key.rsplit("/", 1)[0]
+        text = streaming.inline_segment_urls(
+            body.decode(),
+            lambda name: ctx.storage.presign_get(
+                ctx.settings.s3_media_bucket,
+                f"{folder}/{name}",
+                ttl_seconds=streaming.PLAYLIST_SEGMENT_TTL_SECONDS,
+            ),
+        )
         return Response(
-            body,
+            text,
             media_type="application/vnd.apple.mpegurl",
             headers={"Cache-Control": "private, max-age=300"},
         )

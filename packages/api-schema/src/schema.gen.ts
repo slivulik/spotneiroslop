@@ -2573,6 +2573,29 @@ export interface components {
          * @enum {string}
          */
         ReleaseType: "album" | "single" | "ep" | "compilation";
+        /**
+         * RenditionOut
+         * @description What one quality of this track really is (from the encoded file, not the upload).
+         */
+        RenditionOut: {
+            /** Bit Depth */
+            bit_depth: number | null;
+            /**
+             * Bitrate
+             * @description bits/s for lossy codecs; null for lossless
+             */
+            bitrate: number | null;
+            /** Channels */
+            channels: number;
+            /**
+             * Codec
+             * @description flac | aac | he-aac | mp3
+             */
+            codec: string;
+            quality: components["schemas"]["Quality"];
+            /** Sample Rate */
+            sample_rate: number;
+        };
         /** ReorderIn */
         ReorderIn: {
             /** Ids */
@@ -2710,6 +2733,11 @@ export interface components {
              * @description What `url` delivers after clamping to availability
              */
             quality: "auto" | components["schemas"]["Quality"];
+            /**
+             * Renditions
+             * @description Details of each quality, best first
+             */
+            renditions?: components["schemas"]["RenditionOut"][];
             /**
              * Track Gain
              * @description dB to reach −14 LUFS, peak-safe

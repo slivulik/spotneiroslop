@@ -5,7 +5,8 @@ import { useCurrentTrack, useIsPlaying } from "@/components/player/hooks";
 import { WaveformSeek } from "@/components/visual/Sonic";
 import { formatDuration } from "@/lib/format";
 import { player } from "@/player/controller";
-import { type RequestedQuality, usePlayer } from "@/player/store";
+import { canDecode } from "@/player/engine";
+import { type Rendition, type RequestedQuality, usePlayer } from "@/player/store";
 
 export function PlayPauseButton({ size = 40, className = "" }: { size?: number; className?: string }) {
   const playing = useIsPlaying();
@@ -116,13 +117,23 @@ const QUALITY_LABELS: Record<RequestedQuality, string> = {
   low: "Экономия",
 };
 
+/** Human description of a rendition from its real encoded parameters. */
+export function describeRendition(r: Rendition): string {
+  const codec = r.codec === "he-aac" ? "HE-AAC" : r.codec.toUpperCase();
+  if (r.codec === "flac") return `${codec} ${r.bit_depth ?? 16} бит · ${(r.sample_rate / 1000).toLocaleString("ru-RU")} кГц`;
+  return `${codec} ${Math.round((r.bitrate ?? 0) / 1000)} кбит/с`;
+}
+
+/** Only the qualities this track really has and this browser can decode; "Авто" lets ABR choose. */
 export function QualitySelect() {
   const quality = usePlayer((s) => s.quality);
   const active = usePlayer((s) => s.activeQuality);
+  const renditions = usePlayer((s) => s.renditions).filter((r) => canDecode(r.codec));
+  const current = renditions.find((r) => r.quality === active);
   const label = quality === "auto" ? "Авто" : QUALITY_LABELS[(active as RequestedQuality) ?? quality];
   const special = active === "hires" || active === "lossless";
   return (
-    <label className="relative flex items-center">
+    <label className="relative flex items-center" title={current ? describeRendition(current) : undefined}>
       <span className="sr-only">Качество</span>
       <span
         className={`pointer-events-none rounded-full border px-2.5 py-1 text-micro uppercase ${
@@ -136,13 +147,15 @@ export function QualitySelect() {
         {label}
       </span>
       <select
-        value={quality}
+        value={quality === "auto" || renditions.some((r) => r.quality === quality) ? quality : (active ?? "auto")}
         onChange={(e) => player.setQuality(e.target.value as RequestedQuality)}
         className="absolute inset-0 cursor-pointer opacity-0"
+        aria-label="Качество воспроизведения"
       >
-        {(Object.keys(QUALITY_LABELS) as RequestedQuality[]).map((q) => (
-          <option key={q} value={q}>
-            {QUALITY_LABELS[q]}
+        <option value="auto">Авто — по скорости сети</option>
+        {renditions.map((r) => (
+          <option key={r.quality} value={r.quality}>
+            {QUALITY_LABELS[r.quality as RequestedQuality]} — {describeRendition(r)}
           </option>
         ))}
       </select>
