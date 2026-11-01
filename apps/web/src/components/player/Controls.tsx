@@ -1,7 +1,8 @@
 "use client";
 
 import { NextIcon, PauseIcon, PlayIcon, PrevIcon, RepeatIcon, ShuffleIcon, VolumeIcon } from "@/components/icons";
-import { useIsPlaying } from "@/components/player/hooks";
+import { useCurrentTrack, useIsPlaying } from "@/components/player/hooks";
+import { WaveformSeek } from "@/components/visual/Sonic";
 import { formatDuration } from "@/lib/format";
 import { player } from "@/player/controller";
 import { type RequestedQuality, usePlayer } from "@/player/store";
@@ -13,9 +14,10 @@ export function PlayPauseButton({ size = 40, className = "" }: { size?: number; 
     <button
       type="button"
       aria-label={playing ? "Пауза" : "Играть"}
+      data-ripple
       onClick={() => player.toggle()}
-      className={`relative flex items-center justify-center rounded-full bg-text-primary text-bg-base transition-transform active:scale-95 ${className}`}
-      style={{ width: size, height: size }}
+      className={`relative flex items-center justify-center rounded-full text-[#1a0d06] shadow-[0_8px_24px_-8px_rgba(255,90,54,.7)] transition-transform hover:scale-105 active:scale-95 ${className}`}
+      style={{ width: size, height: size, background: "radial-gradient(circle at 35% 30%, var(--sonora-color-wave-b), var(--sonora-color-wave-a) 75%)" }}
     >
       {playing ? <PauseIcon size={size * 0.48} /> : <PlayIcon size={size * 0.48} style={{ marginLeft: size * 0.04 }} />}
       {loading ? (
@@ -55,25 +57,26 @@ export function TransportControls({ large = false }: { large?: boolean }) {
   );
 }
 
-export function ProgressBar({ showTimes = true, onColor = false }: { showTimes?: boolean; onColor?: boolean }) {
+/** Seek bar drawn as the current track's real waveform (seeded signature until analysed). */
+export function ProgressBar({ showTimes = true, onColor = false, large = false }: { showTimes?: boolean; onColor?: boolean; large?: boolean }) {
   const position = usePlayer((s) => s.positionMs);
   const duration = usePlayer((s) => s.durationMs);
-  const fill = duration > 0 ? Math.min(100, (position / duration) * 100) : 0;
+  const waveform = usePlayer((s) => s.waveform);
+  const trackId = useCurrentTrack()?.id ?? "";
+  const progress = duration > 0 ? Math.min(1, position / duration) : 0;
   // Over the artwork colour field the default tertiary grey disappears.
-  const timeClass = `w-10 text-micro tabular-nums ${onColor ? "text-text-primary/75" : "text-text-tertiary"}`;
+  const timeClass = `w-10 font-mono text-micro tabular-nums ${onColor ? "text-text-primary/75" : "text-text-tertiary"}`;
   return (
     <div className="flex w-full items-center gap-3">
       {showTimes ? <span className={`${timeClass} text-right`}>{formatDuration(position)}</span> : null}
-      <input
-        type="range"
-        aria-label="Позиция"
-        className="slider flex-1"
-        min={0}
-        max={Math.max(duration, 1)}
-        step={250}
-        value={Math.min(position, duration)}
-        style={{ ["--fill" as string]: `${fill}%` }}
-        onChange={(e) => player.seek(Number(e.target.value))}
+      <WaveformSeek
+        peaks={waveform}
+        seed={trackId}
+        progress={progress}
+        count={large ? 120 : 90}
+        height={large ? 40 : 22}
+        className="flex-1"
+        onSeek={(f) => player.seek(f * duration)}
       />
       {showTimes ? <span className={timeClass}>{formatDuration(duration)}</span> : null}
     </div>

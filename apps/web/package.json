@@ -12,6 +12,9 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@fontsource-variable/jetbrains-mono": "^5.3.0",
+    "@fontsource-variable/onest": "^5.3.1",
+    "@fontsource-variable/unbounded": "^5.3.0",
     "@sonora/api-schema": "workspace:*",
     "@sonora/design-tokens": "workspace:*",
     "@tanstack/react-query": "^5.105.0",

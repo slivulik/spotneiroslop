@@ -68,24 +68,19 @@ export const UserIcon = (p: IconProps) => (
     <path d="M4 20.2C4.8 16.4 8 14 12 14s7.2 2.4 8 6.2a.7.7 0 0 1-.7.8H4.7a.7.7 0 0 1-.7-.8Z" />
   </Icon>
 );
+/** Sonora mark: a low sun (ember → amber) with sound radiating from it in resonance rings. */
 export const WaveLogo = (p: IconProps) => (
   <Icon {...p} viewBox="0 0 32 32">
     <defs>
-      <linearGradient id="sonora-logo" x1="0" y1="0" x2="1" y2="1">
-        <stop offset="0" stopColor="var(--sonora-color-wave-a)" />
-        <stop offset="0.55" stopColor="var(--sonora-color-wave-b)" />
-        <stop offset="1" stopColor="var(--sonora-color-wave-c)" />
-      </linearGradient>
+      <radialGradient id="sonora-sun" cx="0.35" cy="0.35" r="0.75">
+        <stop offset="0" stopColor="var(--sonora-color-wave-b)" />
+        <stop offset="1" stopColor="var(--sonora-color-wave-a)" />
+      </radialGradient>
     </defs>
-    <rect width="32" height="32" rx="9" fill="url(#sonora-logo)" />
-    <path
-      d="M6 17.5c2.2 0 2.2-6 4.4-6s2.2 9 4.4 9 2.2-12 4.4-12 2.2 9 4.4 9 1.6-3 2.4-3"
-      fill="none"
-      stroke="#fff"
-      strokeWidth="2.2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    />
+    <rect width="32" height="32" rx="10" fill="#161310" />
+    <circle cx="13" cy="16" r="5.6" fill="url(#sonora-sun)" />
+    <path d="M20.2 10.6a8 8 0 0 1 0 10.8" fill="none" stroke="var(--sonora-color-wave-c)" strokeWidth="2.1" strokeLinecap="round" />
+    <path d="M24 7.8a12.4 12.4 0 0 1 0 16.4" fill="none" stroke="var(--sonora-color-wave-c)" strokeOpacity=".55" strokeWidth="2.1" strokeLinecap="round" />
   </Icon>
 );
 

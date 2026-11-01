@@ -2720,6 +2720,11 @@ export interface components {
              * @description HLS playlist path, relative to the API origin
              */
             url: string;
+            /**
+             * Waveform
+             * @description Peaks 0–255 downsampled to 160 bars for the seek bar
+             */
+            waveform?: number[] | null;
         };
         /**
          * StreamQuality

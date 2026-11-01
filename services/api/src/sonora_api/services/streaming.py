@@ -10,10 +10,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sonora_api.core import stream_tokens
 from sonora_api.core.config import Settings
 from sonora_api.core.errors import AppError, ForbiddenError, NotFoundError
-from sonora_api.models import Release, Track, TrackFile
+from sonora_api.models import Release, Track, TrackFeatures, TrackFile
 from sonora_api.models.enums import Quality, TrackStatus
 from sonora_api.models.users import User
-from sonora_api.schemas.stream import RequestedQuality, StreamOut
+from sonora_api.schemas.stream import WAVEFORM_BARS, RequestedQuality, StreamOut
 from sonora_api.services import platform
 from sonora_api.services.catalog import is_playable, release_visible
 
@@ -48,6 +48,16 @@ def pick_quality(requested: Quality, available: list[Quality]) -> Quality:
         if quality in available:
             return quality
     return available[-1]
+
+
+def downsample(peaks: list[int] | None, bars: int = WAVEFORM_BARS) -> list[int] | None:
+    """Max-pool stored peaks to `bars` values (keeps transients visible at small sizes)."""
+    if not peaks:
+        return None
+    if len(peaks) <= bars:
+        return list(peaks)
+    step = len(peaks) / bars
+    return [max(peaks[int(i * step) : max(int((i + 1) * step), int(i * step) + 1)]) for i in range(bars)]
 
 
 async def stream_for(
@@ -91,6 +101,9 @@ async def stream_for(
         track_gain=track.track_gain,
         album_gain=track.album_gain,
         expires_in=int(ttl.total_seconds()),
+        waveform=downsample(
+            await session.scalar(select(TrackFeatures.waveform).where(TrackFeatures.track_id == track.id))
+        ),
     )
 
 

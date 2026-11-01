@@ -5,23 +5,27 @@ import { motion } from "motion/react";
 import { useSyncExternalStore } from "react";
 import { HeroCarousel, HomeBlockView, PromoBanner } from "@/components/home/Blocks";
 import { PageError } from "@/components/Page";
+import { Oscilloscope } from "@/components/visual/Sonic";
 import { useHome } from "@/lib/queries";
 import { useSession } from "@/lib/session";
 
 type Block = components["schemas"]["HomeBlock"];
 
 const noop = () => () => {};
-/** Server render says a neutral hello; the browser swaps in its own local time of day after hydration. */
+/** Server render says "В эфире"; the browser swaps in its own local time of day after hydration. */
 function useGreeting(): string {
-  return useSyncExternalStore(noop, greeting, () => "Привет");
+  return useSyncExternalStore(noop, greeting, () => "В эфире");
+}
+function useDateLine(): string {
+  return useSyncExternalStore(noop, () => new Date().toLocaleDateString("ru-RU", { weekday: "long", day: "numeric", month: "long" }), () => "");
 }
 
 function greeting(): string {
   const hour = new Date().getHours();
-  if (hour < 5) return "Доброй ночи";
-  if (hour < 12) return "Доброе утро";
-  if (hour < 18) return "Добрый день";
-  return "Добрый вечер";
+  if (hour < 5) return "Ночной эфир";
+  if (hour < 12) return "Утренний эфир";
+  if (hour < 18) return "Дневной эфир";
+  return "Вечерний эфир";
 }
 
 function HomeSkeleton() {
@@ -57,6 +61,7 @@ function arrange(sections: Block[]): (Block | Block[])[] {
 export default function HomePage() {
   const { status, user } = useSession();
   const hello = useGreeting();
+  const dateLine = useDateLine();
   const home = useHome();
   const sections = home.data?.sections ?? [];
   const arranged = arrange(sections);
@@ -65,15 +70,22 @@ export default function HomePage() {
 
   return (
     <div className="mx-auto flex max-w-[1680px] flex-col gap-12 px-4 pt-4 md:px-8">
-      <motion.h1
-        initial={{ opacity: 0, y: 18, filter: "blur(10px)" }}
-        animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-        transition={{ type: "spring", stiffness: 160, damping: 22 }}
-        className="font-display text-display-l leading-none md:text-display-xl"
-      >
-        <span className="text-gradient">{hello}</span>
-        {status === "authenticated" && user ? <span className="text-text-primary/90">, {user.display_name}</span> : null}
-      </motion.h1>
+      <header className="flex flex-col gap-3">
+        <div className="mono-label flex items-center gap-2.5 text-text-secondary">
+          <span className="on-air-dot" />
+          <span>{dateLine || "Sonora"}</span>
+        </div>
+        <motion.h1
+          initial={{ opacity: 0, y: 18, filter: "blur(10px)" }}
+          animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+          transition={{ type: "spring", stiffness: 160, damping: 22 }}
+          className="font-display text-display-l leading-none md:text-display-xl"
+        >
+          <span className="breathe text-gradient">{hello}</span>
+          {status === "authenticated" && user ? <span className="breathe text-text-primary/90">, {user.display_name}</span> : null}
+        </motion.h1>
+        <Oscilloscope height={44} className="-mb-6 opacity-90" />
+      </header>
 
       {home.isPending ? <HomeSkeleton /> : null}
       {home.isError ? <PageError message="Не удалось загрузить главную" /> : null}

@@ -161,7 +161,7 @@ export function NowPlaying() {
                   <TrackTitle large />
                   <QualityBadge hires={track.hires} lossless={track.lossless} />
                 </div>
-                <ProgressBar onColor />
+                <ProgressBar onColor large />
                 <div className="flex justify-center"><TransportControls large /></div>
                 <div className="flex items-center justify-between"><QualitySelect /><VolumeControl /></div>
               </div>

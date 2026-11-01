@@ -73,7 +73,7 @@ describe("generators", () => {
 
   it("CSS contains vars, type classes and reduced-motion overrides", () => {
     const css = generateCss(tokens);
-    expect(css).toContain("--sonora-color-bg-base: #0B0B0F;");
+    expect(css).toContain("--sonora-color-bg-base: #0A0908;");
     expect(css).toContain(".sonora-type-title-1 {");
     expect(css).toMatch(/prefers-reduced-motion[\s\S]*--sonora-duration-normal: 0ms;/);
   });
@@ -88,7 +88,7 @@ describe("generators", () => {
     expect(pascal("bg-base")).toBe("BgBase");
     expect(pascal("2")).toBe("X2");
     const kt = generateKotlin(tokens);
-    expect(kt).toContain("val BgBase: Color = Color(0xFF0B0B0F)");
+    expect(kt).toContain("val BgBase: Color = Color(0xFF0A0908)");
     expect(kt).toContain("val X4: Dp = 16.dp");
     expect(kt).toMatch(/val Snappy: SpringToken = SpringToken\(stiffness = 520\.0f, dampingRatio = 0\.8332f\)/);
     expect(kt).not.toMatch(/val \d/);

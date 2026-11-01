@@ -21,6 +21,8 @@ export interface PlayerState {
   quality: RequestedQuality;
   /** What the current stream actually delivers (after clamping). */
   activeQuality: string | null;
+  /** Real waveform peaks (0–255) of the current track, when analysed. */
+  waveform: number[] | null;
   normalization: NormalizationMode;
   nowPlayingOpen: boolean;
   dispatch: (event: PlayerEvent) => void;
@@ -41,6 +43,7 @@ export const usePlayer = create<PlayerState>()(
       muted: false,
       quality: "auto",
       activeQuality: null,
+      waveform: null,
       normalization: "auto",
       nowPlayingOpen: false,
       dispatch: (event) =>

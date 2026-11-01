@@ -4,19 +4,12 @@ import Link from "next/link";
 import { useRef } from "react";
 import { ChevronLeftIcon, ChevronRightIcon } from "@/components/icons";
 import { Reveal } from "@/components/visual/Reveal";
+import { WaveRule } from "@/components/visual/Sonic";
 import { SpotlightZone } from "@/components/visual/Spotlight";
-
-const BADGES = [
-  "from-wave-b to-wave-c",
-  "from-wave-a to-wave-b",
-  "from-wave-d to-wave-a",
-  "from-wave-c to-wave-b",
-];
 
 export function SectionHeader({
   title,
   subtitle,
-  icon,
   index,
   href,
   onPrev,
@@ -24,33 +17,32 @@ export function SectionHeader({
 }: {
   title: string;
   subtitle?: string | null;
-  icon: React.ReactNode;
+  icon?: React.ReactNode;
   index: number;
   href?: string;
   onPrev?: () => void;
   onNext?: () => void;
 }) {
   return (
-    <div className="mb-3 flex items-end gap-3 px-1">
-      <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br text-white shadow-lg ${BADGES[index % BADGES.length]}`}>
-        {icon}
-      </span>
-      <div className="min-w-0 flex-1">
+    <div className="mb-4 flex items-center gap-4 px-1">
+      <span className="mono-label self-start pt-2 text-accent">{String(index + 1).padStart(2, "0")}</span>
+      <div className="min-w-0 max-w-[65%] flex-none">
         <h2 className="truncate font-display text-title-2 leading-tight">{title}</h2>
         {subtitle ? <p className="truncate text-caption text-text-secondary">{subtitle}</p> : null}
       </div>
+      <WaveRule seed={title} className="h-6 min-w-12 flex-1 basis-0 text-text-tertiary" />
       {href ? (
-        <Link href={href} className="liquid liquid-pill hidden px-4 py-1.5 text-caption font-bold transition-transform hover:scale-[1.04] sm:block">
-          Все
+        <Link href={href} className="mono-label shrink-0 text-text-secondary transition-colors hover:text-text-primary">
+          Все →
         </Link>
       ) : null}
       {onPrev && onNext ? (
-        <div className="hidden gap-2 md:flex">
-          <button type="button" aria-label="Назад" onClick={onPrev} className="liquid flex h-9 w-9 items-center justify-center rounded-full transition-transform hover:scale-110 active:scale-95">
-            <ChevronLeftIcon size={18} />
+        <div className="hidden shrink-0 gap-1.5 md:flex">
+          <button type="button" aria-label="Назад" onClick={onPrev} className="flex h-8 w-8 items-center justify-center rounded-full border border-white/12 text-text-secondary transition-all hover:border-white/30 hover:text-text-primary active:scale-90">
+            <ChevronLeftIcon size={16} />
           </button>
-          <button type="button" aria-label="Вперёд" onClick={onNext} className="liquid flex h-9 w-9 items-center justify-center rounded-full transition-transform hover:scale-110 active:scale-95">
-            <ChevronRightIcon size={18} />
+          <button type="button" aria-label="Вперёд" onClick={onNext} className="flex h-8 w-8 items-center justify-center rounded-full border border-white/12 text-text-secondary transition-all hover:border-white/30 hover:text-text-primary active:scale-90">
+            <ChevronRightIcon size={16} />
           </button>
         </div>
       ) : null}
@@ -70,7 +62,7 @@ export function ShelfSection({
 }: {
   title: string;
   subtitle?: string | null;
-  icon: React.ReactNode;
+  icon?: React.ReactNode;
   index: number;
   href?: string;
   itemWidth: string;

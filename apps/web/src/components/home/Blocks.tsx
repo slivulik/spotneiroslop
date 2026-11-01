@@ -11,6 +11,7 @@ import { PlaylistCover } from "@/components/PlaylistCover";
 import { useCurrentTrack, useIsPlaying } from "@/components/player/hooks";
 import { SectionHeader, ShelfSection } from "@/components/home/Section";
 import { Reveal, Tilt } from "@/components/visual/Reveal";
+import { ResonanceRing, signature } from "@/components/visual/Sonic";
 import { SpotlightZone } from "@/components/visual/Spotlight";
 import { artworkUrl } from "@/lib/artwork";
 import { formatDuration, releaseTypeLabel } from "@/lib/format";
@@ -31,20 +32,22 @@ function linkHref(link: S["HomeLink"] | null | undefined): string | null {
   }
 }
 
-function PlayFab({ onClick, size = 44, className = "" }: { onClick: () => void; size?: number; className?: string }) {
+/** The Sonora sun: the logo's ember→amber disc doubles as the play button. */
+export function PlayFab({ onClick, size = 44, className = "" }: { onClick: () => void; size?: number; className?: string }) {
   return (
     <button
       type="button"
       aria-label="Слушать"
+      data-ripple
       onClick={(e) => {
         e.preventDefault();
         e.stopPropagation();
         onClick();
       }}
-      className={`flex items-center justify-center rounded-full bg-white text-black shadow-[0_10px_30px_-6px_rgba(0,0,0,.6)] transition-all duration-300 ease-standard hover:scale-110 active:scale-95 ${className}`}
-      style={{ width: size, height: size }}
+      className={`flex items-center justify-center rounded-full text-[#1a0d06] shadow-[0_10px_30px_-6px_rgba(255,90,54,.55)] transition-all duration-300 ease-standard hover:scale-110 active:scale-95 ${className}`}
+      style={{ width: size, height: size, background: "radial-gradient(circle at 35% 30%, var(--sonora-color-wave-b), var(--sonora-color-wave-a) 75%)" }}
     >
-      <PlayIcon size={size * 0.45} style={{ marginLeft: size * 0.05 }} />
+      <PlayIcon size={size * 0.42} style={{ marginLeft: size * 0.05 }} />
     </button>
   );
 }
@@ -99,10 +102,11 @@ export function HeroCarousel({ blocks }: { blocks: Block[] }) {
           <div className="absolute inset-0" style={{ background: `linear-gradient(90deg, ${palette?.muted_dark ?? "#0b0b0f"}ee 0%, ${palette?.muted_dark ?? "#0b0b0f"}88 38%, transparent 75%)` }} />
           <div className="spotlight-glow" />
           <motion.div key={`t-${block.id}`} initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15, type: "spring", stiffness: 200, damping: 24 }} className="absolute inset-y-0 left-0 flex max-w-xl flex-col justify-end gap-3 p-6 sm:justify-center sm:p-12">
+            <span className="mono-label flex items-center gap-2 text-text-primary/80"><span className="on-air-dot" /> В эфире</span>
             <h2 className="font-display text-title-1 leading-[1.05] sm:text-display-l">{block.title}</h2>
             {block.subtitle ? <p className="text-body-l text-text-primary/80">{block.subtitle}</p> : null}
             {href ? (
-              <Link href={href} className="liquid liquid-pill mt-2 w-fit px-6 py-3 text-body font-bold transition-transform hover:scale-105">
+              <Link href={href} data-ripple className="mt-2 w-fit rounded-full px-6 py-3 text-body font-bold text-[#1a0d06] transition-transform hover:scale-105" style={{ background: "radial-gradient(circle at 30% 30%, var(--sonora-color-wave-b), var(--sonora-color-wave-a) 80%)" }}>
                 {hero.cta_label ?? "Открыть"}
               </Link>
             ) : null}
@@ -122,50 +126,63 @@ export function HeroCarousel({ blocks }: { blocks: Block[] }) {
   );
 }
 
-/** Built-in banner: release covers floating around a headline, drifting with the pointer. */
+/**
+ * Built-in banner, Sonora's own: new releases stand as the bars of a spectrum analyser,
+ * breathing at their own tempo and with the beat; hovering a bar opens it into the cover.
+ */
 export function PromoBanner({ releases }: { releases: S["ReleaseSummary"][] }) {
-  const mx = useMotionValue(0);
-  const my = useMotionValue(0);
-  const covers = releases.filter((r) => r.artwork).slice(0, 8);
+  const covers = releases.filter((r) => r.artwork).slice(0, 9);
   if (covers.length < 2) return null;
-  const spots = [
-    { left: "4%", top: "18%", rot: -14, s: 1, d: 1.2 }, { left: "14%", top: "52%", rot: 9, s: 0.85, d: 0.8 },
-    { left: "24%", top: "8%", rot: 6, s: 0.75, d: 1.6 }, { left: "70%", top: "12%", rot: 12, s: 0.9, d: 1.1 },
-    { left: "80%", top: "50%", rot: -10, s: 1, d: 0.7 }, { left: "62%", top: "56%", rot: -4, s: 0.7, d: 1.4 },
-    { left: "88%", top: "6%", rot: 18, s: 0.65, d: 1.8 }, { left: "33%", top: "60%", rot: -16, s: 0.6, d: 1.3 },
-  ];
+  // Covers are the tall bars; thin brand-coloured bars fill the spectrum between them.
+  const total = Math.max(covers.length * 3, 18);
+  const peaks = signature(covers.map((c) => c.id).join(""), total);
+  const every = total / covers.length;
+  const slots = peaks.map((peak, i) => {
+    const k = Math.floor(i / every);
+    const isCover = Math.floor(k * every + every / 2) === i;
+    return { peak: isCover ? Math.max(peak, 0.7) : peak * 0.75, release: isCover ? covers[k] : undefined };
+  });
+  const barStyle = (peak: number, i: number) => ({
+    height: `${30 + peak * 70}%`,
+    ["--lo" as string]: String(0.62 + (i % 4) * 0.07),
+    ["--dur" as string]: `${1.8 + (i % 5) * 0.4}s`,
+    ["--delay" as string]: `${-i * 0.29}s`,
+  });
   return (
     <Reveal>
-      <div
-        className="liquid relative h-56 overflow-hidden rounded-[32px] sm:h-64"
-        onPointerMove={(e) => {
-          const r = e.currentTarget.getBoundingClientRect();
-          mx.set((e.clientX - r.left) / r.width - 0.5);
-          my.set((e.clientY - r.top) / r.height - 0.5);
-        }}
-        onPointerLeave={() => { mx.set(0); my.set(0); }}
-      >
-        {covers.map((release, i) => (
-          <FloatingCover key={release.id} release={release} spot={spots[i]!} mx={mx} my={my} index={i} />
-        ))}
-        <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center">
-          <span className="mb-2 text-micro uppercase tracking-[0.2em] text-text-primary/70">Только что на Sonora</span>
-          <h2 className="font-display text-title-1 sm:text-display-l text-gradient">{covers.length} новых релизов</h2>
+      <div className="liquid spectrum relative flex flex-col gap-6 overflow-hidden rounded-[32px] p-6 sm:h-72 sm:flex-row sm:items-stretch sm:p-8">
+        <div className="flex shrink-0 flex-col justify-end gap-3 sm:w-[38%]">
+          <span className="mono-label flex items-center gap-2 text-text-secondary"><span className="on-air-dot" /> Эфир · новое на Sonora</span>
+          <h2 className="font-display text-title-1 leading-[1.05] sm:text-display-l">
+            <span className="text-gradient">{covers.length}</span> новых <br className="hidden sm:block" />релизов
+          </h2>
+          <p className="max-w-xs text-caption text-text-secondary">Каждая полоса — релиз. Наведите, чтобы раскрыть.</p>
+        </div>
+        <div className="flex h-48 flex-1 items-end justify-end gap-1.5 sm:h-auto">
+          {slots.map((slot, i) =>
+            slot.release ? (
+              <Link
+                key={slot.release.id}
+                href={`/album/${slot.release.id}`}
+                className="spectrum-item group/bar relative flex h-full w-10 min-w-0 shrink-0 items-end transition-[width] duration-500 ease-standard hover:w-48 sm:w-14 sm:hover:w-56"
+              >
+                <span className="spectrum-bar relative block w-full overflow-hidden rounded-[18px] shadow-artwork group-hover/bar:!h-full group-hover/bar:![animation:none] group-hover/bar:!transform-none" style={barStyle(slot.peak, i)}>
+                  <Artwork artwork={slot.release.artwork} alt={slot.release.title} sizes="240px" className="absolute inset-0 h-full w-full" />
+                  <span className="absolute inset-x-0 bottom-0 translate-y-full bg-gradient-to-t from-black/80 to-transparent p-3 pt-8 opacity-0 transition-all duration-300 group-hover/bar:translate-y-0 group-hover/bar:opacity-100">
+                    <span className="block truncate text-caption font-bold">{slot.release.title}</span>
+                    <span className="block truncate text-micro text-text-secondary">{slot.release.artists.map((a) => a.name).join(", ")}</span>
+                  </span>
+                </span>
+              </Link>
+            ) : (
+              <span key={`g${i}`} className="relative hidden h-full w-2.5 shrink-0 items-end sm:flex">
+                <span className="spectrum-bar block w-full rounded-full opacity-70" style={{ ...barStyle(slot.peak * 0.8, i), background: `linear-gradient(to top, var(--sonora-color-wave-a), ${i % 3 === 0 ? "var(--sonora-color-wave-c)" : "var(--sonora-color-wave-b)"})` }} />
+              </span>
+            ),
+          )}
         </div>
       </div>
     </Reveal>
-  );
-}
-
-function FloatingCover({ release, spot, mx, my, index }: { release: S["ReleaseSummary"]; spot: { left: string; top: string; rot: number; s: number; d: number }; mx: ReturnType<typeof useMotionValue<number>>; my: ReturnType<typeof useMotionValue<number>>; index: number }) {
-  const x = useSpring(useTransform(mx, [-0.5, 0.5], [-30 * spot.d, 30 * spot.d]), { stiffness: 80, damping: 18 });
-  const y = useSpring(useTransform(my, [-0.5, 0.5], [-20 * spot.d, 20 * spot.d]), { stiffness: 80, damping: 18 });
-  return (
-    <motion.div className="absolute hidden sm:block" style={{ left: spot.left, top: spot.top, x, y }} initial={{ opacity: 0, scale: 0.6, rotate: 0 }} animate={{ opacity: 1, scale: spot.s, rotate: spot.rot }} transition={{ delay: 0.08 * index, type: "spring", stiffness: 160, damping: 16 }}>
-      <Link href={`/album/${release.id}`} className="pointer-events-auto block transition-transform hover:scale-110">
-        <Artwork artwork={release.artwork} alt={release.title} sizes="140px" className="h-32 w-32 rounded-xl shadow-artwork" />
-      </Link>
-    </motion.div>
   );
 }
 
@@ -202,14 +219,16 @@ export function ReleaseCard({ release }: { release: S["ReleaseSummary"] }) {
 }
 
 function StoryCircle({ release, index }: { release: S["ReleaseSummary"]; index: number }) {
+  const palette = release.artwork?.palette;
+  const current = useCurrentTrack();
+  const playing = useIsPlaying();
+  const live = playing && current?.release.id === release.id;
   return (
     <motion.div initial={{ opacity: 0, scale: 0.6 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} transition={{ delay: index * 0.04, type: "spring", stiffness: 260, damping: 18 }}>
-      <Link href={`/album/${release.id}`} className="group flex w-[88px] flex-col items-center gap-2">
-        <span className="ring-story relative rounded-full p-[3px] transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6">
-          <span className="block rounded-full bg-[#07070a] p-[3px]">
-            <Artwork artwork={release.artwork} alt={release.title} sizes="80px" className="h-[74px] w-[74px] rounded-full" />
-          </span>
-        </span>
+      <Link href={`/album/${release.id}`} className="group flex w-[112px] flex-col items-center gap-1.5">
+        <ResonanceRing seed={release.id} size={112} live={live} colors={[palette?.vibrant ?? "var(--sonora-color-wave-a)", palette?.accent ?? "var(--sonora-color-wave-c)"]}>
+          <Artwork artwork={release.artwork} alt={release.title} sizes="96px" className="h-full w-full transition-transform duration-500 group-hover:scale-110" />
+        </ResonanceRing>
         <span className="w-full truncate text-center text-caption font-semibold">{release.title}</span>
       </Link>
     </motion.div>
@@ -229,7 +248,7 @@ function QuickTile({ track, all, index }: { track: TrackOut; all: TrackOut[]; in
           <div className={`truncate text-body font-bold ${isCurrent ? "text-accent" : ""}`}>{track.title}</div>
           <div className="truncate text-caption text-text-secondary">{track.artists.map((a) => a.name).join(", ")}</div>
         </div>
-        <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white text-black transition-all ${isCurrent && playing ? "opacity-100" : "scale-90 opacity-0 group-hover:scale-100 group-hover:opacity-100"}`}>
+        <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[#1a0d06] transition-all ${isCurrent && playing ? "opacity-100" : "scale-90 opacity-0 group-hover:scale-100 group-hover:opacity-100"}`} style={{ background: "radial-gradient(circle at 35% 30%, var(--sonora-color-wave-b), var(--sonora-color-wave-a) 75%)" }}>
           {isCurrent && playing ? <PauseIcon size={16} /> : <PlayIcon size={16} style={{ marginLeft: 2 }} />}
         </span>
       </button>
@@ -284,7 +303,7 @@ function ArtistBubble({ artist, index }: { artist: S["ArtistSummary"]; index: nu
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: index * 0.04, type: "spring", stiffness: 240, damping: 22 }}>
       <Link href={`/artist/${artist.id}`} className="group flex flex-col items-center gap-3 rounded-3xl p-3 transition-colors hover:bg-white/5">
-        <div className="relative">
+        <div className="relative w-full">
           <Artwork artwork={artist.artwork} alt={artist.name} sizes="160px" seed={artist.name} className="aspect-square w-full rounded-full shadow-lg transition-transform duration-500 ease-standard group-hover:scale-105" />
           <span className="pointer-events-none absolute inset-0 rounded-full opacity-0 shadow-[0_0_40px_8px_color-mix(in_srgb,var(--bg-c2)_45%,transparent)] transition-opacity duration-500 group-hover:opacity-100" />
         </div>
@@ -294,15 +313,29 @@ function ArtistBubble({ artist, index }: { artist: S["ArtistSummary"]; index: nu
   );
 }
 
+const GENRE_FALLBACK = ["#FF5A36", "#FFB23F", "#2FE0C8", "#5B6CFF", "#E0457B", "#8BD346"];
+
+/** Genre tile: its colour field carries the genre's own seeded waveform; the cover spins in like a disc. */
 function GenreTile({ genre, index }: { genre: S["GenreOut"]; index: number }) {
-  const color = genre.color ?? ["#7C5CFF", "#FF4D6D", "#FFB547", "#2EE6C5", "#4D7CFF", "#C44DFF"][index % 6];
+  const color = genre.color ?? GENRE_FALLBACK[index % GENRE_FALLBACK.length]!;
+  const wave = signature(genre.slug, 48);
   return (
     <Reveal index={index}>
-      <Link href={`/genre/${genre.slug}`} className="spotlight group relative block aspect-[16/10] overflow-hidden rounded-3xl p-4 shadow-md transition-transform duration-300 hover:-translate-y-1" style={{ background: `linear-gradient(135deg, ${color}, color-mix(in srgb, ${color} 45%, #07070a))` }}>
+      <Link
+        href={`/genre/${genre.slug}`}
+        className="spotlight group relative block aspect-[16/10] overflow-hidden rounded-3xl p-4 shadow-md transition-transform duration-300 hover:-translate-y-1"
+        style={{ background: `radial-gradient(120% 120% at 0% 0%, color-mix(in srgb, ${color} 85%, white 15%), color-mix(in srgb, ${color} 40%, var(--ink)) 70%)` }}
+      >
         <div className="spotlight-glow" />
-        <span className="relative font-display text-title-3 font-bold drop-shadow">{genre.name}</span>
+        <svg viewBox="0 0 96 40" preserveAspectRatio="none" className="absolute inset-x-0 bottom-0 h-1/2 w-full opacity-35 transition-opacity duration-500 group-hover:opacity-60" aria-hidden>
+          {wave.map((v, i) => (
+            <rect key={i} x={i * 2 + 0.3} y={40 - v * 36} width={1.3} height={v * 36} rx={0.65} fill="white" />
+          ))}
+        </svg>
+        <span className="mono-label relative text-white/70">{String(index + 1).padStart(2, "0")}</span>
+        <span className="relative mt-1 block font-display text-title-3 font-bold leading-tight drop-shadow">{genre.name}</span>
         {genre.artwork ? (
-          <Artwork artwork={genre.artwork} alt="" sizes="120px" className="absolute -bottom-3 -right-4 h-24 w-24 rotate-[22deg] rounded-xl shadow-lg transition-transform duration-500 group-hover:rotate-[12deg] group-hover:scale-110" />
+          <Artwork artwork={genre.artwork} alt="" sizes="120px" className="absolute -bottom-6 -right-6 h-24 w-24 rounded-full shadow-lg ring-4 ring-black/20 transition-transform duration-700 ease-standard group-hover:-translate-x-2 group-hover:-translate-y-2 group-hover:rotate-[200deg]" />
         ) : null}
       </Link>
     </Reveal>
@@ -325,7 +358,7 @@ export function HomeBlockView({ block: raw, index }: { block: Block; index: numb
       <Reveal>
         <section>
           <SectionHeader title={block.title} subtitle={block.subtitle} icon={icon} index={index} />
-          <div className="shelf" style={{ gridAutoColumns: "88px", gap: "18px" }}>
+          <div className="shelf" style={{ gridAutoColumns: "112px", gap: "10px" }}>
             {block.releases.map((r, i) => <StoryCircle key={r.id} release={r} index={i} />)}
           </div>
         </section>

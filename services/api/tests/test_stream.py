@@ -2,7 +2,7 @@ import uuid
 from typing import Any
 
 from sonora_api.core.ids import uuid7
-from sonora_api.models import Track, TrackFile
+from sonora_api.models import Track, TrackFeatures, TrackFile
 from sonora_api.models.enums import Quality
 from sonora_api.services.streaming import STREAM_PATH_RE
 from tests.conftest import Catalog, Harness, bearer, register
@@ -55,6 +55,14 @@ async def test_stream_requires_auth_and_clamps_quality(harness: Harness, catalog
     assert auto["qualities"] == ["lossless", "high", "normal", "low"]
     assert (auto["track_gain"], auto["album_gain"]) == (-2.5, -3.0)
     assert auto["expires_in"] >= 3600
+    assert auto["waveform"] is None  # not analysed yet
+
+    async with harness.ctx.sessionmaker() as s:
+        s.add(TrackFeatures(track_id=track.id, waveform=[(i * 7) % 256 for i in range(800)]))
+        await s.commit()
+    peaks = (await harness.client.get(url, headers=bearer(tokens))).json()["waveform"]
+    assert len(peaks) == 160
+    assert peaks[0] == max((i * 7) % 256 for i in range(5))
 
     hires = (await harness.client.get(url, headers=bearer(tokens), params={"quality": "hires"})).json()
     assert (hires["quality"], hires["codec"]) == ("lossless", "flac")  # no Hi-Res master → best below

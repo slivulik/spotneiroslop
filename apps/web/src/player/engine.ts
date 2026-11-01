@@ -233,6 +233,13 @@ export class PlayerEngine {
     return { energy: all / (used - 1), bass: bass / bassBins };
   }
 
+  /** Time-domain samples (128 = silence) for the oscilloscope; false when nothing is audible. */
+  oscilloscope(out: Uint8Array<ArrayBuffer>): boolean {
+    if (!this.analyser || this.audio.paused) return false;
+    this.analyser.getByteTimeDomainData(out);
+    return true;
+  }
+
   async play(): Promise<void> {
     // The AudioContext must be created/resumed inside a user gesture.
     this.ensureAudioGraph();

@@ -1,4 +1,7 @@
 import type { Metadata, Viewport } from "next";
+import "@fontsource-variable/unbounded";
+import "@fontsource-variable/onest";
+import "@fontsource-variable/jetbrains-mono";
 import "./globals.css";
 import { Providers } from "@/app/providers";
 import { AppShell } from "@/components/AppShell";
@@ -11,7 +14,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0B0B0F",
+  themeColor: "#0A0908",
   colorScheme: "dark",
   width: "device-width",
   initialScale: 1,

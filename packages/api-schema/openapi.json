@@ -4608,6 +4608,21 @@
             "description": "HLS playlist path, relative to the API origin",
             "title": "Url",
             "type": "string"
+          },
+          "waveform": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "integer"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Peaks 0–255 downsampled to 160 bars for the seek bar",
+            "title": "Waveform"
           }
         },
         "required": [

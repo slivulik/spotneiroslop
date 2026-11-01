@@ -5,14 +5,23 @@ import { decode } from "blurhash";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { artworkSrcSet, artworkUrl } from "@/lib/artwork";
 
-/** Fallback when a release has no cover: a gradient from the brand wave colours. */
+const TONES = ["#FF5A36", "#FFB23F", "#2FE0C8", "#5B6CFF"];
+
+/** Fallback when there is no image: Sonora tones with resonance rings off a seeded centre. */
 function Placeholder({ seed }: { seed: string }) {
-  const hue = [...seed].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) % 360, 7);
+  const h = [...seed].reduce((acc, ch) => (acc * 31 + ch.charCodeAt(0)) >>> 0, 7);
+  const a = TONES[h % 4]!;
+  const b = TONES[(h >> 3) % 4 === h % 4 ? (h % 4 + 1) % 4 : (h >> 3) % 4]!;
+  const cx = 25 + (h % 50);
+  const cy = 25 + ((h >> 5) % 50);
   return (
-    <div
-      className="absolute inset-0"
-      style={{ background: `linear-gradient(135deg, hsl(${hue} 60% 38%), hsl(${(hue + 60) % 360} 70% 22%))` }}
-    />
+    <div className="absolute inset-0" style={{ background: `radial-gradient(circle at ${cx}% ${cy}%, ${a}, color-mix(in srgb, ${b} 45%, #0a0908) 75%)` }}>
+      <svg viewBox="0 0 100 100" className="absolute inset-0 h-full w-full" aria-hidden>
+        {[14, 24, 34, 46, 60].map((r, i) => (
+          <circle key={r} cx={cx} cy={cy} r={r} fill="none" stroke="white" strokeOpacity={0.22 - i * 0.035} strokeWidth={i === 0 ? 1.2 : 0.7} />
+        ))}
+      </svg>
+    </div>
   );
 }
 

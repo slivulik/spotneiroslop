@@ -92,7 +92,7 @@ function getEngine(): PlayerEngine {
       state().patch({ error: message });
       state().dispatch({ type: "ERROR" });
     },
-    onStream: (stream) => state().patch({ activeQuality: stream.quality, durationMs: stream.duration_ms }),
+    onStream: (stream) => state().patch({ activeQuality: stream.quality, durationMs: stream.duration_ms, waveform: stream.waveform ?? null }),
   });
   const s = state();
   engine.setVolume(s.volume, s.muted);
@@ -205,6 +205,9 @@ export const player = {
     void loadCurrent(true);
   },
 
+  oscilloscope(out: Uint8Array<ArrayBuffer>): boolean {
+    return engine?.oscilloscope(out) ?? false;
+  },
   levels(): { energy: number; bass: number } | null {
     return engine?.levels() ?? null;
   },

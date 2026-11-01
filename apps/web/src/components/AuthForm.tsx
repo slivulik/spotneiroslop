@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { type FormEvent, useState } from "react";
 import { WaveLogo } from "@/components/icons";
+import { Oscilloscope } from "@/components/visual/Sonic";
 import { login, register, SessionError } from "@/lib/session";
 
 const MESSAGES: Record<string, string> = {
@@ -45,10 +46,12 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
   const field = "w-full rounded-md border border-border-default bg-white/5 px-4 py-3 text-body outline-none transition-colors placeholder:text-text-tertiary focus:border-text-secondary";
   return (
     <div className="flex min-h-[80vh] items-center justify-center px-4 py-12">
-      <form onSubmit={onSubmit} className="glass w-full max-w-sm rounded-xl border border-border-subtle p-8 shadow-lg">
+      <form onSubmit={onSubmit} className="liquid liquid-strong w-full max-w-sm rounded-[32px] p-8">
         <div className="mb-8 flex flex-col items-center gap-3">
           <WaveLogo size={44} />
+          <span className="mono-label flex items-center gap-2 text-text-secondary"><span className="on-air-dot" /> Sonora · эфир</span>
           <h1 className="font-display text-title-1">{mode === "login" ? "Вход в Sonora" : "Новый аккаунт"}</h1>
+          <Oscilloscope height={28} className="mt-1 opacity-80" />
         </div>
         <div className="flex flex-col gap-3">
           {mode === "register" ? <input name="name" required maxLength={64} placeholder="Имя" autoComplete="nickname" className={field} /> : null}

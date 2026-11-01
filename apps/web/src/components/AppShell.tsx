@@ -9,6 +9,7 @@ import { IconRail } from "@/components/shell/IconRail";
 import { MobileTabBar } from "@/components/shell/MobileTabBar";
 import { TopBar } from "@/components/shell/TopBar";
 import { LiveBackground } from "@/components/visual/LiveBackground";
+import { Ripples } from "@/components/visual/Sonic";
 import { usePlayer } from "@/player/store";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -18,6 +19,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <>
       <LiveBackground />
+      <Ripples />
       <IconRail />
       <div className="min-h-dvh md:pl-[var(--rail)]">
         {!isAdmin ? <TopBar /> : null}

@@ -49,7 +49,9 @@ export function CollectionHeader({
               onClick={onPlay}
               disabled={disabled}
               aria-label={playing ? "Пауза" : "Слушать"}
-              className="flex h-16 w-16 items-center justify-center rounded-full bg-white text-black shadow-[0_14px_40px_-10px_rgba(255,255,255,.45)] transition-transform hover:scale-105 active:scale-95 disabled:opacity-40"
+              data-ripple
+              style={{ background: "radial-gradient(circle at 35% 30%, var(--sonora-color-wave-b), var(--sonora-color-wave-a) 75%)" }}
+              className="flex h-16 w-16 items-center justify-center rounded-full text-[#1a0d06] shadow-[0_14px_40px_-10px_rgba(255,90,54,.7)] transition-transform hover:scale-105 active:scale-95 disabled:opacity-40"
             >
               {playing ? <PauseIcon size={28} /> : <PlayIcon size={28} style={{ marginLeft: 3 }} />}
             </button>

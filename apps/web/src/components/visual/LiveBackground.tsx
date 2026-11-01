@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useCurrentTrack } from "@/components/player/hooks";
 import { player } from "@/player/controller";
 
-const BRAND = { c1: "#3b2a8a", c2: "#8a1f45", c3: "#0f5c6e" };
+const BRAND = { c1: "#8a2a12", c2: "#2a2f8f", c3: "#0b5f56" };
 
 /** Pull a colour towards a usable brightness for a glowing background. */
 function vivid(hex: string | null | undefined, fallback: string): string {
@@ -26,6 +26,7 @@ function vivid(hex: string | null | undefined, fallback: string): string {
  * onsets, decaying) on <html>. CSS does the rest, so React never re-renders per frame.
  */
 export function LiveBackground() {
+  const rings = useRef<HTMLDivElement>(null);
   const track = useCurrentTrack();
   const palette = track?.release.artwork?.palette;
 
@@ -44,14 +45,28 @@ export function LiveBackground() {
     let beat = 0;
     let bassAvg = 0;
     let t = 0;
-    const tick = () => {
+    let lastRing = 0;
+    // A strong beat sends a resonance ring out from the player across the whole page.
+    const ring = (now: number) => {
+      const host = rings.current;
+      if (!host || now - lastRing < 600 || host.childElementCount > 5) return;
+      lastRing = now;
+      const el = document.createElement("span");
+      el.className = "beat-ring";
+      el.addEventListener("animationend", () => el.remove(), { once: true });
+      host.appendChild(el);
+    };
+    const tick = (now: number) => {
       t += 1;
       const levels = player.levels();
       let targetEnergy = 0;
       if (levels) {
         targetEnergy = Math.min(1, levels.energy * 2.2);
         // Onset: bass jumps well above its running average.
-        if (levels.bass > bassAvg * 1.28 && levels.bass > 0.32) beat = 1;
+        if (levels.bass > bassAvg * 1.28 && levels.bass > 0.32) {
+          if (beat < 0.5 && levels.bass > 0.55) ring(now);
+          beat = 1;
+        }
         bassAvg = bassAvg * 0.93 + levels.bass * 0.07;
       } else if (player.isPlaying()) {
         // Native HLS (Safari) has no analyser: breathe gently instead.
@@ -73,6 +88,7 @@ export function LiveBackground() {
       <div className="blob b2" />
       <div className="blob b3" />
       <div className="pulse" />
+      <div ref={rings} className="absolute inset-0" />
       <div className="veil" />
       <div className="grain noise" />
     </div>
