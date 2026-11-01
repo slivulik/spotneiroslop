@@ -1,12 +1,13 @@
-# Production edge. TLS is automatic (Let's Encrypt). Set SONORA_DOMAIN in the environment.
+# Edge proxy. SONORA_API_ADDRESS decides how the API is served:
+#   api.example.com   → automatic HTTPS (Let's Encrypt; port 80 or 443 must reach Caddy)
+#   :80               → plain HTTP on the server IP (no domain yet)
 {
 	email {$ACME_EMAIL}
 }
 
-api.{$SONORA_DOMAIN} {
+{$SONORA_API_ADDRESS} {
 	encode zstd gzip
 	header {
-		Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"
 		X-Content-Type-Options nosniff
 		Referrer-Policy strict-origin-when-cross-origin
 		-Server
@@ -17,6 +18,8 @@ api.{$SONORA_DOMAIN} {
 	reverse_proxy api:8000 {
 		header_up X-Request-ID {http.request.uuid}
 		health_uri /healthz
+		health_interval 5s
+		health_timeout 2s
 		lb_try_duration 5s
 	}
 	log {

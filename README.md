@@ -33,6 +33,22 @@ curl -X POST localhost:8000/v1/auth/register -H 'content-type: application/json'
 
 Письмо с подтверждением в dev-режиме печатается в лог API (`SONORA_EMAIL_BACKEND=console`).
 
+## Деплой на VPS
+
+Один сервер, Docker. Скрипт не трогает фаервол и другие сервисы (VPN и т.п.):
+
+```bash
+git clone https://github.com/slivulik/spotneiroslop.git /opt/sonora
+cd /opt/sonora
+sudo SONORA_DOMAIN=example.com ./infra/deploy/bootstrap.sh   # без домена: просто sudo ./infra/deploy/bootstrap.sh
+```
+
+* Ставит Docker, если его нет; при первом запуске создаёт `.env` (права 600) со случайными паролями.
+* Если порт 443/80 уже занят (например, VPN), Caddy публикуется на 8443/8080.
+* Без домена API доступно по `http://<IP>/`; с доменом — `https://api.<домен>` (нужна A-запись).
+* Обновление: `git pull && sudo ./infra/deploy/bootstrap.sh` (миграции применяются автоматически).
+* ClickHouse, Meilisearch и MinIO включаются профилем `full`, когда до них дойдут фазы 2–5.
+
 ## Проверки
 
 ```bash

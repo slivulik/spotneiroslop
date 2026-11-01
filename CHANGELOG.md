@@ -16,4 +16,6 @@
   жанры, настроения; ETag/304 и Cache-Control.
 - GCRA rate limiting в Redis, единый формат ошибок, request id, структурированные логи.
 - `@sonora/api-schema`: OpenAPI 3.1 и TS-клиент с общим refresh при `token_expired`.
+- Деплой на один VPS: `docker-compose.prod.yml` (наружу только Caddy, настраиваемые порты для
+  соседства с VPN) и идемпотентный `infra/deploy/bootstrap.sh`.
 - Инфраструктура: docker-compose, схема событий ClickHouse и материализованные представления, Caddyfile.

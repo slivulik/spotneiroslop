@@ -1,0 +1,124 @@
+#!/usr/bin/env bash
+# Install or update Sonora on a single VPS. Safe to re-run (idempotent).
+#
+#   git clone https://github.com/slivulik/spotneiroslop.git /opt/sonora
+#   cd /opt/sonora && sudo ./infra/deploy/bootstrap.sh
+#
+# Never touches the firewall or other services (e.g. a VPN on the same host): it only
+# installs Docker if missing, writes .env on first run and starts the compose stack.
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+COMPOSE=(docker compose -f "$ROOT/infra/docker-compose.prod.yml" --env-file "$ROOT/.env")
+
+log() { printf '\033[1;36m==>\033[0m %s\n' "$*"; }
+warn() { printf '\033[1;33m!!\033[0m %s\n' "$*" >&2; }
+die() { printf '\033[1;31mxx\033[0m %s\n' "$*" >&2; exit 1; }
+
+[[ $EUID -eq 0 ]] || die "run as root (sudo $0)"
+
+# --- Docker -------------------------------------------------------------------
+if ! command -v docker >/dev/null 2>&1; then
+  log "Installing Docker (get.docker.com)"
+  curl -fsSL https://get.docker.com | sh
+fi
+docker compose version >/dev/null 2>&1 || die "docker compose plugin is missing"
+
+# --- .env (first run only) ----------------------------------------------------
+rand() { head -c 48 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | head -c "${1:-40}"; }
+public_ip() { curl -fsS4 --max-time 5 https://api.ipify.org || hostname -I | awk '{print $1}'; }
+
+port_busy() {
+  if command -v ss >/dev/null 2>&1; then
+    ss -Hltn "sport = :$1" | grep -q .
+  else
+    # Minimal images may lack iproute2: probe the port directly.
+    (exec 3<>"/dev/tcp/127.0.0.1/$1") 2>/dev/null
+  fi
+}
+
+if [[ ! -f "$ROOT/.env" ]]; then
+  log "Creating $ROOT/.env with random secrets"
+  domain="${SONORA_DOMAIN:-}"
+  http_port="${CADDY_HTTP_PORT:-80}"
+  https_port="${CADDY_HTTPS_PORT:-443}"
+  if port_busy "$https_port"; then
+    warn "port $https_port is already used (VPN?) — Caddy will publish HTTPS on 8443 instead"
+    https_port=8443
+  fi
+  if port_busy "$http_port"; then
+    warn "port $http_port is already used — Caddy will publish HTTP on 8080 instead"
+    http_port=8080
+  fi
+  ip="$(public_ip)"
+  if [[ -n "$domain" ]]; then
+    address="api.$domain"
+    web_url="https://$domain"
+    media_url="https://media.$domain"
+  else
+    # No domain yet: plain HTTP on the server IP.
+    address=":80"
+    web_url="http://$ip"
+    media_url="http://$ip/media"
+  fi
+  umask 077
+  cat >"$ROOT/.env" <<ENV
+SONORA_ENV=prod
+SONORA_LOG_LEVEL=INFO
+SONORA_JWT_SECRET=$(rand 64)
+SONORA_WEB_BASE_URL=$web_url
+SONORA_MEDIA_BASE_URL=$media_url
+SONORA_CORS_ORIGINS=$web_url
+SONORA_GOOGLE_CLIENT_IDS=
+SONORA_EMAIL_BACKEND=console
+
+POSTGRES_USER=sonora
+POSTGRES_PASSWORD=$(rand 32)
+POSTGRES_DB=sonora
+CLICKHOUSE_USER=sonora
+CLICKHOUSE_PASSWORD=$(rand 32)
+MEILI_MASTER_KEY=$(rand 40)
+S3_ACCESS_KEY=sonora
+S3_SECRET_KEY=$(rand 40)
+
+SONORA_API_ADDRESS=$address
+ACME_EMAIL=${ACME_EMAIL:-admin@${domain:-example.com}}
+CADDY_HTTP_PORT=$http_port
+CADDY_HTTPS_PORT=$https_port
+WEB_CONCURRENCY=2
+ENV
+else
+  log "Keeping existing $ROOT/.env"
+fi
+
+# --- Start ----------------------------------------------------------------------
+if [[ "${SONORA_SKIP_BUILD:-0}" == "1" ]]; then
+  log "Skipping build (SONORA_SKIP_BUILD=1): using existing sonora-api:latest"
+  up_flags=(--no-build)
+else
+  log "Building API image"
+  "${COMPOSE[@]}" build api-migrate
+  up_flags=()
+fi
+log "Starting stack"
+"${COMPOSE[@]}" up -d --remove-orphans "${up_flags[@]}"
+
+log "Waiting for the API to become ready"
+for _ in $(seq 1 60); do
+  if "${COMPOSE[@]}" exec -T api python -c \
+    "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/readyz', timeout=2).status == 200 else 1)" \
+    >/dev/null 2>&1; then
+    # shellcheck disable=SC1091
+    source "$ROOT/.env"
+    log "Sonora API is up"
+    if [[ "$SONORA_API_ADDRESS" == :* ]]; then
+      echo "    http://$(public_ip):${CADDY_HTTP_PORT}/healthz"
+    else
+      echo "    https://${SONORA_API_ADDRESS}/healthz  (DNS A-record must point to this server)"
+    fi
+    exit 0
+  fi
+  sleep 2
+done
+"${COMPOSE[@]}" logs --tail 80 api api-migrate caddy
+die "API did not become ready in 120 s (logs above)"
