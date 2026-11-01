@@ -3,6 +3,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
+import { uuid } from "@/lib/uuid";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button, PageTitle, Panel, Pill, Select, StatusPill, Toggle, errorText, toast } from "@/components/admin/ui";
 import { api, unwrap } from "@/lib/api";
@@ -66,7 +67,7 @@ function toItems(files: { file: File; path: string }[], options: Options): Item[
     .sort((a, b) => (a.path + a.file.name).localeCompare(b.path + b.file.name, "ru", { numeric: true }))
     .map(({ file, path }) => {
       const cover = covers.get(path) ?? null;
-      return { id: crypto.randomUUID(), file, cover, folder: path.replace(/\/$/, ""), options, state: "waiting" as const, loaded: 0, total: file.size + (cover?.size ?? 0) };
+      return { id: uuid(), file, cover, folder: path.replace(/\/$/, ""), options, state: "waiting" as const, loaded: 0, total: file.size + (cover?.size ?? 0) };
     });
 }
 

@@ -5,6 +5,7 @@
  * from actual playback progress (seeks don't count), and sent as `play_end` when the track
  * changes, ends or the page is hidden. Batched; `keepalive` lets the last flush survive unload.
  */
+import { uuid } from "@/lib/uuid";
 import { useSession } from "@/lib/session";
 
 interface PlayEvent {
@@ -42,7 +43,7 @@ function flush(keepalive = false): void {
 }
 
 function push(event: Omit<PlayEvent, "event_id" | "at">): void {
-  queue.push({ ...event, event_id: crypto.randomUUID(), at: new Date().toISOString() });
+  queue.push({ ...event, event_id: uuid(), at: new Date().toISOString() });
   if (event.type === "play_start") flush();
   else timer ??= setTimeout(() => flush(), FLUSH_MS);
 }
