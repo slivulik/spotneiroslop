@@ -21,9 +21,17 @@ jobs:
           distribution: temurin
           java-version: "17"
       - uses: gradle/actions/setup-gradle@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
       - name: Design tokens are up to date in the app
         working-directory: .
-        run: diff -u packages/design-tokens/dist/kotlin/SonoraTokens.kt apps/android/app/src/main/java/com/sonora/app/core/designsystem/tokens/SonoraTokens.kt
+        run: |
+          pnpm install --frozen-lockfile --filter @sonora/design-tokens...
+          pnpm --filter @sonora/design-tokens build
+          diff -u packages/design-tokens/dist/kotlin/SonoraTokens.kt apps/android/app/src/main/java/com/sonora/app/core/designsystem/tokens/SonoraTokens.kt
       - name: Unit tests
         run: ./gradlew --no-daemon testDebugUnitTest
       - name: Lint
