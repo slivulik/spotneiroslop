@@ -26,7 +26,11 @@ class PresignedUpload:
 class Storage(Protocol):
     def presign_upload(self, bucket: str, key: str, content_type: str) -> PresignedUpload: ...
 
+    def presign_get(self, bucket: str, key: str, *, ttl_seconds: int) -> str: ...
+
     async def object_size(self, bucket: str, key: str) -> int | None: ...
+
+    async def read_bytes(self, bucket: str, key: str) -> bytes | None: ...
 
 
 def _client(settings: Settings, endpoint: str) -> S3Client:
@@ -54,6 +58,22 @@ class ObjectStorage:
             ExpiresIn=self._settings.upload_url_ttl_seconds,
         )
         return PresignedUpload(url=url, method="PUT", headers={"Content-Type": content_type})
+
+    def presign_get(self, bucket: str, key: str, *, ttl_seconds: int) -> str:
+        return self._public.generate_presigned_url(
+            "get_object", Params={"Bucket": bucket, "Key": key}, ExpiresIn=ttl_seconds
+        )
+
+    async def read_bytes(self, bucket: str, key: str) -> bytes | None:
+        def get() -> bytes | None:
+            try:
+                return self._internal.get_object(Bucket=bucket, Key=key)["Body"].read()
+            except ClientError as exc:
+                if exc.response.get("Error", {}).get("Code") in {"404", "NoSuchKey", "NotFound"}:
+                    return None
+                raise
+
+        return await anyio.to_thread.run_sync(get)
 
     async def object_size(self, bucket: str, key: str) -> int | None:
         """Size of an uploaded object, or None when it doesn't exist."""

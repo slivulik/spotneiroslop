@@ -109,10 +109,18 @@ class FakeGoogle:
 
 
 class FakeStorage:
-    """In-memory object store: tests 'upload' by setting `objects[(bucket, key)] = size`."""
+    """In-memory object store: tests 'upload' by setting `objects[(bucket, key)] = size` and
+    `contents[(bucket, key)] = bytes` for readable objects (playlists)."""
 
     def __init__(self) -> None:
         self.objects: dict[tuple[str, str], int] = {}
+        self.contents: dict[tuple[str, str], bytes] = {}
+
+    def presign_get(self, bucket: str, key: str, *, ttl_seconds: int) -> str:
+        return f"https://s3.test/{bucket}/{key}?ttl={ttl_seconds}&sig=1"
+
+    async def read_bytes(self, bucket: str, key: str) -> bytes | None:
+        return self.contents.get((bucket, key))
 
     def presign_upload(self, bucket: str, key: str, content_type: str) -> PresignedUpload:
         return PresignedUpload(

@@ -70,6 +70,20 @@ async def get_track(
     return _cache(request, track, viewer)
 
 
+@router.get("/releases", response_model=Page[ReleaseSummary])
+async def list_releases(
+    request: Request,
+    session: Session,
+    ctx: Ctx,
+    viewer: OptionalViewer,
+    limit: Annotated[int, Query(ge=1, le=MAX_PAGE_SIZE)] = 24,
+    cursor: str | None = None,
+) -> Response:
+    """New releases, newest first."""
+    page = await catalog.list_new_releases(session, ctx.settings, limit=limit, cursor=cursor)
+    return _cache(request, page, viewer)
+
+
 @router.get("/releases/{release_id}", response_model=ReleaseOut)
 async def get_release(
     release_id: uuid.UUID, request: Request, session: Session, ctx: Ctx, viewer: OptionalViewer

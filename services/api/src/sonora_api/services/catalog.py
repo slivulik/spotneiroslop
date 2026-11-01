@@ -4,7 +4,7 @@ import uuid
 from collections.abc import Sequence
 from datetime import UTC, date, datetime
 
-from sqlalchemy import ColumnElement, Select, and_, func, or_, select, tuple_
+from sqlalchemy import ColumnElement, Select, and_, exists, func, or_, select, tuple_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import contains_eager, selectinload
 
@@ -263,6 +263,37 @@ async def get_artist_releases(
             raise AppError("Malformed cursor", code="invalid_cursor") from None
         query = query.where(tuple_(sort_date, Release.id) < tuple_(after_date, after_id))
 
+    rows = list(await session.scalars(query))
+    next_cursor = None
+    if len(rows) > limit:
+        rows = rows[:limit]
+        last = rows[-1]
+        next_cursor = encode_cursor({"d": (last.release_date or _MIN_DATE).isoformat(), "id": str(last.id)})
+    return Page(items=[_release_summary(settings, r) for r in rows], next_cursor=next_cursor)
+
+
+async def list_new_releases(
+    session: AsyncSession, settings: Settings, *, limit: int, cursor: str | None
+) -> Page[ReleaseSummary]:
+    """Published releases, newest first (by release date, then upload order)."""
+    sort_date = func.coalesce(Release.release_date, _MIN_DATE)
+    query = (
+        select(Release)
+        .where(
+            release_visible(_now()),
+            # Real availability, not the denormalised counter.
+            exists().where(Track.release_id == Release.id, Track.status == TrackStatus.READY),
+        )
+        .options(selectinload(Release.artist_links).selectinload(ReleaseArtist.artist))
+        .order_by(sort_date.desc(), Release.id.desc())
+        .limit(limit + 1)
+    )
+    if (after := decode_cursor(cursor, keys=_RELEASE_CURSOR_KEYS)) is not None:
+        try:
+            after_date, after_id = date.fromisoformat(after["d"]), uuid.UUID(after["id"])
+        except (TypeError, ValueError):
+            raise AppError("Malformed cursor", code="invalid_cursor") from None
+        query = query.where(tuple_(sort_date, Release.id) < tuple_(after_date, after_id))
     rows = list(await session.scalars(query))
     next_cursor = None
     if len(rows) > limit:
