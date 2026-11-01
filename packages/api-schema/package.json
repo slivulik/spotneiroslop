@@ -1,0 +1,30 @@
+{
+  "name": "@sonora/api-schema",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Sonora OpenAPI document and the typed TypeScript client generated from it.",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./openapi.json": "./openapi.json"
+  },
+  "scripts": {
+    "generate": "openapi-typescript openapi.json -o src/schema.gen.ts",
+    "check": "openapi-typescript openapi.json -o src/schema.gen.ts --check",
+    "build": "pnpm run check && tsc --noEmit",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "openapi-fetch": "^0.15.0"
+  },
+  "devDependencies": {
+    "openapi-typescript": "^7.10.0",
+    "typescript": "^5.9.0",
+    "vitest": "^4.0.0"
+  }
+}
