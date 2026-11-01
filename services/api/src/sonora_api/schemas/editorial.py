@@ -106,6 +106,9 @@ class PlaylistSummary(ApiModel):
 
 
 class PlaylistOut(PlaylistSummary):
+    #: The owner (null for editorial and generated playlists); clients show edit controls to them.
+    owner_id: uuid.UUID | None = None
+    is_public: bool = True
     total_duration_ms: int
     updated_at: datetime
     tracks: list[TrackOut]

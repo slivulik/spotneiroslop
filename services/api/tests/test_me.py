@@ -53,7 +53,22 @@ async def test_settings_defaults_and_merge_patch(client: AsyncClient) -> None:
     assert reset.json()["audio"]["crossfade_seconds"] == 0
     assert reset.json()["audio"]["quality_wifi"] == "lossless"
 
+    look = await client.patch(
+        "/v1/me/settings",
+        headers=bearer(tokens),
+        json={
+            "appearance": {"theme": "light", "accent": "custom", "custom_accent": "#12AB34"},
+            "equalizer": {"custom_presets": [{"name": "Мой бас", "bands": [6, 5, 3, 1, 0, 0, 0, 0, 0, 0]}]},
+        },
+    )
+    assert look.status_code == 200, look.text
+    assert look.json()["appearance"]["theme"] == "light"
+    assert look.json()["appearance"]["progress_style"] == "line"  # defaults fill the rest
+    assert look.json()["equalizer"]["custom_presets"][0]["name"] == "Мой бас"
+
     for bad in (
+        {"appearance": {"custom_accent": "purple"}},
+        {"appearance": {"theme": "sepia"}},
         {"audio": {"crossfade_seconds": 13}},
         {"audio": {"unknown": 1}},
         {"equalizer": {"bands": [0, 1]}},

@@ -17,6 +17,7 @@ export function CollectionHeader({
   onPlay,
   onShuffle,
   disabled,
+  actions,
 }: {
   cover: React.ReactNode;
   kicker: string;
@@ -29,6 +30,8 @@ export function CollectionHeader({
   onPlay: () => void;
   onShuffle?: () => void;
   disabled?: boolean;
+  /** Extra controls after play/shuffle: like, share, edit… */
+  actions?: React.ReactNode;
 }) {
   return (
     <header className="relative mx-4 mt-2 overflow-hidden rounded-2xl md:mx-8">
@@ -36,7 +39,7 @@ export function CollectionHeader({
       <div className="liquid flex flex-col items-center gap-6 p-6 md:flex-row md:items-end md:gap-10 md:p-10">
         <Tilt max={9} className="w-[68vw] max-w-[280px] shrink-0">{cover}</Tilt>
         <div className="flex min-w-0 flex-1 flex-col items-center gap-3 text-center md:items-start md:text-left">
-          <span className="text-micro uppercase tracking-[0.18em] text-text-primary/70">{kicker}</span>
+          <span className="mono-label text-text-primary/70">{kicker}</span>
           <motion.h1 initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ type: "spring", stiffness: 200, damping: 24 }} className="font-display text-display-l leading-[0.95] md:text-display-xl">
             {title}
           </motion.h1>
@@ -50,7 +53,6 @@ export function CollectionHeader({
               disabled={disabled}
               aria-label={playing ? "Пауза" : "Слушать"}
               data-ripple
-             
               className="flex h-16 w-16 items-center justify-center rounded-full btn-accent transition-transform hover:scale-105 active:scale-95 disabled:opacity-40"
             >
               {playing ? <PauseIcon size={28} /> : <PlayIcon size={28} style={{ marginLeft: 3 }} />}
@@ -60,6 +62,7 @@ export function CollectionHeader({
                 <ShuffleIcon size={22} />
               </button>
             ) : null}
+            {actions}
           </div>
         </div>
       </div>

@@ -29,7 +29,7 @@ export const toast = (text: string, tone: Toast["tone"] = "ok") => useToasts.get
 export function Toaster() {
   const { items, drop } = useToasts();
   return (
-    <div className="pointer-events-none fixed bottom-6 right-6 z-[200] flex flex-col gap-2">
+    <div className="pointer-events-none fixed right-4 top-20 z-[200] flex flex-col gap-2 md:right-6" role="status" aria-live="polite">
       <AnimatePresence>
         {items.map((t) => (
           <motion.button

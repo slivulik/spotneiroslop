@@ -40,11 +40,14 @@ from sonora_api.schemas.catalog import ReleaseSummary, TrackOut
 from sonora_api.schemas.common import AdminPage
 from sonora_api.schemas.editorial import ArtistSummary, PlaylistOut, PlaylistSummary
 from sonora_api.schemas.library import (
+    DailyMinutes,
     HistoryEntry,
     HistoryOut,
     LibraryIds,
     LikeKind,
+    MyStatsOut,
     PopularSearchesOut,
+    TopItem,
     UserPlaylistIn,
     UserPlaylistPatch,
 )
@@ -402,3 +405,63 @@ async def popular_searches(session: AsyncSession, limit: int = 8) -> PopularSear
         .limit(limit)
     )
     return PopularSearchesOut(queries=list(top), source="plays")
+
+
+async def my_stats(session: AsyncSession, user: User, days: int) -> MyStatsOut:
+    since = _now() - timedelta(days=days)
+    counted = (
+        (ListeningHistory.user_id == user.id)
+        & ListeningHistory.counted
+        & (ListeningHistory.played_at >= since)
+    )
+    plays, ms, distinct_tracks = (
+        await session.execute(
+            select(
+                func.count(),
+                func.coalesce(func.sum(ListeningHistory.ms_played), 0),
+                func.count(func.distinct(ListeningHistory.track_id)),
+            ).where(counted)
+        )
+    ).one()
+    top_tracks = await session.execute(
+        select(Track.id, Track.title, func.count().label("n"))
+        .join(ListeningHistory, ListeningHistory.track_id == Track.id)
+        .where(counted)
+        .group_by(Track.id, Track.title)
+        .order_by(func.count().desc(), Track.title)
+        .limit(5)
+    )
+    artist_plays = (
+        select(Artist.id, Artist.name, func.count().label("n"))
+        .join(TrackArtist, TrackArtist.artist_id == Artist.id)
+        .join(ListeningHistory, ListeningHistory.track_id == TrackArtist.track_id)
+        .where(counted)
+        .group_by(Artist.id, Artist.name)
+    )
+    top_artists = await session.execute(artist_plays.order_by(func.count().desc(), Artist.name).limit(5))
+    distinct_artists = await session.scalar(select(func.count()).select_from(artist_plays.subquery())) or 0
+    day = func.date_trunc("day", ListeningHistory.played_at)
+    per_day = {
+        d.date().isoformat(): int(m // 60_000)
+        for d, m in await session.execute(
+            select(day, func.sum(ListeningHistory.ms_played)).where(counted).group_by(day)
+        )
+    }
+    today = _now().date()
+    daily = [
+        DailyMinutes(
+            date=(today - timedelta(days=i)).isoformat(),
+            minutes=per_day.get((today - timedelta(days=i)).isoformat(), 0),
+        )
+        for i in range(days - 1, -1, -1)
+    ]
+    return MyStatsOut(
+        days=days,
+        plays=plays,
+        minutes=int(ms // 60_000),
+        distinct_tracks=distinct_tracks,
+        distinct_artists=distinct_artists,
+        top_tracks=[TopItem(id=i, name=t, plays=n) for i, t, n in top_tracks],
+        top_artists=[TopItem(id=i, name=a, plays=n) for i, a, n in top_artists],
+        daily=daily,
+    )

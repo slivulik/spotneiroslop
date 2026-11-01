@@ -7,16 +7,21 @@
  */
 import type { StreamOut } from "@sonora/api-schema";
 import { artworkUrl } from "@/lib/artwork";
-import { PlayerEngine } from "@/player/engine";
-import { normalizationGain } from "@/player/gain";
+import { type Equalizer, PlayerEngine } from "@/player/engine";
+import { type NormalizationMode, normalizationGain } from "@/player/gain";
 import {
+  append,
+  clearUpcoming,
   createQueue,
   current,
   cycleRepeat,
+  insertNext,
+  move,
   nextCursor,
   type PlayContext,
   prevAction,
   type QueueTrack,
+  removeAt,
   setShuffle,
   upcoming,
 } from "@/player/queue";
@@ -27,6 +32,8 @@ const PREFETCH_BEFORE_END_MS = 20_000;
 const SAVE_EVERY_MS = 5_000;
 
 let engine: PlayerEngine | null = null;
+let pendingEq: Equalizer | null = null;
+let preloadNext = true;
 let lastSave = 0;
 let prefetchedFor: string | null = null;
 /** Track for which `play_start` was reported in the current load. */
@@ -79,7 +86,7 @@ function getEngine(): PlayerEngine {
         prefetchedFor = track.id;
         const queue = state().queue;
         const next = queue ? upcoming(queue, 1)[0] : undefined;
-        if (next) getEngine().prefetch(next.id, state().quality);
+        if (next && preloadNext) getEngine().prefetch(next.id, state().quality);
       }
       updatePositionState(positionMs, durationMs);
     },
@@ -97,6 +104,8 @@ function getEngine(): PlayerEngine {
   const s = state();
   engine.setVolume(s.volume, s.muted);
   installMediaSession();
+  if (pendingEq) engine.setEqualizer(pendingEq);
+  (window as unknown as { __sonoraEq?: () => unknown }).__sonoraEq = () => engine?.equalizerSnapshot() ?? null;
   return engine;
 }
 
@@ -188,6 +197,12 @@ export const player = {
     if (getEngine().hasSource) void loadCurrent(s.status === "playing" || s.status === "buffering", s.positionMs);
   },
 
+  /** Loudness normalisation mode; applies to the playing track immediately. */
+  setNormalization(normalization: NormalizationMode): void {
+    state().patch({ normalization });
+    getEngine().refreshGain();
+  },
+
   toggleShuffle(): void {
     const s = state();
     if (s.queue) s.patch({ queue: setShuffle(s.queue, !s.queue.shuffle) });
@@ -198,6 +213,38 @@ export const player = {
     if (s.queue) s.patch({ queue: { ...s.queue, repeat: cycleRepeat(s.queue.repeat) } });
   },
 
+  /** "Play next" — starts playback if nothing is queued yet. */
+  playNext(tracks: QueueTrack[], context: PlayContext): void {
+    const s = state();
+    if (!s.queue || !current(s.queue)) return player.playTracks(tracks, 0, context);
+    s.patch({ queue: insertNext(s.queue, tracks) });
+    prefetchedFor = null;
+  },
+
+  addToQueue(tracks: QueueTrack[], context: PlayContext): void {
+    const s = state();
+    if (!s.queue || !current(s.queue)) return player.playTracks(tracks, 0, context);
+    s.patch({ queue: append(s.queue, tracks) });
+    prefetchedFor = null;
+  },
+
+  removeFromQueue(pos: number): void {
+    const s = state();
+    if (s.queue) s.patch({ queue: removeAt(s.queue, pos) });
+    prefetchedFor = null;
+  },
+
+  moveInQueue(from: number, to: number): void {
+    const s = state();
+    if (s.queue) s.patch({ queue: move(s.queue, from, to) });
+    prefetchedFor = null;
+  },
+
+  clearQueue(): void {
+    const s = state();
+    if (s.queue) s.patch({ queue: clearUpcoming(s.queue) });
+  },
+
   playAt(cursor: number): void {
     const s = state();
     if (!s.queue || cursor < 0 || cursor >= s.queue.order.length) return;
@@ -205,6 +252,17 @@ export const player = {
     void loadCurrent(true);
   },
 
+  /** Settings → Playback: warm the next track before the current one ends. */
+  setPreloadNext(on: boolean): void {
+    preloadNext = on;
+  },
+  setEqualizer(eq: Equalizer): void {
+    pendingEq = eq;
+    engine?.setEqualizer(eq);
+  },
+  get equalizerAvailable(): boolean {
+    return engine?.equalizerAvailable ?? true;
+  },
   oscilloscope(out: Uint8Array<ArrayBuffer>): boolean {
     return engine?.oscilloscope(out) ?? false;
   },

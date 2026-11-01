@@ -13,11 +13,11 @@ function requireLogin(): boolean {
   return false;
 }
 
-export function playTracks(tracks: TrackOut[], startId: string | null, context: PlayContext): void {
+export function playTracks(tracks: TrackOut[], startId: string | null, context: PlayContext, options: { shuffle?: boolean } = {}): void {
   if (!requireLogin()) return;
   const playable = tracks.filter((t) => t.playable);
   const start = Math.max(0, startId ? playable.findIndex((t) => t.id === startId) : 0);
-  player.playTracks(playable.map(toQueueTrack), start, context);
+  player.playTracks(playable.map(toQueueTrack), start, context, options);
 }
 
 export async function playRelease(id: string, shuffle = false): Promise<void> {

@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "motion/react";
-import { Toaster } from "@/components/admin/ui";
 import { useSession } from "@/lib/session";
 
 const TABS = [
@@ -63,7 +62,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
         <div className="mx-auto max-w-[1400px] pb-10 pt-2 md:px-2">{children}</div>
       </div>
-      <Toaster />
     </div>
   );
 }

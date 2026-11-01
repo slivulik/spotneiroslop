@@ -5,6 +5,8 @@ import { useCurrentTrack, useIsPlaying } from "@/components/player/hooks";
 import { WaveformSeek } from "@/components/visual/Sonic";
 import { formatDuration } from "@/lib/format";
 import { player } from "@/player/controller";
+import { useState } from "react";
+import { useSettings } from "@/lib/settings";
 import { canDecode } from "@/player/engine";
 import { type Rendition, type RequestedQuality, usePlayer } from "@/player/store";
 
@@ -58,11 +60,50 @@ export function TransportControls({ large = false }: { large?: boolean }) {
   );
 }
 
-/** Seek bar drawn as the current track's real waveform (seeded signature until analysed). */
+/** Solid seek line: played (accent), buffered, rest; enlarges and shows a knob on hover. */
+function LineSeek({ progress, buffered, large, onSeek }: { progress: number; buffered: number; large: boolean; onSeek: (f: number) => void }) {
+  const [hover, setHover] = useState<number | null>(null);
+  const pick = (e: React.PointerEvent<HTMLDivElement>) => {
+    const r = e.currentTarget.getBoundingClientRect();
+    return Math.min(1, Math.max(0, (e.clientX - r.left) / r.width));
+  };
+  return (
+    <div
+      role="slider"
+      tabIndex={0}
+      aria-label="Перемотка"
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={Math.round(progress * 100)}
+      className={`group relative flex flex-1 cursor-pointer items-center ${large ? "h-6" : "h-4"}`}
+      onPointerMove={(e) => setHover(pick(e))}
+      onPointerLeave={() => setHover(null)}
+      onPointerDown={(e) => onSeek(pick(e))}
+      onKeyDown={(e) => {
+        if (e.key === "ArrowRight") onSeek(Math.min(1, progress + 0.02));
+        if (e.key === "ArrowLeft") onSeek(Math.max(0, progress - 0.02));
+      }}
+    >
+      <div className={`relative w-full overflow-hidden rounded-full bg-fg/15 transition-[height] duration-150 ${large ? "h-1.5 group-hover:h-2" : "h-1 group-hover:h-1.5"}`}>
+        <div className="absolute inset-y-0 left-0 rounded-full bg-fg/15" style={{ width: `${buffered * 100}%` }} />
+        {hover !== null ? <div className="absolute inset-y-0 left-0 rounded-full bg-fg/20" style={{ width: `${hover * 100}%` }} /> : null}
+        <div className="absolute inset-y-0 left-0 rounded-full bg-accent" style={{ width: `${progress * 100}%` }} />
+      </div>
+      <span
+        className="pointer-events-none absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-text-primary opacity-0 shadow-md transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100"
+        style={{ left: `${progress * 100}%` }}
+      />
+    </div>
+  );
+}
+
+/** Seek bar: solid line (default) or the track's real waveform, per Settings → Playback. */
 export function ProgressBar({ showTimes = true, onColor = false, large = false }: { showTimes?: boolean; onColor?: boolean; large?: boolean }) {
   const position = usePlayer((s) => s.positionMs);
   const duration = usePlayer((s) => s.durationMs);
   const waveform = usePlayer((s) => s.waveform);
+  const buffered = usePlayer((s) => s.bufferedMs);
+  const style = useSettings((s) => s.progressStyle);
   const trackId = useCurrentTrack()?.id ?? "";
   const progress = duration > 0 ? Math.min(1, position / duration) : 0;
   // Over the artwork colour field the default tertiary grey disappears.
@@ -70,15 +111,19 @@ export function ProgressBar({ showTimes = true, onColor = false, large = false }
   return (
     <div className="flex w-full items-center gap-3">
       {showTimes ? <span className={`${timeClass} text-right`}>{formatDuration(position)}</span> : null}
-      <WaveformSeek
-        peaks={waveform}
-        seed={trackId}
-        progress={progress}
-        count={large ? 120 : 90}
-        height={large ? 40 : 22}
-        className="flex-1"
-        onSeek={(f) => player.seek(f * duration)}
-      />
+      {style === "wave" ? (
+        <WaveformSeek
+          peaks={waveform}
+          seed={trackId}
+          progress={progress}
+          count={large ? 120 : 90}
+          height={large ? 40 : 22}
+          className="flex-1"
+          onSeek={(f) => player.seek(f * duration)}
+        />
+      ) : (
+        <LineSeek progress={progress} buffered={duration > 0 ? Math.min(1, buffered / duration) : 0} large={large} onSeek={(f) => player.seek(f * duration)} />
+      )}
       {showTimes ? <span className={timeClass}>{formatDuration(duration)}</span> : null}
     </div>
   );

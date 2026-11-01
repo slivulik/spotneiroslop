@@ -1196,6 +1196,26 @@ export interface paths {
         patch: operations["me_patch_settings"];
         trace?: never;
     };
+    "/v1/me/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get My Stats
+         * @description Your own listening: plays, minutes, top tracks and artists, minutes per day.
+         */
+        get: operations["library_get_my_stats"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/moods": {
         parameters: {
             query?: never;
@@ -1755,6 +1775,52 @@ export interface components {
             plays: number;
             role: components["schemas"]["UserRole"];
         };
+        /**
+         * AppearanceSettings
+         * @description Shared by web and Android so the look follows the account.
+         */
+        AppearanceSettings: {
+            /**
+             * Accent
+             * @default default
+             * @enum {string}
+             */
+            accent: "default" | "dynamic" | "custom";
+            /**
+             * Custom Accent
+             * @default #7352F5
+             */
+            custom_accent: string;
+            /**
+             * Density
+             * @default standard
+             * @enum {string}
+             */
+            density: "standard" | "compact";
+            /**
+             * Motion
+             * @default system
+             * @enum {string}
+             */
+            motion: "system" | "full" | "reduced";
+            /**
+             * Preload Next
+             * @default true
+             */
+            preload_next: boolean;
+            /**
+             * Progress Style
+             * @default line
+             * @enum {string}
+             */
+            progress_style: "line" | "wave";
+            /**
+             * Theme
+             * @default dark
+             * @enum {string}
+             */
+            theme: "dark" | "light" | "system";
+        };
         /** ArtistCreditIn */
         ArtistCreditIn: {
             /** Name */
@@ -1926,6 +1992,13 @@ export interface components {
          * @enum {string}
          */
         CreditRole: "composer" | "lyricist" | "producer" | "mixing" | "mastering" | "performer";
+        /** DailyMinutes */
+        DailyMinutes: {
+            /** Date */
+            date: string;
+            /** Minutes */
+            minutes: number;
+        };
         /** DailyPlays */
         DailyPlays: {
             /** Day */
@@ -1985,10 +2058,24 @@ export interface components {
             offline_enabled: boolean;
             platform: components["schemas"]["Platform"];
         };
+        /** EqualizerPreset */
+        EqualizerPreset: {
+            /** Bands */
+            bands: number[];
+            /** Name */
+            name: string;
+            /**
+             * Preamp
+             * @default 0
+             */
+            preamp: number;
+        };
         /** EqualizerSettings */
         EqualizerSettings: {
             /** Bands */
             bands?: number[];
+            /** Custom Presets */
+            custom_presets?: components["schemas"]["EqualizerPreset"][];
             /**
              * Enabled
              * @default false
@@ -2118,6 +2205,18 @@ export interface components {
             name: string;
             /** Parent Id */
             parent_id: string | null;
+            /** Slug */
+            slug: string;
+        };
+        /** GenreRef */
+        GenreRef: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
             /** Slug */
             slug: string;
         };
@@ -2475,6 +2574,28 @@ export interface components {
             slug: string;
         };
         /**
+         * MyStatsOut
+         * @description Own listening statistics computed from SONORA's history (counted plays only).
+         */
+        MyStatsOut: {
+            /** Daily */
+            daily: components["schemas"]["DailyMinutes"][];
+            /** Days */
+            days: number;
+            /** Distinct Artists */
+            distinct_artists: number;
+            /** Distinct Tracks */
+            distinct_tracks: number;
+            /** Minutes */
+            minutes: number;
+            /** Plays */
+            plays: number;
+            /** Top Artists */
+            top_artists: components["schemas"]["TopItem"][];
+            /** Top Tracks */
+            top_tracks: components["schemas"]["TopItem"][];
+        };
+        /**
          * Normalization
          * @enum {string}
          */
@@ -2662,8 +2783,15 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /**
+             * Is Public
+             * @default true
+             */
+            is_public: boolean;
             /** Mosaic */
             mosaic: components["schemas"]["Artwork"][];
+            /** Owner Id */
+            owner_id?: string | null;
             /** Owner Name */
             owner_name: string | null;
             /** Title */
@@ -2785,6 +2913,8 @@ export interface components {
             /** Artists */
             artists: components["schemas"]["ArtistRef"][];
             artwork: components["schemas"]["Artwork"] | null;
+            /** Genres */
+            genres?: components["schemas"]["GenreRef"][];
             /**
              * Id
              * Format: uuid
@@ -3102,6 +3232,18 @@ export interface components {
             token_type: string;
             user: components["schemas"]["MeOut"];
         };
+        /** TopItem */
+        TopItem: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Plays */
+            plays: number;
+        };
         /** TopTrack */
         TopTrack: {
             /** Plays */
@@ -3312,6 +3454,7 @@ export interface components {
         UserRole: "user" | "admin";
         /** UserSettings */
         UserSettings: {
+            appearance?: components["schemas"]["AppearanceSettings"];
             audio?: components["schemas"]["AudioSettings"];
             equalizer?: components["schemas"]["EqualizerSettings"];
             notifications?: components["schemas"]["NotificationSettings"];
@@ -10722,6 +10865,91 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UserSettings"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    library_get_my_stats: {
+        parameters: {
+            query?: {
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyStatsOut"];
                 };
             };
             /** @description Bad Request */

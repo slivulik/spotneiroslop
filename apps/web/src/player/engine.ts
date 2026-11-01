@@ -14,6 +14,15 @@ import type { RequestedQuality } from "@/player/store";
 import { cachingLoader, warmSegment } from "@/player/segmentCache";
 
 type Quality = Exclude<RequestedQuality, "auto">;
+
+/** Centre frequencies of the 10-band equaliser (Hz), the same bands Android uses. */
+export const EQ_FREQUENCIES = [31, 62, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
+export interface Equalizer {
+  enabled: boolean;
+  /** dB, −12…12, one per EQ_FREQUENCIES entry. */
+  bands: number[];
+  preamp: number;
+}
 const ORDER: Quality[] = ["hires", "lossless", "high", "normal", "low"];
 const MSE_CODECS: Record<string, string[]> = {
   flac: ['audio/mp4; codecs="flac"', 'audio/mp4; codecs="fLaC"'],
@@ -97,6 +106,9 @@ export class PlayerEngine {
   private context: AudioContext | null = null;
   private gainNode: GainNode | null = null;
   private analyser: AnalyserNode | null = null;
+  private preamp: GainNode | null = null;
+  private bands: BiquadFilterNode[] = [];
+  private eq: Equalizer = { enabled: false, bands: Array(10).fill(0), preamp: 0 };
   private spectrum: Uint8Array<ArrayBuffer> | null = null;
   private generation = 0;
   private current: { trackId: string; opts: LoadOptions; stream: StreamOut } | null = null;
@@ -304,17 +316,58 @@ export class PlayerEngine {
       this.context = new AudioContext();
       const source = this.context.createMediaElementSource(this.audio);
       this.gainNode = this.context.createGain();
-      // source → normalisation gain → analyser (visuals) → output
+      // source → normalisation gain → EQ preamp → 10 EQ bands → analyser (visuals) → output
+      this.preamp = this.context.createGain();
+      this.bands = EQ_FREQUENCIES.map((frequency, i) => {
+        const f = this.context!.createBiquadFilter();
+        f.type = i === 0 ? "lowshelf" : i === EQ_FREQUENCIES.length - 1 ? "highshelf" : "peaking";
+        f.frequency.value = frequency;
+        f.Q.value = 1.1;
+        f.gain.value = 0;
+        return f;
+      });
       this.analyser = this.context.createAnalyser();
       this.analyser.fftSize = 1024;
       this.analyser.smoothingTimeConstant = 0.78;
       this.spectrum = new Uint8Array(this.analyser.frequencyBinCount);
-      source.connect(this.gainNode).connect(this.analyser).connect(this.context.destination);
+      let node: AudioNode = source.connect(this.gainNode).connect(this.preamp);
+      for (const band of this.bands) node = node.connect(band);
+      node.connect(this.analyser).connect(this.context.destination);
+      this.applyEqualizer();
     } catch {
       // Without Web Audio we still play; only loudness normalisation is lost.
       this.context = null;
       this.gainNode = null;
     }
+  }
+
+  /** Re-evaluate the normalisation gain of the current stream (settings changed). */
+  refreshGain(): void {
+    if (this.current) this.applyGain(this.current.opts.gain(this.current.stream));
+  }
+
+  /** Real-time EQ on the audio graph (MSE path; Safari's native HLS has no Web Audio graph). */
+  setEqualizer(eq: Equalizer): void {
+    this.eq = eq;
+    this.applyEqualizer();
+  }
+
+  get equalizerAvailable(): boolean {
+    return this.mse !== false && typeof AudioContext !== "undefined";
+  }
+
+  /** Live filter gains (dB) and preamp (linear) from the audio graph, for diagnostics/tests. */
+  equalizerSnapshot(): { bands: number[]; preamp: number } | null {
+    if (!this.preamp) return null;
+    return { bands: this.bands.map((b) => Math.round(b.gain.value * 10) / 10), preamp: Math.round(this.preamp.gain.value * 100) / 100 };
+  }
+
+  private applyEqualizer(): void {
+    if (!this.context || !this.preamp) return;
+    const t = this.context.currentTime;
+    const on = this.eq.enabled;
+    this.preamp.gain.setTargetAtTime(on ? 10 ** (this.eq.preamp / 20) : 1, t, 0.03);
+    this.bands.forEach((band, i) => band.gain.setTargetAtTime(on ? (this.eq.bands[i] ?? 0) : 0, t, 0.03));
   }
 
   private applyGain(linear: number): void {

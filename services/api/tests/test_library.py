@@ -49,6 +49,8 @@ async def test_user_playlist_lifecycle_and_ownership(harness: Harness, catalog_d
     assert created.status_code == 201, created.text
     p = created.json()
     assert p["title"] == "Дорога"
+    assert p["is_public"] is False
+    assert p["owner_id"] is not None
     assert [t["id"] for t in p["tracks"]] == [t1, t2]  # duplicates dropped
     assert p["total_duration_ms"] == catalog_data.tracks[0].duration_ms + catalog_data.tracks[1].duration_ms
     pid = p["id"]
@@ -68,6 +70,10 @@ async def test_user_playlist_lifecycle_and_ownership(harness: Harness, catalog_d
     assert stale.json()["error"]["code"] == "playlist_conflict"
     removed = (await harness.client.delete(f"/v1/me/playlists/{pid}/tracks/{t1}", headers=me)).json()
     assert [t["id"] for t in removed["tracks"]] == [t3, t2]
+
+    # Mutable: the owner's edits must never be served from the browser's HTTP cache.
+    detail = await harness.client.get(f"/v1/playlists/{pid}", headers=me)
+    assert "max-age=0" in detail.headers["cache-control"]
 
     # Private: invisible to others, even by id.
     assert (await harness.client.get(f"/v1/playlists/{pid}", headers=other)).status_code == 404
@@ -144,3 +150,32 @@ async def test_search_tolerates_typos_sorts_and_finds_genres(harness: Harness, c
     assert newest["releases"][0]["title"] == "Afterglow"  # 2026 before 2025
     assert (await harness.client.get("/v1/search", params={"q": "x", "sort": "bogus"})).status_code == 422
     assert "genres" in exact
+
+
+async def test_my_stats_count_only_counted_plays(harness: Harness, catalog_data: Catalog) -> None:
+    h = bearer(await register(harness.client))
+    async with harness.ctx.sessionmaker() as s:
+        user_id = await s.scalar(select(User.id).where(User.email == "listener@example.com"))
+        now = datetime.now(UTC)
+        t1, t2 = catalog_data.tracks[0], catalog_data.tracks[1]
+        for minutes_ago, track, counted in [
+            (5, t1, True),
+            (50, t1, True),
+            (60 * 30, t2, True),
+            (10, t2, False),
+        ]:
+            s.add(
+                ListeningHistory(
+                    user_id=user_id, track_id=track.id, ms_played=120_000, counted=counted,
+                    played_at=now - timedelta(minutes=minutes_ago),
+                )
+            )  # fmt: skip
+        await s.commit()
+    stats = (await harness.client.get("/v1/me/stats", headers=h, params={"days": 7})).json()
+    assert stats["plays"] == 3
+    assert stats["minutes"] == 6
+    assert stats["distinct_tracks"] == 2
+    assert stats["top_tracks"][0] == {"id": str(t1.id), "name": t1.title, "plays": 2}
+    assert stats["top_artists"][0]["name"] == "Night Shore"
+    assert len(stats["daily"]) == 7
+    assert sum(d["minutes"] for d in stats["daily"]) == 6

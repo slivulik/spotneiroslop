@@ -43,7 +43,9 @@ async def get_playlist(
     playlist = await editorial.get_public_playlist(
         session, ctx.settings, playlist_id, viewer.user if viewer else None
     )
-    return cached_json(request, playlist, max_age=60, public=viewer is None)
+    # User playlists change under their owner's hands: always revalidate (ETag makes it a cheap 304).
+    max_age = 0 if playlist.owner_id is not None else 60
+    return cached_json(request, playlist, max_age=max_age, public=viewer is None)
 
 
 @router.get("/genres/{slug}", response_model=GenreDetail)

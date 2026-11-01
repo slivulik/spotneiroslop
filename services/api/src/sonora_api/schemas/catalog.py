@@ -69,6 +69,12 @@ class TrackList(ApiModel):
     items: list[TrackOut]
 
 
+class GenreRef(ApiModel):
+    id: uuid.UUID
+    slug: str
+    name: str
+
+
 class ReleaseOut(ApiModel):
     id: uuid.UUID
     title: str
@@ -83,6 +89,8 @@ class ReleaseOut(ApiModel):
     total_duration_ms: int
     track_count: int
     tracks: list[TrackOut]
+    #: Distinct genres of the release's tracks, most common first.
+    genres: list[GenreRef] = Field(default_factory=list)
 
 
 class ReleaseSummary(ApiModel):

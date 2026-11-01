@@ -66,3 +66,27 @@ class PopularSearchesOut(ApiModel):
     queries: list[str]
     #: "searches" when built from what people actually searched, "plays" when from listening.
     source: Literal["searches", "plays"]
+
+
+class TopItem(ApiModel):
+    id: uuid.UUID
+    name: str
+    plays: int
+
+
+class DailyMinutes(ApiModel):
+    date: str
+    minutes: int
+
+
+class MyStatsOut(ApiModel):
+    """Own listening statistics computed from SONORA's history (counted plays only)."""
+
+    days: int
+    plays: int
+    minutes: int
+    distinct_tracks: int
+    distinct_artists: int
+    top_tracks: list[TopItem]
+    top_artists: list[TopItem]
+    daily: list[DailyMinutes]

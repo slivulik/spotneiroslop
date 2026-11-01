@@ -14,6 +14,7 @@ from sonora_api.schemas.library import (
     HistoryOut,
     LibraryIds,
     LikeKind,
+    MyStatsOut,
     PlaylistOrderIn,
     PlaylistTracksIn,
     PopularSearchesOut,
@@ -153,3 +154,11 @@ async def clear_search_history(viewer: CurrentViewer, session: Session) -> Respo
 @router.get("/search/popular")
 async def popular_searches(session: Session) -> PopularSearchesOut:
     return await library.popular_searches(session)
+
+
+@router.get("/me/stats")
+async def get_my_stats(
+    viewer: CurrentViewer, session: Session, days: Annotated[int, Query(ge=7, le=365)] = 30
+) -> MyStatsOut:
+    """Your own listening: plays, minutes, top tracks and artists, minutes per day."""
+    return await library.my_stats(session, viewer.user, days)

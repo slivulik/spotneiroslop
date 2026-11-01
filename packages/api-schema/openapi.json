@@ -1205,6 +1205,73 @@
         "title": "AdminUserRow",
         "type": "object"
       },
+      "AppearanceSettings": {
+        "additionalProperties": false,
+        "description": "Shared by web and Android so the look follows the account.",
+        "properties": {
+          "accent": {
+            "default": "default",
+            "enum": [
+              "default",
+              "dynamic",
+              "custom"
+            ],
+            "title": "Accent",
+            "type": "string"
+          },
+          "custom_accent": {
+            "default": "#7352F5",
+            "pattern": "^#[0-9A-Fa-f]{6}$",
+            "title": "Custom Accent",
+            "type": "string"
+          },
+          "density": {
+            "default": "standard",
+            "enum": [
+              "standard",
+              "compact"
+            ],
+            "title": "Density",
+            "type": "string"
+          },
+          "motion": {
+            "default": "system",
+            "enum": [
+              "system",
+              "full",
+              "reduced"
+            ],
+            "title": "Motion",
+            "type": "string"
+          },
+          "preload_next": {
+            "default": true,
+            "title": "Preload Next",
+            "type": "boolean"
+          },
+          "progress_style": {
+            "default": "line",
+            "enum": [
+              "line",
+              "wave"
+            ],
+            "title": "Progress Style",
+            "type": "string"
+          },
+          "theme": {
+            "default": "dark",
+            "enum": [
+              "dark",
+              "light",
+              "system"
+            ],
+            "title": "Theme",
+            "type": "string"
+          }
+        },
+        "title": "AppearanceSettings",
+        "type": "object"
+      },
       "ArtistCreditIn": {
         "properties": {
           "name": {
@@ -1634,6 +1701,24 @@
         "title": "CreditRole",
         "type": "string"
       },
+      "DailyMinutes": {
+        "properties": {
+          "date": {
+            "title": "Date",
+            "type": "string"
+          },
+          "minutes": {
+            "title": "Minutes",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "date",
+          "minutes"
+        ],
+        "title": "DailyMinutes",
+        "type": "object"
+      },
       "DailyPlays": {
         "properties": {
           "day": {
@@ -1784,6 +1869,41 @@
         "title": "DeviceOut",
         "type": "object"
       },
+      "EqualizerPreset": {
+        "additionalProperties": false,
+        "properties": {
+          "bands": {
+            "items": {
+              "maximum": 12.0,
+              "minimum": -12.0,
+              "type": "number"
+            },
+            "maxItems": 10,
+            "minItems": 10,
+            "title": "Bands",
+            "type": "array"
+          },
+          "name": {
+            "maxLength": 32,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "preamp": {
+            "default": 0.0,
+            "maximum": 12.0,
+            "minimum": -12.0,
+            "title": "Preamp",
+            "type": "number"
+          }
+        },
+        "required": [
+          "name",
+          "bands"
+        ],
+        "title": "EqualizerPreset",
+        "type": "object"
+      },
       "EqualizerSettings": {
         "additionalProperties": false,
         "properties": {
@@ -1796,6 +1916,14 @@
             "maxItems": 10,
             "minItems": 10,
             "title": "Bands",
+            "type": "array"
+          },
+          "custom_presets": {
+            "items": {
+              "$ref": "#/components/schemas/EqualizerPreset"
+            },
+            "maxItems": 20,
+            "title": "Custom Presets",
             "type": "array"
           },
           "enabled": {
@@ -2241,6 +2369,30 @@
           "artwork"
         ],
         "title": "GenreOut",
+        "type": "object"
+      },
+      "GenreRef": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "slug": {
+            "title": "Slug",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "name"
+        ],
+        "title": "GenreRef",
         "type": "object"
       },
       "GoogleLoginIn": {
@@ -3315,6 +3467,64 @@
         "title": "MoodOut",
         "type": "object"
       },
+      "MyStatsOut": {
+        "description": "Own listening statistics computed from SONORA's history (counted plays only).",
+        "properties": {
+          "daily": {
+            "items": {
+              "$ref": "#/components/schemas/DailyMinutes"
+            },
+            "title": "Daily",
+            "type": "array"
+          },
+          "days": {
+            "title": "Days",
+            "type": "integer"
+          },
+          "distinct_artists": {
+            "title": "Distinct Artists",
+            "type": "integer"
+          },
+          "distinct_tracks": {
+            "title": "Distinct Tracks",
+            "type": "integer"
+          },
+          "minutes": {
+            "title": "Minutes",
+            "type": "integer"
+          },
+          "plays": {
+            "title": "Plays",
+            "type": "integer"
+          },
+          "top_artists": {
+            "items": {
+              "$ref": "#/components/schemas/TopItem"
+            },
+            "title": "Top Artists",
+            "type": "array"
+          },
+          "top_tracks": {
+            "items": {
+              "$ref": "#/components/schemas/TopItem"
+            },
+            "title": "Top Tracks",
+            "type": "array"
+          }
+        },
+        "required": [
+          "days",
+          "plays",
+          "minutes",
+          "distinct_tracks",
+          "distinct_artists",
+          "top_tracks",
+          "top_artists",
+          "daily"
+        ],
+        "title": "MyStatsOut",
+        "type": "object"
+      },
       "Normalization": {
         "enum": [
           "off",
@@ -3807,12 +4017,29 @@
             "title": "Id",
             "type": "string"
           },
+          "is_public": {
+            "default": true,
+            "title": "Is Public",
+            "type": "boolean"
+          },
           "mosaic": {
             "items": {
               "$ref": "#/components/schemas/Artwork"
             },
             "title": "Mosaic",
             "type": "array"
+          },
+          "owner_id": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner Id"
           },
           "owner_name": {
             "anyOf": [
@@ -4136,6 +4363,13 @@
                 "type": "null"
               }
             ]
+          },
+          "genres": {
+            "items": {
+              "$ref": "#/components/schemas/GenreRef"
+            },
+            "title": "Genres",
+            "type": "array"
           },
           "id": {
             "format": "uuid",
@@ -4997,6 +5231,30 @@
         "title": "TokenOut",
         "type": "object"
       },
+      "TopItem": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "plays": {
+            "title": "Plays",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "plays"
+        ],
+        "title": "TopItem",
+        "type": "object"
+      },
       "TopTrack": {
         "properties": {
           "plays": {
@@ -5570,6 +5828,9 @@
       "UserSettings": {
         "additionalProperties": false,
         "properties": {
+          "appearance": {
+            "$ref": "#/components/schemas/AppearanceSettings"
+          },
           "audio": {
             "$ref": "#/components/schemas/AudioSettings"
           },
@@ -15191,6 +15452,117 @@
         "summary": "Patch Settings",
         "tags": [
           "me"
+        ]
+      }
+    },
+    "/v1/me/stats": {
+      "get": {
+        "description": "Your own listening: plays, minutes, top tracks and artists, minutes per day.",
+        "operationId": "library_get_my_stats",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "days",
+            "required": false,
+            "schema": {
+              "default": 30,
+              "maximum": 365,
+              "minimum": 7,
+              "title": "Days",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyStatsOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get My Stats",
+        "tags": [
+          "library"
         ]
       }
     },

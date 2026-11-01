@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 from enum import StrEnum
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -88,12 +88,31 @@ class AudioSettings(_Strict):
     gapless: bool = True
 
 
+class EqualizerPreset(_Strict):
+    name: str = Field(min_length=1, max_length=32)
+    bands: list[EqBand] = Field(min_length=10, max_length=10)
+    preamp: float = Field(default=0.0, ge=-12, le=12)
+
+
 class EqualizerSettings(_Strict):
     enabled: bool = False
     preset: str = Field(default="flat", max_length=32)
     #: Gains in dB for 31, 62, 125, 250, 500, 1k, 2k, 4k, 8k, 16k Hz.
     bands: list[EqBand] = Field(default_factory=lambda: [0.0] * 10, min_length=10, max_length=10)
     preamp: float = Field(default=0.0, ge=-12, le=12)
+    custom_presets: list[EqualizerPreset] = Field(default_factory=list, max_length=20)
+
+
+class AppearanceSettings(_Strict):
+    """Shared by web and Android so the look follows the account."""
+
+    theme: Literal["dark", "light", "system"] = "dark"
+    accent: Literal["default", "dynamic", "custom"] = "default"
+    custom_accent: str = Field(default="#7352F5", pattern=r"^#[0-9A-Fa-f]{6}$")
+    density: Literal["standard", "compact"] = "standard"
+    motion: Literal["system", "full", "reduced"] = "system"
+    progress_style: Literal["line", "wave"] = "line"
+    preload_next: bool = True
 
 
 class NotificationSettings(_Strict):
@@ -112,6 +131,7 @@ class TasteSettings(_Strict):
 
 
 class UserSettings(_Strict):
+    appearance: AppearanceSettings = Field(default_factory=AppearanceSettings)
     audio: AudioSettings = Field(default_factory=AudioSettings)
     equalizer: EqualizerSettings = Field(default_factory=EqualizerSettings)
     notifications: NotificationSettings = Field(default_factory=NotificationSettings)

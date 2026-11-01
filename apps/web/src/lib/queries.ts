@@ -1,7 +1,7 @@
 "use client";
 
 import type { components } from "@sonora/api-schema";
-import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, unwrap } from "@/lib/api";
 import { useSession } from "@/lib/session";
 
@@ -70,15 +70,35 @@ export function useHome() {
   });
 }
 
-export function useSearch(q: string) {
+/** Debounced by the caller; superseded requests are aborted (TanStack passes the signal). */
+export function useSearch(q: string, sort: "relevance" | "new" | "popular" = "relevance", limit = 12) {
   const viewer = useViewerKey();
   return useQuery({
-    queryKey: ["search", q, viewer],
+    queryKey: ["search", q, sort, limit, viewer],
     enabled: q.length > 0 && viewer !== "unknown",
     staleTime: 30_000,
-    placeholderData: (prev) => prev,
-    queryFn: () => unwrap<S["SearchOut"]>(api.GET("/v1/search", { params: { query: { q, limit: 12 } } })),
+    placeholderData: keepPreviousData,
+    queryFn: ({ signal }) => unwrap<S["SearchOut"]>(api.GET("/v1/search", { params: { query: { q, limit, sort } }, signal })),
   });
+}
+
+export function useSearchHistory() {
+  const authed = useSession((s) => s.status === "authenticated");
+  return useQuery({ queryKey: ["search-history"], enabled: authed, staleTime: 60_000, queryFn: () => unwrap(api.GET("/v1/me/search-history")) });
+}
+
+/** Remember a query in the synced history (signed-in users only; failures are harmless). */
+export function useRecordSearch() {
+  const client = useQueryClient();
+  const authed = useSession((s) => s.status === "authenticated");
+  return (query: string) => {
+    if (!authed || !query.trim()) return;
+    void api.POST("/v1/me/search-history", { body: { query: query.trim() } }).then(() => client.invalidateQueries({ queryKey: ["search-history"] }));
+  };
+}
+
+export function usePopularSearches() {
+  return useQuery({ queryKey: ["search-popular"], staleTime: 10 * 60_000, queryFn: () => unwrap(api.GET("/v1/search/popular")) });
 }
 
 export function usePlatform() {

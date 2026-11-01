@@ -13,10 +13,18 @@ export interface Settings {
   progressStyle: "line" | "wave";
   preloadNext: boolean;
   cacheMb: number;
+  sidebarCollapsed: boolean;
+  eqEnabled: boolean;
+  eqPreset: string;
+  eqBands: number[];
+  eqPreamp: number;
+  eqCustom: { name: string; bands: number[]; preamp: number }[];
+  /** Local changes not yet acknowledged by the server (survives reloads; local wins on sign-in). */
+  syncPending: boolean;
   set: (patch: Partial<Omit<Settings, "set">>) => void;
 }
 
-export const DEFAULT_SETTINGS = {
+export const DEFAULT_SETTINGS: Omit<Settings, "set"> = {
   theme: "dark",
   accent: "default",
   customAccent: "#7352F5",
@@ -25,7 +33,14 @@ export const DEFAULT_SETTINGS = {
   progressStyle: "line",
   preloadNext: true,
   cacheMb: 160,
-} as const satisfies Omit<Settings, "set">;
+  sidebarCollapsed: false,
+  eqEnabled: false,
+  eqPreset: "flat",
+  eqBands: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+  eqPreamp: 0,
+  eqCustom: [],
+  syncPending: false,
+};
 
 export const SETTINGS_KEY = "sonora-settings";
 

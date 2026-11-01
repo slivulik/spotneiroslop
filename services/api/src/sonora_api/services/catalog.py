@@ -11,7 +11,7 @@ from sqlalchemy.orm import contains_eager, selectinload
 from sonora_api.core.config import Settings
 from sonora_api.core.errors import AppError, NotFoundError
 from sonora_api.core.pagination import decode_cursor, encode_cursor
-from sonora_api.models import Artist, Genre, Mood, Release, ReleaseArtist, Track, TrackArtist
+from sonora_api.models import Artist, Genre, Mood, Release, ReleaseArtist, Track, TrackArtist, TrackGenre
 from sonora_api.models.enums import ArtistRole, ReleaseStatus, ReleaseType, SourceFormat, TrackStatus
 from sonora_api.models.users import User
 from sonora_api.schemas.catalog import (
@@ -19,6 +19,7 @@ from sonora_api.schemas.catalog import (
     ArtistRef,
     AudioBadges,
     GenreOut,
+    GenreRef,
     MoodOut,
     ReleaseOut,
     ReleaseRef,
@@ -178,6 +179,14 @@ async def get_release(
         .order_by(Track.disc_number, Track.track_number)
     )
     track_list = [track_out(settings, t, viewer) for t in tracks]
+    genre_rows = await session.execute(
+        select(Genre.id, Genre.slug, Genre.name)
+        .join(TrackGenre, TrackGenre.genre_id == Genre.id)
+        .join(Track, Track.id == TrackGenre.track_id)
+        .where(Track.release_id == release_id)
+        .group_by(Genre.id, Genre.slug, Genre.name)
+        .order_by(func.count().desc(), Genre.name)
+    )
     return ReleaseOut(
         **_release_summary(settings, release).model_dump(exclude={"track_count"}),
         label=release.label,
@@ -185,6 +194,7 @@ async def get_release(
         total_duration_ms=sum(t.duration_ms for t in track_list),
         track_count=len(track_list),
         tracks=track_list,
+        genres=[GenreRef(id=i, slug=sl, name=n) for i, sl, n in genre_rows],
     )
 
 

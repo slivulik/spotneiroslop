@@ -492,6 +492,8 @@ async def playlist_out(
     summary = _playlist_summary(settings, p, mosaic, await _owner_name(session, p))
     return PlaylistOut(
         **summary.model_dump(exclude={"track_count"}),
+        owner_id=None if p.type == PlaylistType.EDITORIAL else p.owner_id,
+        is_public=p.is_public,
         track_count=len(tracks),
         total_duration_ms=sum(t.duration_ms for t in tracks),
         updated_at=p.updated_at,

@@ -41,6 +41,10 @@
   --blob-opacity: 0.22;
 }
 
+/* Sidebar width animates; the content and the player follow it. */
+.sidebar { transition: width var(--sonora-duration-normal) var(--sonora-ease-standard); }
+.shell-main { transition: padding-left var(--sonora-duration-normal) var(--sonora-ease-standard); }
+
 /* Compact density: the whole interface a notch smaller (hit targets stay ≥ 24 px). */
 [data-density="compact"] body { zoom: 0.92; }
 
@@ -129,6 +133,17 @@
   .slider:hover::-webkit-slider-thumb { opacity: 1; }
   .slider::-moz-range-thumb { width: 12px; height: 12px; border: 0; border-radius: 9999px; background: #fff; }
 
+  /* ---- Vertical equaliser sliders ---------------------------------------------------- */
+  .eq-slider {
+    writing-mode: vertical-lr;
+    direction: rtl;
+    appearance: slider-vertical;
+    width: 28px;
+    height: 160px;
+    accent-color: var(--sonora-color-accent-default);
+    cursor: pointer;
+  }
+
   /* ---- Horizontal shelves ------------------------------------------------------------ */
   .shelf { display: grid; grid-auto-flow: column; gap: 14px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; padding: 6px 2px 14px; }
   .shelf::-webkit-scrollbar { display: none; }
@@ -179,6 +194,9 @@
 @keyframes drift-a { 0% { translate: 0 0; } 50% { translate: 9vmax 6vmax; } 100% { translate: -4vmax 12vmax; } }
 @keyframes drift-b { 0% { translate: 0 0; } 50% { translate: -10vmax 8vmax; } 100% { translate: 5vmax -4vmax; } }
 @keyframes drift-c { 0% { translate: 0 0; } 50% { translate: 12vmax -10vmax; } 100% { translate: -8vmax -2vmax; } }
+
+@keyframes track-flash { 0%, 40% { background: var(--sonora-color-accent-muted); } 100% { background: transparent; } }
+.track-flash { animation: track-flash 2.4s ease-out; }
 
 @keyframes eq-bar { 0%, 100% { transform: scaleY(0.3); } 50% { transform: scaleY(1); } }
 .eq-bar { transform-origin: bottom; animation: eq-bar 0.9s var(--sonora-ease-standard) infinite; }

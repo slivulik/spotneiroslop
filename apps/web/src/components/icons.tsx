@@ -167,3 +167,91 @@ export const PlusIcon = (p: IconProps) => (
     <path d="M12 5v14M5 12h14" />
   </Icon>
 );
+
+const Stroke = ({ size = 24, children, ...props }: IconProps & { children: React.ReactNode }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" {...props}>
+    {children}
+  </svg>
+);
+
+export const HeartIcon = ({ filled = false, ...p }: IconProps & { filled?: boolean }) => (
+  <Stroke {...p} fill={filled ? "currentColor" : "none"}>
+    <path d="M12 20.3s-7.5-4.4-9.2-9.3C1.6 7.5 3.8 4.2 7.2 4.2c2 0 3.4 1.1 4.8 2.9 1.4-1.8 2.8-2.9 4.8-2.9 3.4 0 5.6 3.3 4.4 6.8-1.7 4.9-9.2 9.3-9.2 9.3Z" />
+  </Stroke>
+);
+export const LibraryIcon = (p: IconProps) => (
+  <Stroke {...p}>
+    <path d="M5 4v16M9.5 4v16M14 4.6l5 15.2" />
+  </Stroke>
+);
+export const SettingsIcon = (p: IconProps) => (
+  <Stroke {...p}>
+    <path d="M4 7h10M18 7h2M4 17h4M12 17h8" />
+    <circle cx="16" cy="7" r="2.2" />
+    <circle cx="10" cy="17" r="2.2" />
+  </Stroke>
+);
+export const LogoutIcon = (p: IconProps) => (
+  <Stroke {...p}>
+    <path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4M10 16l-4-4 4-4M6 12h10" />
+  </Stroke>
+);
+export const InfoIcon = (p: IconProps) => (
+  <Stroke {...p}>
+    <circle cx="12" cy="12" r="8.5" />
+    <path d="M12 11v5M12 7.6v.2" />
+  </Stroke>
+);
+export const QueueIcon = (p: IconProps) => (
+  <Stroke {...p}>
+    <path d="M4 6h12M4 11h12M4 16h7M16 15v5l4-2.5-4-2.5Z" />
+  </Stroke>
+);
+export const SidebarIcon = (p: IconProps) => (
+  <Stroke {...p}>
+    <rect x="3.5" y="4.5" width="17" height="15" rx="3" />
+    <path d="M9.5 4.5v15" />
+  </Stroke>
+);
+export const BackIcon = (p: IconProps) => (
+  <Stroke {...p}>
+    <path d="M15 5l-7 7 7 7" />
+  </Stroke>
+);
+export const ForwardIcon = (p: IconProps) => (
+  <Stroke {...p}>
+    <path d="M9 5l7 7-7 7" />
+  </Stroke>
+);
+export const MoreIcon = (p: IconProps) => (
+  <svg width={p.size ?? 24} height={p.size ?? 24} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    <circle cx="5.5" cy="12" r="1.7" />
+    <circle cx="12" cy="12" r="1.7" />
+    <circle cx="18.5" cy="12" r="1.7" />
+  </svg>
+);
+export const ShareIcon = (p: IconProps) => (
+  <Stroke {...p}>
+    <path d="M12 3.5v11M8 7.5l4-4 4 4M5 12.5V18a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-5.5" />
+  </Stroke>
+);
+export const ExpandIcon = (p: IconProps) => (
+  <Stroke {...p}>
+    <path d="M14 4h6v6M10 20H4v-6M20 4l-6.5 6.5M4 20l6.5-6.5" />
+  </Stroke>
+);
+export const TrashIcon = (p: IconProps) => (
+  <Stroke {...p}>
+    <path d="M4.5 7h15M9.5 7V5h5v2M6.5 7l1 12.5h9l1-12.5M10 11v5M14 11v5" />
+  </Stroke>
+);
+export const GripIcon = (p: IconProps) => (
+  <svg width={p.size ?? 24} height={p.size ?? 24} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+    {[8, 12, 16].flatMap((y) => [9, 15].map((x) => <circle key={`${x}-${y}`} cx={x} cy={y} r="1.4" />))}
+  </svg>
+);
+export const LinkIcon = (p: IconProps) => (
+  <Stroke {...p}>
+    <path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1" />
+  </Stroke>
+);

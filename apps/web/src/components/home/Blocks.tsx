@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { Artwork } from "@/components/Artwork";
 import { ExplicitBadge } from "@/components/Badges";
 import { CompassIcon, DiscIcon, FlameIcon, MicIcon, PauseIcon, PlayIcon, SparkIcon } from "@/components/icons";
+import { GenreArt, genreInk } from "@/components/GenreArt";
 import { PlaylistCover } from "@/components/PlaylistCover";
 import { useCurrentTrack, useIsPlaying } from "@/components/player/hooks";
 import { SectionHeader, ShelfSection } from "@/components/home/Section";
@@ -313,30 +314,29 @@ function ArtistBubble({ artist, index }: { artist: S["ArtistSummary"]; index: nu
   );
 }
 
-const GENRE_FALLBACK = ["#FF5A36", "#FFB23F", "#2FE0C8", "#5B6CFF", "#E0457B", "#8BD346"];
-
-/** Genre tile: its colour field carries the genre's own seeded waveform; the cover spins in like a disc. */
+/** Genre tile: the admin's cover when uploaded, otherwise thematic art for the genre family. */
 function GenreTile({ genre, index }: { genre: S["GenreOut"]; index: number }) {
-  const color = genre.color ?? GENRE_FALLBACK[index % GENRE_FALLBACK.length]!;
-  const wave = signature(genre.slug, 48);
+  const ink = genre.artwork ? "#FFFFFF" : genreInk(genre.name, genre.slug);
   return (
     <Reveal index={index}>
       <Link
         href={`/genre/${genre.slug}`}
-        className="spotlight group relative block aspect-[16/10] overflow-hidden rounded-xl p-4 shadow-md transition-transform duration-300 hover:-translate-y-1"
-        style={{ background: `radial-gradient(120% 120% at 0% 0%, color-mix(in srgb, ${color} 85%, white 15%), color-mix(in srgb, ${color} 40%, var(--ink)) 70%)` }}
+        className="spotlight group relative block aspect-[16/10] overflow-hidden rounded-xl shadow-md transition-transform duration-300 ease-standard hover:-translate-y-1"
       >
+        <div className="absolute inset-0 transition-transform duration-700 ease-standard group-hover:scale-[1.06]">
+          {genre.artwork ? (
+            <>
+              <Artwork artwork={genre.artwork} alt="" sizes="(min-width: 1024px) 25vw, 50vw" className="h-full w-full" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+            </>
+          ) : (
+            <GenreArt name={genre.name} slug={genre.slug} tint={genre.color} className="h-full w-full" />
+          )}
+        </div>
         <div className="spotlight-glow" />
-        <svg viewBox="0 0 96 40" preserveAspectRatio="none" className="absolute inset-x-0 bottom-0 h-1/2 w-full opacity-35 transition-opacity duration-500 group-hover:opacity-60" aria-hidden>
-          {wave.map((v, i) => (
-            <rect key={i} x={i * 2 + 0.3} y={40 - v * 36} width={1.3} height={v * 36} rx={0.65} fill="white" />
-          ))}
-        </svg>
-        <span className="mono-label relative text-white/70">{String(index + 1).padStart(2, "0")}</span>
-        <span className="relative mt-1 block font-display text-title-3 font-bold leading-tight drop-shadow">{genre.name}</span>
-        {genre.artwork ? (
-          <Artwork artwork={genre.artwork} alt="" sizes="120px" className="absolute -bottom-6 -right-6 h-24 w-24 rounded-full shadow-lg ring-4 ring-black/20 transition-transform duration-700 ease-standard group-hover:-translate-x-2 group-hover:-translate-y-2 group-hover:rotate-[200deg]" />
-        ) : null}
+        <span className="absolute bottom-3 left-4 right-4 font-display text-title-3 font-bold leading-tight drop-shadow" style={{ color: ink }}>
+          {genre.name}
+        </span>
       </Link>
     </Reveal>
   );
@@ -411,7 +411,7 @@ export function HomeBlockView({ block: raw, index }: { block: Block; index: numb
   if (block.type === "genres") {
     return (
       <section>
-        <SectionHeader title={block.title} subtitle={block.subtitle} icon={icon} index={index} href="/genres" />
+        <SectionHeader title={block.title} subtitle={block.subtitle} icon={icon} index={index} href="/search" />
         <SpotlightZone className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-6">
           {block.genres.map((g, i) => <GenreTile key={g.id} genre={g} index={i} />)}
         </SpotlightZone>

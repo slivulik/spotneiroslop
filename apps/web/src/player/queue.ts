@@ -106,3 +106,65 @@ export function upcoming(queue: Queue, count: number): QueueTrack[] {
   }
   return out;
 }
+
+/** Tracks in play order with the cursor's position — the editable view of a queue. */
+function sequence(queue: Queue): QueueTrack[] {
+  return queue.order.map((i) => queue.items[i]!).filter(Boolean);
+}
+
+/**
+ * Rebuild a queue from an edited play sequence. Unshuffled queues keep `items` equal to the
+ * sequence; shuffled ones keep their canonical order for surviving tracks and append new ones,
+ * so turning shuffle off never resurrects removed tracks or drops added ones.
+ */
+function rebuild(queue: Queue, seq: QueueTrack[], currentItem: QueueTrack | null): Queue {
+  const cursor = Math.max(0, currentItem ? seq.indexOf(currentItem) : 0);
+  if (!queue.shuffle) return { ...queue, items: seq, order: seq.map((_, i) => i), cursor };
+  const kept = queue.items.filter((t) => seq.includes(t));
+  const items = [...kept, ...seq.filter((t) => !kept.includes(t))];
+  return { ...queue, items, order: seq.map((t) => items.indexOf(t)), cursor };
+}
+
+/** "Play next": right after the current track. */
+export function insertNext(queue: Queue, tracks: QueueTrack[]): Queue {
+  const seq = sequence(queue);
+  const now = current(queue);
+  seq.splice(queue.cursor + 1, 0, ...tracks.map((t) => ({ ...t })));
+  return rebuild(queue, seq, now);
+}
+
+/** "Add to queue": at the end. */
+export function append(queue: Queue, tracks: QueueTrack[]): Queue {
+  return rebuild(queue, [...sequence(queue), ...tracks.map((t) => ({ ...t }))], current(queue));
+}
+
+/** Remove the entry at play position `pos` (the playing track itself can't be removed). */
+export function removeAt(queue: Queue, pos: number): Queue {
+  if (pos === queue.cursor || pos < 0 || pos >= queue.order.length) return queue;
+  const seq = sequence(queue);
+  seq.splice(pos, 1);
+  return rebuild(queue, seq, current(queue));
+}
+
+/** Drag-and-drop reorder by play positions; the playing track keeps playing. */
+export function move(queue: Queue, from: number, to: number): Queue {
+  const seq = sequence(queue);
+  if (from < 0 || from >= seq.length || to < 0 || to >= seq.length || from === to) return queue;
+  const [item] = seq.splice(from, 1);
+  seq.splice(to, 0, item!);
+  return rebuild(queue, seq, current(queue));
+}
+
+/** Drop everything after the current track. */
+export function clearUpcoming(queue: Queue): Queue {
+  return rebuild(queue, sequence(queue).slice(0, queue.cursor + 1), current(queue));
+}
+
+/** Played (before the cursor) and upcoming tracks with their play positions, for the queue panel. */
+export function queueView(queue: Queue): { previous: { pos: number; track: QueueTrack }[]; next: { pos: number; track: QueueTrack }[] } {
+  const seq = sequence(queue);
+  return {
+    previous: seq.slice(0, queue.cursor).map((track, pos) => ({ pos, track })),
+    next: seq.slice(queue.cursor + 1).map((track, i) => ({ pos: queue.cursor + 1 + i, track })),
+  };
+}
