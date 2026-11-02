@@ -50,10 +50,20 @@ class ServerAddress @Inject constructor(private val settings: dagger.Lazy<Settin
 /** Result of a screen load: data plus whether it came from the offline cache. */
 data class Loaded<T>(val data: T, val offline: Boolean)
 
+private val MESSAGES = mapOf(
+    "invalid_credentials" to "Неверная почта или пароль",
+    "email_taken" to "Этот e-mail уже зарегистрирован — войдите",
+    "account_blocked" to "Аккаунт заблокирован",
+    "validation_error" to "Проверьте введённые данные",
+    "rate_limited" to "Слишком много попыток — подождите минуту",
+    "maintenance" to "Сервис на обслуживании, попробуйте позже",
+)
+
 fun Throwable.userMessage(json: Json): String = when (this) {
     is IOException -> "Нет соединения с сервером"
     is HttpException -> response()?.errorBody()?.string()
-        ?.let { runCatching { json.decodeFromString<ErrorEnvelope>(it).error.message }.getOrNull() }
+        ?.let { body -> runCatching { json.decodeFromString<ErrorEnvelope>(body).error }.getOrNull() }
+        ?.let { MESSAGES[it.code] ?: it.message }
         ?: "Ошибка сервера (${code()})"
     else -> message ?: "Что-то пошло не так"
 }
@@ -86,15 +96,34 @@ class AuthRepository @Inject constructor(
     private val library: LibraryRepository,
 ) {
     val signedIn: StateFlow<com.sonora.app.data.net.Tokens?> = session.tokens
+    private val _me = MutableStateFlow<com.sonora.app.data.net.Me?>(null)
+    /** The signed-in account (name for the avatar, role for the admin link). */
+    val me: StateFlow<com.sonora.app.data.net.Me?> = _me
+
+    suspend fun refreshMe() {
+        if (session.tokens.value == null) return
+        runCatching { api.me() }.onSuccess { _me.value = it }
+    }
+
+    private fun device() = DeviceIn(
+        name = "Sonora на ${Build.MODEL}",
+        model = "${Build.MANUFACTURER} ${Build.MODEL}",
+        appVersion = BuildConfig.VERSION_NAME,
+        deviceId = session.deviceId,
+    )
+
+    suspend fun register(name: String, email: String, password: String) {
+        val tokens = api.register(com.sonora.app.data.net.RegisterIn(email.trim(), password, name.trim(), device()))
+        session.save(tokens)
+        _me.value = tokens.user
+        settings.pull()
+        library.refresh()
+    }
 
     suspend fun login(email: String, password: String) {
-        val device = DeviceIn(
-            name = "Sonora на ${Build.MODEL}",
-            model = "${Build.MANUFACTURER} ${Build.MODEL}",
-            appVersion = BuildConfig.VERSION_NAME,
-            deviceId = session.deviceId,
-        )
-        session.save(api.login(LoginIn(email.trim(), password, device)))
+        val tokens = api.login(LoginIn(email.trim(), password, device()))
+        session.save(tokens)
+        _me.value = tokens.user
         settings.pull()
         library.refresh()
     }
@@ -102,6 +131,7 @@ class AuthRepository @Inject constructor(
     suspend fun logout() {
         runCatching { api.logout() }
         session.clear()
+        _me.value = null
         cache.clear()
         library.reset()
     }

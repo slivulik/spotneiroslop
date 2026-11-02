@@ -14,6 +14,7 @@ import retrofit2.http.Query
 interface SonoraApi {
     // auth
     @POST("v1/auth/login") suspend fun login(@Body body: LoginIn): TokenOut
+    @POST("v1/auth/register") suspend fun register(@Body body: RegisterIn): TokenOut
     @POST("v1/auth/refresh") fun refreshBlocking(@Body body: RefreshIn): retrofit2.Call<TokenOut>
     @POST("v1/auth/logout") suspend fun logout(): Response<Unit>
     @GET("v1/me") suspend fun me(): Me
@@ -26,8 +27,10 @@ interface SonoraApi {
     @GET("v1/artists/{id}") suspend fun artist(@Path("id") id: String): Artist
     @GET("v1/artists/{id}/top-tracks") suspend fun artistTopTracks(@Path("id") id: String): TrackList
     @GET("v1/artists/{id}/releases") suspend fun artistReleases(@Path("id") id: String, @Query("limit") limit: Int = 50): ReleasePage
+    @GET("v1/artists/{id}/stats") suspend fun artistStats(@Path("id") id: String): ArtistStats
     @GET("v1/artists/{id}/similar") suspend fun similarArtists(@Path("id") id: String): List<ArtistSummary>
     @GET("v1/playlists/{id}") suspend fun playlist(@Path("id") id: String): Playlist
+    @GET("v1/genres") suspend fun genres(): GenreList
     @GET("v1/genres/{slug}") suspend fun genre(@Path("slug") slug: String): GenreDetail
     @GET("v1/tracks/{id}") suspend fun track(@Path("id") id: String): Track
     @GET("v1/tracks/{id}/lyrics") suspend fun lyrics(@Path("id") id: String): Response<Lyrics>
@@ -35,6 +38,8 @@ interface SonoraApi {
 
     // personal
     @GET("v1/me/wave") suspend fun wave(@Query("limit") limit: Int = 25, @Query("exclude") exclude: List<String> = emptyList()): List<Track>
+    @GET("v1/me/mixes") suspend fun mixes(): List<MixSummary>
+    @GET("v1/me/top-artists") suspend fun topArtists(): List<ArtistSummary>
     @GET("v1/me/mixes/{key}") suspend fun mix(@Path("key") key: String): Mix
     @GET("v1/me/recent") suspend fun recent(): TrackList
     @GET("v1/me/history") suspend fun history(@Query("limit") limit: Int = 100): History

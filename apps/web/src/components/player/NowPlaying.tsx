@@ -78,8 +78,8 @@ export function NowPlaying() {
             </div>
           </div>
 
-          <div className={`relative mx-auto grid w-full max-w-6xl flex-1 items-center gap-8 px-6 pb-[max(24px,env(safe-area-inset-bottom))] ${panel === "none" ? "justify-items-center" : "md:grid-cols-[minmax(0,420px)_1fr]"}`}>
-            <div className="flex flex-col items-center gap-6">
+          <div className={`relative mx-auto grid w-full max-w-6xl flex-1 items-center gap-8 px-6 pb-[max(24px,env(safe-area-inset-bottom))] ${panel === "none" ? "grid-cols-[minmax(0,1fr)] justify-items-center" : "grid-cols-[minmax(0,1fr)] md:grid-cols-[minmax(0,420px)_1fr]"}`}>
+            <div className="flex w-full min-w-0 flex-col items-center gap-6">
               <motion.div
                 layoutId="now-playing-art"
                 className="aspect-square w-full max-w-[min(78vw,440px)] overflow-hidden rounded-2xl shadow-artwork"
@@ -89,11 +89,11 @@ export function NowPlaying() {
               >
                 <Artwork artwork={track.release.artwork} alt={track.release.title} sizes="440px" className="h-full w-full" priority />
               </motion.div>
-              <div className="flex w-full max-w-md flex-col gap-5">
+              <div className="flex w-full min-w-0 max-w-md flex-col gap-5">
                 <div className="flex items-end justify-between gap-3">
                   <TrackTitle large />
                   <div className="flex shrink-0 items-center gap-1">
-                    <QualityBadge hires={track.hires} lossless={track.lossless} />
+                    <span className="hidden sm:inline-flex"><QualityBadge hires={track.hires} lossless={track.lossless} /></span>
                     <LikeButton kind="tracks" id={track.id} size={24} />
                   </div>
                 </div>

@@ -51,6 +51,7 @@ class AppViewModel @Inject constructor(
         player.connect()
         viewModelScope.launch {
             if (auth.signedIn.value != null) {
+                auth.refreshMe()
                 settings.pull()
                 library.refresh()
             }
@@ -105,4 +106,6 @@ class AppViewModel @Inject constructor(
     }
 
     fun logout() = viewModelScope.launch { auth.logout() }
+
+    fun adminUrl(): String = server.absolute("/admin")
 }

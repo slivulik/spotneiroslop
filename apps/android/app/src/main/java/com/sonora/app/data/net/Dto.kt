@@ -22,7 +22,13 @@ data class Artwork(
 }
 
 @Serializable
-data class Palette(val vibrant: String? = null, val muted: String? = null, val accent: String? = null, val dark: String? = null)
+data class Palette(
+    val dominant: String? = null,
+    val vibrant: String? = null,
+    val muted: String? = null,
+    val accent: String? = null,
+    @SerialName("muted_dark") val mutedDark: String? = null,
+)
 
 @Serializable
 data class ArtistRef(val id: String, val name: String, val slug: String = "", val role: String? = null)
@@ -98,6 +104,19 @@ data class Artist(
 )
 
 @Serializable
+data class WeeklyPlays(val week: String, val plays: Int)
+
+@Serializable
+data class ArtistStats(
+    @SerialName("monthly_listeners") val monthlyListeners: Long = 0,
+    @SerialName("plays_30d") val plays30d: Long = 0,
+    @SerialName("total_plays") val totalPlays: Long = 0,
+    @SerialName("first_release") val firstRelease: String? = null,
+    val genres: List<GenreRef> = emptyList(),
+    val weekly: List<WeeklyPlays> = emptyList(),
+)
+
+@Serializable
 data class PlaylistSummary(
     val id: String,
     val title: String,
@@ -145,6 +164,9 @@ data class HomeBlock(
 )
 
 @Serializable
+data class GenreList(val items: List<Genre> = emptyList())
+
+@Serializable
 data class GenreDetail(
     val genre: Genre,
     val description: String? = null,
@@ -172,6 +194,15 @@ data class TrackPage(val items: List<Track> = emptyList(), val total: Int = 0)
 
 @Serializable
 data class ReleasePage(val items: List<ReleaseSummary> = emptyList(), @SerialName("next_cursor") val nextCursor: String? = null)
+
+@Serializable
+data class MixSummary(
+    val key: String,
+    val title: String,
+    val subtitle: String? = null,
+    val mosaic: List<Artwork> = emptyList(),
+    @SerialName("track_count") val trackCount: Int = 0,
+)
 
 @Serializable
 data class Mix(val key: String, val title: String, val subtitle: String? = null, val tracks: List<Track> = emptyList())
@@ -249,6 +280,14 @@ data class DeviceIn(
 
 @Serializable
 data class LoginIn(val email: String, val password: String, val device: DeviceIn)
+
+@Serializable
+data class RegisterIn(
+    val email: String,
+    val password: String,
+    @SerialName("display_name") val displayName: String,
+    val device: DeviceIn,
+)
 
 @Serializable
 data class RefreshIn(@SerialName("refresh_token") val refreshToken: String)

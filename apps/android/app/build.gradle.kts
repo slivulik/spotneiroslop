@@ -107,6 +107,7 @@ dependencies {
     implementation(libs.coroutines.android)
     implementation(libs.coroutines.guava)
     implementation(libs.coil.compose)
+    implementation(libs.haze)
 
     testImplementation(libs.junit)
     testImplementation(libs.coroutines.test)

@@ -1,15 +1,27 @@
 package com.sonora.app
 
 import com.sonora.app.data.net.Artwork
+import com.sonora.app.data.net.DeviceIn
+import com.sonora.app.data.net.LoginIn
+import com.sonora.app.di.AppModule
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import com.sonora.app.data.net.Track
 import com.sonora.app.ui.components.formatDuration
-import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class DtoTest {
-    private val json = Json { ignoreUnknownKeys = true; explicitNulls = false; coerceInputValues = true }
+    private val json = AppModule.json()
+
+    /** Regression: the server requires device.platform; a dropped default made every login fail (422). */
+    @Test fun loginRequestCarriesThePlatform() {
+        val body = json.encodeToString(LoginIn.serializer(), LoginIn("a@b.c", "pw", DeviceIn(name = "Sonora на Pixel")))
+        val device = json.parseToJsonElement(body).jsonObject["device"]!!.jsonObject
+        assertEquals("android", device["platform"]!!.jsonPrimitive.content)
+        assertTrue("device_id" !in device) // unknown on first login: omitted, not null
+    }
 
     @Test fun artworkPicksTheSmallestCoveringSizeAsWebp() {
         val art = Artwork("https://m/x/{size}.{format}", listOf(1200, 160, 600, 320))

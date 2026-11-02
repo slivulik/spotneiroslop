@@ -94,7 +94,10 @@ fun SonoraTheme(mode: ThemeMode, content: @Composable () -> Unit) {
     } else with(SonoraTokens.LightColors) {
         SonoraColors(TextSecondary, TextTertiary, BorderSubtle, AccentMuted, BgElevated, BgRaised, false)
     }
-    androidx.compose.runtime.CompositionLocalProvider(LocalSonoraColors provides extra) {
+    androidx.compose.runtime.CompositionLocalProvider(
+        LocalSonoraColors provides extra,
+        com.sonora.app.ui.design.LocalColors provides if (dark) com.sonora.app.ui.design.DarkColors else com.sonora.app.ui.design.LightColors,
+    ) {
         MaterialTheme(colorScheme = if (dark) Dark else Light, typography = Types, content = content)
     }
 }

@@ -31,6 +31,8 @@ object AppModule {
     @Provides @Singleton
     fun json(): Json = Json {
         ignoreUnknownKeys = true
+        // Fields with Kotlin defaults (e.g. device.platform = "android") must still be sent.
+        encodeDefaults = true
         explicitNulls = false
         coerceInputValues = true
     }
