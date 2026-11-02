@@ -42,7 +42,7 @@ import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 
 /**
- * Renders every main screen at phone size to app/build/outputs/roborazzi/*.png.
+ * Renders every main screen at phone size to PNG files in app/build/outputs/roborazzi.
  * CI publishes them to the `android-screenshots` branch so the design can be reviewed without a device.
  */
 @RunWith(RobolectricTestRunner::class)
