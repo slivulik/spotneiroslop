@@ -66,8 +66,8 @@ export default function AlbumPage({ params }: { params: Promise<{ id: string }> 
         onShuffle={() => void playRelease(id, true)}
         actions={
           <>
-            <LikeButton kind="releases" id={id} size={22} className="liquid h-12 w-12" />
-            <button type="button" aria-label="Поделиться" onClick={() => void share(`/album/${id}`, `${data.title} — ${data.artists.map((a) => a.name).join(", ")}`)} className="liquid flex h-12 w-12 items-center justify-center rounded-full transition-transform hover:scale-110"><ShareIcon size={20} /></button>
+            <LikeButton kind="releases" id={id} size={22} className="h-12 w-12 rounded-full bg-fg/8 hover:bg-fg/12" />
+            <button type="button" aria-label="Поделиться" onClick={() => void share(`/album/${id}`, `${data.title} — ${data.artists.map((a) => a.name).join(", ")}`)} className="bg-fg/8 hover:bg-fg/12 flex h-12 w-12 items-center justify-center rounded-full transition-transform hover:scale-110"><ShareIcon size={20} /></button>
           </>
         }
       />

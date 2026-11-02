@@ -181,7 +181,7 @@ export function QualitySelect() {
     <label className="relative flex items-center" title={current ? describeRendition(current) : undefined}>
       <span className="sr-only">Качество</span>
       <span
-        className={`pointer-events-none rounded-full border px-2.5 py-1 text-micro uppercase ${
+        className={`pointer-events-none whitespace-nowrap rounded-full border px-2.5 py-1 text-micro uppercase ${
           active === "hires"
             ? "border-badge-hires/50 text-badge-hires"
             : special

@@ -1,12 +1,10 @@
 "use client";
 
 import type { components } from "@sonora/api-schema";
-import { motion } from "motion/react";
 import { useSyncExternalStore } from "react";
-import { HeroCarousel, HomeBlockView, PromoBanner } from "@/components/home/Blocks";
+import { HeroCarousel, HomeBlockView } from "@/components/home/Blocks";
 import { PageError } from "@/components/Page";
 import { ContinueListening, FavoriteArtists, MixesShelf, WaveCard, YourPlaylists } from "@/components/home/Personal";
-import { Oscilloscope } from "@/components/visual/Sonic";
 import { useHome } from "@/lib/queries";
 import { useSession } from "@/lib/session";
 
@@ -17,16 +15,12 @@ const noop = () => () => {};
 function useGreeting(): string {
   return useSyncExternalStore(noop, greeting, () => "В эфире");
 }
-function useDateLine(): string {
-  return useSyncExternalStore(noop, () => new Date().toLocaleDateString("ru-RU", { weekday: "long", day: "numeric", month: "long" }), () => "");
-}
-
 function greeting(): string {
   const hour = new Date().getHours();
-  if (hour < 5) return "Ночной эфир";
-  if (hour < 12) return "Утренний эфир";
-  if (hour < 18) return "Дневной эфир";
-  return "Вечерний эфир";
+  if (hour < 5) return "Доброй ночи";
+  if (hour < 12) return "Доброе утро";
+  if (hour < 18) return "Добрый день";
+  return "Добрый вечер";
 }
 
 function HomeSkeleton() {
@@ -63,41 +57,24 @@ export default function HomePage() {
   const { status, user } = useSession();
   const authed = status === "authenticated";
   const hello = useGreeting();
-  const dateLine = useDateLine();
   const home = useHome();
   const sections = home.data?.sections ?? [];
   const arranged = arrange(sections);
   const hasHero = sections.some((s) => s.type === "hero");
-  const promo = sections.find((s) => s.type === "releases" && (s.releases?.length ?? 0) > 1)?.releases ?? [];
 
   return (
-    <div className="mx-auto flex max-w-[1680px] flex-col gap-12 px-4 pt-4 md:px-8">
-      <header className="flex flex-col gap-3">
-        <div className="mono-label flex items-center gap-2.5 text-text-secondary">
-          <span className="on-air-dot" />
-          <span>{dateLine || "Sonora"}</span>
-        </div>
-        <motion.h1
-          initial={{ opacity: 0, y: 18, filter: "blur(10px)" }}
-          animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-          transition={{ type: "spring", stiffness: 160, damping: 22 }}
-          className="font-display text-display-l leading-none md:text-display-xl"
-        >
-          <span className="breathe text-gradient">{hello}</span>
-          {status === "authenticated" && user ? <span className="breathe text-text-primary/90">, {user.display_name}</span> : null}
-        </motion.h1>
-        <Oscilloscope height={44} className="-mb-6 opacity-90" />
+    <div className="mx-auto flex max-w-[1680px] flex-col gap-10 px-4 pt-2 md:px-10">
+      <header className="flex flex-col gap-6">
+        <h1 className="text-[34px] font-bold leading-[1.08] tracking-[-0.03em] md:text-[44px]">
+          {hello}
+          {status === "authenticated" && user ? <span className="text-text-secondary">, {user.display_name}</span> : null}
+        </h1>
+        {authed ? <ContinueListening /> : null}
       </header>
 
-      {authed ? (
-        <section className="grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
-          <WaveCard />
-          <ContinueListening />
-        </section>
-      ) : null}
+      {authed ? <WaveCard /> : null}
       {home.isPending ? <HomeSkeleton /> : null}
       {home.isError ? <PageError message="Не удалось загрузить главную" /> : null}
-      {!hasHero && promo.length > 1 ? <PromoBanner releases={promo} /> : null}
       {authed ? <MixesShelf index={0} /> : null}
       {arranged
         // "Continue listening" is already at the top for signed-in listeners.

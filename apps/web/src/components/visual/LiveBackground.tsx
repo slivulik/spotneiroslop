@@ -2,7 +2,6 @@
 
 import { useEffect, useRef } from "react";
 import { useCurrentTrack } from "@/components/player/hooks";
-import { player } from "@/player/controller";
 
 const BRAND = { c1: "#8a2a12", c2: "#2a2f8f", c3: "#0b5f56" };
 
@@ -20,77 +19,36 @@ function vivid(hex: string | null | undefined, fallback: string): string {
 }
 
 /**
- * The page background: three drifting colour fields. While music plays they take the colours
- * of the current artwork (cross-fading via @property transitions) and swell with the music:
- * a rAF loop reads the analyser and writes `--energy` (smoothed loudness) and `--beat` (bass
- * onsets, decaying) on <html>. CSS does the rest, so React never re-renders per frame.
+ * Page background: soft colour fields in the colours of the current artwork.
+ *
+ * Performance contract (it used to drive CSS variables on <html> every frame, forcing a style
+ * recalculation of the whole document 60–300 times a second): nothing here runs per frame.
+ * The fields are one gradient layer drifting by a CSS transform on the compositor; colours change
+ * only when the track changes, and only this element transitions them.
  */
 export function LiveBackground() {
-  const rings = useRef<HTMLDivElement>(null);
-  const track = useCurrentTrack();
-  const palette = track?.release.artwork?.palette;
+  const field = useRef<HTMLDivElement>(null);
+  const palette = useCurrentTrack()?.release.artwork?.palette;
 
   useEffect(() => {
+    const c1 = vivid(palette?.dominant, BRAND.c1);
+    const c2 = vivid(palette?.vibrant ?? palette?.accent, BRAND.c2);
+    const c3 = vivid(palette?.accent ?? palette?.muted_dark, BRAND.c3);
+    // Other surfaces read the colours from :root (set once, no transition there).
     const root = document.documentElement.style;
-    root.setProperty("--bg-c1", vivid(palette?.dominant, BRAND.c1));
-    root.setProperty("--bg-c2", vivid(palette?.vibrant ?? palette?.accent, BRAND.c2));
-    root.setProperty("--bg-c3", vivid(palette?.accent ?? palette?.muted_dark, BRAND.c3));
+    root.setProperty("--bg-c1", c1);
+    root.setProperty("--bg-c2", c2);
+    root.setProperty("--bg-c3", c3);
+    const el = field.current?.style;
+    el?.setProperty("--lb1", c1);
+    el?.setProperty("--lb2", c2);
+    el?.setProperty("--lb3", c3);
   }, [palette?.dominant, palette?.vibrant, palette?.accent, palette?.muted_dark]);
-
-  useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const root = document.documentElement.style;
-    let frame = 0;
-    let energy = 0;
-    let beat = 0;
-    let bassAvg = 0;
-    let t = 0;
-    let lastRing = 0;
-    // A strong beat sends a resonance ring out from the player across the whole page.
-    const ring = (now: number) => {
-      const host = rings.current;
-      if (!host || now - lastRing < 600 || host.childElementCount > 5) return;
-      lastRing = now;
-      const el = document.createElement("span");
-      el.className = "beat-ring";
-      el.addEventListener("animationend", () => el.remove(), { once: true });
-      host.appendChild(el);
-    };
-    const tick = (now: number) => {
-      t += 1;
-      const levels = player.levels();
-      let targetEnergy = 0;
-      if (levels) {
-        targetEnergy = Math.min(1, levels.energy * 2.2);
-        // Onset: bass jumps well above its running average.
-        if (levels.bass > bassAvg * 1.28 && levels.bass > 0.32) {
-          if (beat < 0.5 && levels.bass > 0.55) ring(now);
-          beat = 1;
-        }
-        bassAvg = bassAvg * 0.93 + levels.bass * 0.07;
-      } else if (player.isPlaying()) {
-        // Native HLS (Safari) has no analyser: breathe gently instead.
-        targetEnergy = 0.35 + 0.15 * Math.sin(t / 40);
-      }
-      energy += (targetEnergy - energy) * (targetEnergy > energy ? 0.25 : 0.05);
-      beat *= 0.9;
-      root.setProperty("--energy", energy.toFixed(3));
-      root.setProperty("--beat", beat.toFixed(3));
-      frame = requestAnimationFrame(tick);
-    };
-    frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
-  }, []);
 
   return (
     <div className="live-bg" aria-hidden>
-      <div className="blob b1" />
-      <div className="blob b2" />
-      <div className="blob b3" />
-      <div className="pulse" />
-      <div ref={rings} className="absolute inset-0" />
+      <div ref={field} className="field" />
       <div className="veil" />
-      <div className="grain noise" />
     </div>
   );
 }

@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useRef } from "react";
 import { ChevronLeftIcon, ChevronRightIcon } from "@/components/icons";
 import { Reveal } from "@/components/visual/Reveal";
-import { WaveRule } from "@/components/visual/Sonic";
 import { SpotlightZone } from "@/components/visual/Spotlight";
 
 export function SectionHeader({
@@ -24,16 +23,14 @@ export function SectionHeader({
   onNext?: () => void;
 }) {
   return (
-    <div className="mb-4 flex items-center gap-4 px-1">
-      <span className="mono-label self-start pt-2 text-accent">{String(index + 1).padStart(2, "0")}</span>
-      <div className="min-w-0 flex-1 sm:max-w-[65%] sm:flex-none">
-        <h2 className="truncate font-display text-title-2 leading-tight">{title}</h2>
-        {subtitle ? <p className="truncate text-caption text-text-secondary">{subtitle}</p> : null}
+    <div className="mb-4 flex items-end gap-4" data-index={index}>
+      <div className="min-w-0 flex-1">
+        <h2 className="truncate text-[22px] font-bold leading-tight tracking-[-0.01em]">{title}</h2>
+        {subtitle ? <p className="mt-0.5 truncate text-caption text-text-secondary">{subtitle}</p> : null}
       </div>
-      <WaveRule seed={title} className="hidden h-6 min-w-12 flex-1 basis-0 text-text-tertiary sm:block" />
       {href ? (
-        <Link href={href} className="mono-label shrink-0 text-text-secondary transition-colors hover:text-text-primary">
-          Все →
+        <Link href={href} className="shrink-0 text-caption font-semibold text-text-secondary hover:text-text-primary">
+          Все
         </Link>
       ) : null}
       {onPrev && onNext ? (

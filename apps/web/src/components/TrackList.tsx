@@ -58,7 +58,7 @@ export function TrackList({ tracks, context, variant = "album", onRemove }: Trac
   };
 
   return (
-    <ol className="liquid flex flex-col rounded-xl p-2">
+    <ol className="flex flex-col">
       {tracks.map((track, index) => {
         const isCurrent = currentTrack?.id === track.id;
         const showDisc = multiDisc && (index === 0 || tracks[index - 1]?.disc_number !== track.disc_number);

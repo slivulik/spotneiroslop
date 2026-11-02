@@ -24,10 +24,10 @@ const check = (name, ok, detail = "") => {
   await page.waitForTimeout(2500);
   await page.screenshot({ path: `${OUT}/90-home-personal.png` });
   await page.screenshot({ path: `${OUT}/90-home-personal-full.png`, fullPage: true });
-  check("wave card on home", await page.getByRole("heading", { name: "Моя волна" }).isVisible());
-  check("continue listening present", (await page.getByText("Продолжить слушать").count()) > 0);
+  check("wave card on home", await page.getByRole("button", { name: /Моя волна/ }).isVisible());
+  check("continue listening present", (await page.getByRole("group", { name: "Продолжить слушать" }).count()) > 0);
 
-  await page.getByRole("button", { name: "Слушать" }).first().click();
+  await page.getByRole("button", { name: /Моя волна/ }).click();
   await page.waitForTimeout(2500);
   const ctx = await page.evaluate(() => JSON.parse(localStorage.getItem("sonora-player") ?? "{}").state?.context?.type);
   check("wave starts playing with a wave context", ctx === "wave", ctx);

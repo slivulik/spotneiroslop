@@ -99,7 +99,7 @@ function SearchBox() {
           e.preventDefault();
           go(active >= 0 ? (items[active] ?? null) : null);
         }}
-        className="liquid liquid-pill flex items-center gap-3 px-4 py-2.5 transition-shadow focus-within:shadow-[0_0_0_2px_var(--sonora-color-accent-default)]"
+        className="glass liquid-pill flex items-center gap-3 px-4 py-2.5 transition-shadow focus-within:shadow-[0_0_0_2px_var(--sonora-color-accent-default)]"
       >
         <SearchIcon size={18} className="shrink-0 text-text-secondary" />
         <input
@@ -137,7 +137,7 @@ function SearchBox() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.16 }}
-            className="liquid liquid-strong absolute inset-x-0 top-[calc(100%+8px)] z-50 max-h-[70vh] overflow-auto rounded-lg p-1.5 shadow-lg"
+            className="glass absolute inset-x-0 top-[calc(100%+8px)] z-50 max-h-[70vh] overflow-auto rounded-lg p-1.5 shadow-lg"
           >
             {items.map((item, i) => (
               <button
@@ -179,7 +179,7 @@ function MobileAccount() {
         {user?.display_name.slice(0, 1).toUpperCase()}
       </button>
       {open ? (
-        <div role="menu" className="liquid liquid-strong absolute right-0 top-[calc(100%+8px)] z-50 w-52 rounded-lg p-1.5 shadow-lg">
+        <div role="menu" className="glass absolute right-0 top-[calc(100%+8px)] z-50 w-52 rounded-lg p-1.5 shadow-lg">
           <Link role="menuitem" href="/profile" onClick={() => setOpen(false)} className="block rounded-md px-3 py-2 text-body hover:bg-fg/8">Профиль</Link>
           <Link role="menuitem" href="/settings" onClick={() => setOpen(false)} className="block rounded-md px-3 py-2 text-body hover:bg-fg/8">Настройки</Link>
           {user?.role === "admin" ? <Link role="menuitem" href="/admin" onClick={() => setOpen(false)} className="block rounded-md px-3 py-2 text-body hover:bg-fg/8">Управление</Link> : null}

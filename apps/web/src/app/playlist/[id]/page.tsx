@@ -134,7 +134,7 @@ export default function PlaylistPage({ params }: { params: Promise<{ id: string 
     invalidate(id);
     toast("Убрано из плейлиста");
   };
-  const iconBtn = "liquid flex h-12 w-12 items-center justify-center rounded-full transition-transform hover:scale-110";
+  const iconBtn = "bg-fg/8 hover:bg-fg/12 flex h-12 w-12 items-center justify-center rounded-full transition-transform hover:scale-110";
   return (
     <div className="flex flex-col gap-6">
       <CollectionHeader
@@ -150,14 +150,14 @@ export default function PlaylistPage({ params }: { params: Promise<{ id: string 
         onShuffle={() => void playPlaylist(id, true)}
         actions={
           <>
-            {!isOwner ? <LikeButton kind="playlists" id={id} size={22} className="liquid h-12 w-12" /> : null}
+            {!isOwner ? <LikeButton kind="playlists" id={id} size={22} className="h-12 w-12 rounded-full bg-fg/8 hover:bg-fg/12" /> : null}
             {data.is_public || data.type === "editorial" ? (
               <button type="button" aria-label="Поделиться" onClick={() => void share(`/playlist/${id}`, data.title)} className={iconBtn}><ShareIcon size={20} /></button>
             ) : null}
             {isOwner ? (
               <>
-                <button type="button" onClick={() => setEditing(true)} className="liquid rounded-full px-4 py-3 text-caption font-bold transition-transform hover:scale-105">Изменить</button>
-                {data.tracks.length > 1 ? <button type="button" onClick={() => setArranging((v) => !v)} className="liquid rounded-full px-4 py-3 text-caption font-bold transition-transform hover:scale-105">Порядок</button> : null}
+                <button type="button" onClick={() => setEditing(true)} className="rounded-full bg-fg/8 px-4 py-3 hover:bg-fg/12 text-caption font-bold transition-transform hover:scale-105">Изменить</button>
+                {data.tracks.length > 1 ? <button type="button" onClick={() => setArranging((v) => !v)} className="rounded-full bg-fg/8 px-4 py-3 hover:bg-fg/12 text-caption font-bold transition-transform hover:scale-105">Порядок</button> : null}
               </>
             ) : null}
           </>

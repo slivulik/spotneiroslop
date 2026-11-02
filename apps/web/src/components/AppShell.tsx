@@ -10,7 +10,6 @@ import { Sidebar } from "@/components/shell/Sidebar";
 import { MobileTabBar } from "@/components/shell/MobileTabBar";
 import { TopBar } from "@/components/shell/TopBar";
 import { LiveBackground } from "@/components/visual/LiveBackground";
-import { Ripples } from "@/components/visual/Sonic";
 import { SettingsSync } from "@/components/SettingsSync";
 import { Toaster } from "@/components/admin/ui";
 import { usePlayer } from "@/player/store";
@@ -22,7 +21,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <>
       <LiveBackground />
-      <Ripples />
       <SettingsSync />
       <Toaster />
       <Sidebar />

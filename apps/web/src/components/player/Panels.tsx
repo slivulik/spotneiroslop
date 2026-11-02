@@ -29,12 +29,18 @@ export const PANEL_META: Record<PanelKind, { title: string; icon: React.ReactNod
  */
 export function LyricsPanel({ trackId, big = false }: { trackId: string; big?: boolean }) {
   const lyrics = useLyrics(trackId, true);
-  const position = usePlayer((s) => s.positionMs);
   const list = useRef<HTMLDivElement>(null);
   const userScrolled = useRef(0);
   const lines = lyrics.data?.lines ?? [];
-  let active = -1;
-  for (let i = 0; i < lines.length; i++) if (lines[i]!.start_ms <= position + 250) active = i;
+  // Re-render only when the sung line changes, not on every position tick.
+  const active = usePlayer((s) => {
+    let a = -1;
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i]!.start_ms <= s.positionMs + 250) a = i;
+      else break;
+    }
+    return a;
+  });
 
   useEffect(() => {
     // Don't fight the user: pause auto-follow for 4 s after they scroll.
@@ -68,13 +74,8 @@ export function LyricsPanel({ trackId, big = false }: { trackId: string; big?: b
           type="button"
           data-line={i}
           onClick={() => player.seek(line.start_ms)}
-          className={`block w-full py-1.5 text-left font-display font-bold leading-tight transition-[opacity,transform,filter] duration-500 ease-standard ${big ? "text-[clamp(22px,2.6vw,34px)]" : "text-title-3"}`}
-          style={{
-            opacity: i === active ? 1 : i < active ? 0.32 : 0.5,
-            filter: i === active ? "none" : `blur(${Math.min(Math.abs(i - active), 3) * 0.4}px)`,
-            transform: i === active ? "scale(1.02)" : "scale(1)",
-            transformOrigin: "left center",
-          }}
+          className={`no-press block w-full origin-left py-1.5 text-left font-bold leading-tight tracking-[-0.01em] transition-[opacity,transform] duration-500 ease-standard ${big ? "text-[clamp(22px,2.6vw,34px)]" : "text-title-3"}`}
+          style={{ opacity: i === active ? 1 : i < active ? 0.32 : 0.5, transform: i === active ? "scale(1.02)" : "none" }}
         >
           {line.text || "♪"}
         </button>
@@ -216,7 +217,7 @@ export function SidePanel() {
           animate={{ x: 0, opacity: 1 }}
           exit={{ x: 40, opacity: 0 }}
           transition={{ type: "spring", stiffness: 380, damping: 36 }}
-          className="fixed bottom-[112px] right-3 top-3 z-[var(--sonora-layer-sticky)] hidden w-[380px] flex-col overflow-hidden rounded-xl border border-border-default bg-bg-elevated/95 shadow-lg backdrop-blur-xl lg:flex"
+          className="fixed bottom-[112px] right-3 top-3 z-[var(--sonora-layer-sticky)] glass hidden w-[380px] flex-col overflow-hidden rounded-xl lg:flex"
         >
           <div className="flex items-center justify-between border-b border-border-subtle px-4 py-3">
             <div role="tablist" aria-label="Панель" className="flex gap-1">

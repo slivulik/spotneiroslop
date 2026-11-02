@@ -36,7 +36,7 @@ export function CollectionHeader({
   return (
     <header className="relative mx-4 mt-2 overflow-hidden rounded-2xl md:mx-8">
       <div className="absolute inset-0 -z-10 opacity-80" style={{ background: `radial-gradient(120% 140% at 0% 0%, ${tint ?? "var(--bg-c1)"} 0%, transparent 65%)` }} />
-      <div className="liquid flex flex-col items-center gap-6 p-6 md:flex-row md:items-end md:gap-10 md:p-10">
+      <div className="flex flex-col items-center gap-6 p-6 md:flex-row md:items-end md:gap-10 md:p-10">
         <Tilt max={9} className="w-[68vw] max-w-[280px] shrink-0">{cover}</Tilt>
         <div className="flex min-w-0 flex-1 flex-col items-center gap-3 text-center md:items-start md:text-left">
           <span className="mono-label text-text-primary/70">{kicker}</span>
@@ -58,7 +58,7 @@ export function CollectionHeader({
               {playing ? <PauseIcon size={28} /> : <PlayIcon size={28} style={{ marginLeft: 3 }} />}
             </button>
             {onShuffle ? (
-              <button type="button" onClick={onShuffle} disabled={disabled} aria-label="Перемешать" className="liquid flex h-12 w-12 items-center justify-center rounded-full transition-transform hover:scale-110 disabled:opacity-40">
+              <button type="button" onClick={onShuffle} disabled={disabled} aria-label="Перемешать" className="flex h-12 w-12 items-center justify-center rounded-full bg-fg/8 hover:bg-fg/12 transition-transform hover:scale-110 disabled:opacity-40">
                 <ShuffleIcon size={22} />
               </button>
             ) : null}

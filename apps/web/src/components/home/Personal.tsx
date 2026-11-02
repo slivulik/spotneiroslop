@@ -9,7 +9,6 @@ import { PlaylistCard } from "@/components/home/Blocks";
 import { SectionHeader } from "@/components/home/Section";
 import { PauseIcon, PlayIcon } from "@/components/icons";
 import { useCurrentTrack, useIsPlaying } from "@/components/player/hooks";
-import { Oscilloscope } from "@/components/visual/Sonic";
 import { useMyPlaylists } from "@/lib/library";
 import { playTracks } from "@/lib/play";
 import { playWave, useMixes, useRecent, useTopArtists } from "@/lib/recommend";
@@ -18,31 +17,31 @@ import { usePlayer } from "@/player/store";
 
 type Mix = components["schemas"]["MixSummary"];
 
-/** The front door of personal listening: one tap starts an endless stream shaped by your taste. */
+/** The front door of personal listening: one calm row, one action. */
 export function WaveCard() {
   const isWave = usePlayer((s) => s.context?.type === "wave");
   const playing = useIsPlaying();
+  const active = isWave && playing;
   return (
-    <div className="relative flex min-h-[220px] flex-col justify-between overflow-hidden rounded-2xl p-6 text-white md:p-8" style={{ background: "radial-gradient(120% 140% at 0% 0%, var(--sonora-color-accent-hover), var(--sonora-color-accent-pressed) 45%, #120e24 100%)" }}>
-      <div className="pointer-events-none absolute inset-x-0 bottom-6 opacity-80"><Oscilloscope height={70} /></div>
-      <div className="relative">
-        <span className="mono-label text-white/75">Персональный поток</span>
-        <h2 className="mt-1 font-display text-display-l leading-none">Моя волна</h2>
-        <p className="mt-2 max-w-sm text-body text-white/80">Бесконечная музыка под ваш вкус: любимое, похожее и новое, без повторов.</p>
-      </div>
-      <button
-        type="button"
-        data-ripple
-        onClick={() => (isWave ? player.toggle() : void playWave())}
-        className="relative mt-4 flex w-fit items-center gap-2 rounded-full bg-white px-6 py-3 text-body font-bold text-[#1b1238] shadow-lg transition-transform hover:scale-105 active:scale-95"
-      >
-        {isWave && playing ? <PauseIcon size={18} /> : <PlayIcon size={18} />} {isWave ? (playing ? "Пауза" : "Продолжить") : "Слушать"}
-      </button>
-    </div>
+    <button
+      type="button"
+      onClick={() => (isWave ? player.toggle() : void playWave())}
+      aria-label={isWave && playing ? "Моя волна — пауза" : "Моя волна — слушать"}
+      className="group relative flex h-[132px] w-full items-center justify-between overflow-hidden rounded-[20px] px-7 text-left text-white md:h-[150px] md:px-9"
+      style={{ background: "linear-gradient(110deg, var(--sonora-color-accent-default), #3b2a9a 60%, #1b1340)" }}
+    >
+      <span className="min-w-0">
+        <span className="block text-[26px] font-bold leading-tight tracking-[-0.02em] md:text-[30px]">Моя волна</span>
+        <span className="mt-1.5 block text-body text-white/75">{isWave ? (playing ? "Играет — подбирается под вас" : "На паузе") : "Бесконечный поток под ваш вкус"}</span>
+      </span>
+      <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-white text-[#1b1238] shadow-[0_10px_30px_-10px_rgba(0,0,0,.6)] transition-transform duration-200 group-hover:scale-105">
+        {active ? <PauseIcon size={22} /> : <PlayIcon size={22} style={{ marginLeft: 3 }} />}
+      </span>
+    </button>
   );
 }
 
-/** Recently played, two columns of quick tiles (resume where you left off). */
+/** Recently played as a quick grid (resume in one tap): 2 columns on phones, 3 on desktop. */
 export function ContinueListening() {
   const recent = useRecent();
   const current = useCurrentTrack();
@@ -50,25 +49,24 @@ export function ContinueListening() {
   const tracks = recent.data?.items.slice(0, 6) ?? [];
   if (!tracks.length) return null;
   return (
-    <div className="flex flex-col gap-2">
-      <span className="mono-label px-1 text-text-tertiary">Продолжить слушать</span>
-      <div className="grid gap-2 sm:grid-cols-2">
-        {tracks.map((t) => {
-          const isCurrent = current?.id === t.id;
-          return (
-            <button key={t.id} type="button" onClick={() => (isCurrent ? player.toggle() : playTracks(tracks, t.id, { type: "tracks", id: null, title: "Недавнее" }))} className="group flex items-center gap-3 overflow-hidden rounded-lg bg-fg/5 pr-3 text-left transition-colors hover:bg-fg/9">
-              <Artwork artwork={t.release.artwork} alt="" sizes="56px" className="h-14 w-14 shrink-0" />
-              <span className="min-w-0 flex-1">
-                <span className={`block truncate text-caption font-bold ${isCurrent ? "text-accent" : ""}`}>{t.title}</span>
-                <span className="block truncate text-micro text-text-secondary">{t.artists.map((a) => a.name).join(", ")}</span>
-              </span>
-              <span className={`btn-accent flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition-opacity ${isCurrent && playing ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}>
-                {isCurrent && playing ? <PauseIcon size={14} /> : <PlayIcon size={14} style={{ marginLeft: 1 }} />}
-              </span>
-            </button>
-          );
-        })}
-      </div>
+    <div role="group" aria-label="Продолжить слушать" className="grid grid-cols-2 gap-2.5 lg:grid-cols-3">
+      {tracks.map((t) => {
+        const isCurrent = current?.id === t.id;
+        return (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => (isCurrent ? player.toggle() : playTracks(tracks, t.id, { type: "tracks", id: null, title: "Недавнее" }))}
+            className="group flex h-14 items-center gap-3 overflow-hidden rounded-lg bg-fg/6 pr-3 text-left hover:bg-fg/10"
+          >
+            <Artwork artwork={t.release.artwork} alt="" sizes="56px" className="h-14 w-14 shrink-0" />
+            <span className={`min-w-0 flex-1 truncate text-caption font-semibold ${isCurrent ? "text-accent" : ""}`}>{t.title}</span>
+            <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-accent text-accent-on transition-opacity duration-150 ${isCurrent && playing ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}>
+              {isCurrent && playing ? <PauseIcon size={14} /> : <PlayIcon size={14} style={{ marginLeft: 1 }} />}
+            </span>
+          </button>
+        );
+      })}
     </div>
   );
 }

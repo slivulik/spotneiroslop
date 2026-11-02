@@ -117,7 +117,11 @@ export function WaveRule({ seed, className = "" }: { seed: string; className?: s
   );
 }
 
-/** Live oscilloscope of what is playing; a slow calm sine when silent. */
+/**
+ * Live oscilloscope of what is playing. Cheap by construction: draws only while on screen and
+ * while music plays, at most ~60 fps whatever the display rate, colours read once, no shadowBlur.
+ * When silent it draws one calm line and stops.
+ */
 export function Oscilloscope({ className = "", height = 48 }: { className?: string; height?: number }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
@@ -125,49 +129,68 @@ export function Oscilloscope({ className = "", height = 48 }: { className?: stri
     const ctx = el?.getContext("2d");
     if (!el || !ctx) return;
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const style = getComputedStyle(document.documentElement);
+    const colors = ["--sonora-color-wave-a", "--sonora-color-wave-b", "--sonora-color-wave-c"].map((v, i) => style.getPropertyValue(v).trim() || ["#8669ff", "#ff6ba8", "#4fd1ff"][i]!);
     const data = new Uint8Array(new ArrayBuffer(1024));
     let frame = 0;
-    let t = 0;
-    let level = 0;
-    const draw = () => {
-      const dpr = window.devicePixelRatio || 1;
-      const w = el.clientWidth;
-      if (el.width !== Math.round(w * dpr)) {
-        el.width = Math.round(w * dpr);
-        el.height = Math.round(height * dpr);
-      }
+    let last = 0;
+    let visible = false;
+    let gradient: CanvasGradient | null = null;
+    let width = 0;
+    const size = () => {
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      width = el.clientWidth;
+      el.width = Math.round(width * dpr);
+      el.height = Math.round(height * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      ctx.clearRect(0, 0, w, height);
-      const live = player.oscilloscope(data);
-      level += ((live ? 1 : 0) - level) * 0.06;
-      const style = getComputedStyle(document.documentElement);
-      const grad = ctx.createLinearGradient(0, 0, w, 0);
-      grad.addColorStop(0, "transparent");
-      grad.addColorStop(0.15, style.getPropertyValue("--sonora-color-wave-a").trim() || "#ff5a36");
-      grad.addColorStop(0.5, style.getPropertyValue("--sonora-color-wave-b").trim() || "#ffb23f");
-      grad.addColorStop(0.85, style.getPropertyValue("--sonora-color-wave-c").trim() || "#2fe0c8");
-      grad.addColorStop(1, "transparent");
-      ctx.strokeStyle = grad;
+      gradient = ctx.createLinearGradient(0, 0, width, 0);
+      gradient.addColorStop(0, "transparent");
+      gradient.addColorStop(0.15, colors[0]!);
+      gradient.addColorStop(0.5, colors[1]!);
+      gradient.addColorStop(0.85, colors[2]!);
+      gradient.addColorStop(1, "transparent");
+    };
+    const draw = (live: boolean) => {
+      ctx.clearRect(0, 0, width, height);
+      ctx.strokeStyle = gradient ?? colors[1]!;
       ctx.lineWidth = 1.6;
-      ctx.shadowColor = style.getPropertyValue("--sonora-color-wave-b").trim() || "#ffb23f";
-      ctx.shadowBlur = 8 + level * 10;
       ctx.beginPath();
-      const steps = Math.min(256, Math.floor(w / 3));
+      const steps = Math.min(160, Math.floor(width / 4));
       for (let i = 0; i <= steps; i++) {
-        const x = (i / steps) * w;
-        const calm = Math.sin(i / 9 + t / 30) * 0.18 * Math.sin(i / 37 + t / 90);
-        const sample = live ? ((data[Math.floor((i / steps) * 511)] ?? 128) - 128) / 128 : 0;
-        const v = calm * (1 - level) + sample * level * 1.6;
-        const y = height / 2 + v * (height / 2 - 3);
+        const x = (i / steps) * width;
+        const v = live ? ((data[Math.floor((i / steps) * 511)] ?? 128) - 128) / 80 : Math.sin(i / 9) * 0.15 * Math.sin(i / 37);
+        const y = height / 2 + Math.max(-1, Math.min(1, v)) * (height / 2 - 3);
         if (i === 0) ctx.moveTo(x, y);
         else ctx.lineTo(x, y);
       }
       ctx.stroke();
-      t += 1;
-      if (!reduced) frame = requestAnimationFrame(draw);
     };
-    draw();
-    return () => cancelAnimationFrame(frame);
+    const loop = (now: number) => {
+      frame = 0;
+      if (!visible) return;
+      const live = player.oscilloscope(data);
+      if (now - last >= 16) {
+        last = now;
+        draw(live);
+      }
+      if (live && !reduced) frame = requestAnimationFrame(loop);
+      else setTimeout(() => visible && !frame && (frame = requestAnimationFrame(loop)), 500); // wait for playback
+    };
+    size();
+    draw(false);
+    const io = new IntersectionObserver(([e]) => {
+      visible = Boolean(e?.isIntersecting);
+      if (visible && !frame) frame = requestAnimationFrame(loop);
+    });
+    io.observe(el);
+    const ro = new ResizeObserver(() => { size(); draw(false); });
+    ro.observe(el);
+    return () => {
+      visible = false;
+      io.disconnect();
+      ro.disconnect();
+      if (frame) cancelAnimationFrame(frame);
+    };
   }, [height]);
   return <canvas ref={canvas} className={`block w-full ${className}`} style={{ height }} aria-hidden />;
 }

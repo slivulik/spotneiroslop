@@ -1,28 +1,11 @@
-"use client";
-
-import { type PointerEvent, useCallback } from "react";
-
 /**
- * One pointer listener for a whole group of cards: each `.spotlight` child gets `--mx/--my`
- * relative to itself, so its glass border lights up under the cursor (and neighbours catch
- * the edge of the glow).
+ * Formerly a pointer-tracked glow on every card (style writes on each mouse move). The minimal
+ * design keeps the grouping element only; hover feedback lives in CSS (`.lift`, `.press`).
  */
 export function useSpotlight() {
-  return useCallback((event: PointerEvent<HTMLElement>) => {
-    const cards = event.currentTarget.querySelectorAll<HTMLElement>(".spotlight");
-    for (const card of cards) {
-      const rect = card.getBoundingClientRect();
-      card.style.setProperty("--mx", `${event.clientX - rect.left}px`);
-      card.style.setProperty("--my", `${event.clientY - rect.top}px`);
-    }
-  }, []);
+  return undefined;
 }
 
 export function SpotlightZone({ className = "", children }: { className?: string; children: React.ReactNode }) {
-  const onPointerMove = useSpotlight();
-  return (
-    <div className={`spotlight-zone ${className}`} onPointerMove={onPointerMove}>
-      {children}
-    </div>
-  );
+  return <div className={className}>{children}</div>;
 }

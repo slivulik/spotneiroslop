@@ -45,7 +45,7 @@ function NavLink({ item, active, expanded }: { item: Item; active: boolean; expa
       <span className={`relative shrink-0 ${active ? "text-accent" : ""}`}>{item.icon}</span>
       <span className={`relative truncate text-body font-semibold transition-opacity duration-200 ${expanded ? "opacity-100" : "pointer-events-none opacity-0"}`}>{item.label}</span>
       {!expanded ? (
-        <span className="liquid liquid-strong pointer-events-none absolute left-[calc(100%+12px)] z-10 whitespace-nowrap rounded-md px-3 py-1.5 text-caption font-semibold opacity-0 shadow-lg transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+        <span className="glass pointer-events-none absolute left-[calc(100%+12px)] z-10 whitespace-nowrap rounded-md px-3 py-1.5 text-caption font-semibold opacity-0 shadow-lg transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
           {item.label}
         </span>
       ) : null}
@@ -156,7 +156,7 @@ function UserBlock({ expanded }: { expanded: boolean }) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 6, scale: 0.98 }}
             transition={{ duration: 0.16 }}
-            className={`liquid liquid-strong absolute bottom-[calc(100%-4px)] z-20 w-56 rounded-lg p-1.5 shadow-lg ${expanded ? "left-2 right-2 w-auto" : "left-[calc(100%-6px)]"}`}
+            className={`glass absolute bottom-[calc(100%-4px)] z-20 w-56 rounded-lg p-1.5 shadow-lg ${expanded ? "left-2 right-2 w-auto" : "left-[calc(100%-6px)]"}`}
           >
             {[
               { href: "/profile", label: "Профиль", icon: <UserIcon size={18} /> },
@@ -193,10 +193,10 @@ export function Sidebar() {
   return (
     <aside
       aria-label="Навигация"
-      className="sidebar no-select fixed inset-y-0 left-0 z-[var(--sonora-layer-sticky)] hidden py-3 pl-3 md:block"
+      className="sidebar no-select fixed inset-y-0 left-0 z-[var(--sonora-layer-sticky)] hidden md:block"
       style={{ width: expanded ? EXPANDED : COLLAPSED }}
     >
-      <div className="liquid liquid-strong flex h-full flex-col overflow-hidden rounded-xl">
+      <div className="flex h-full flex-col overflow-hidden border-r border-fg/6 bg-bg-base/70">
         <div className={`flex h-16 shrink-0 items-center ${expanded ? "justify-between px-3" : "justify-center"}`}>
           <Link href="/" aria-label="Sonora — на главную" className="flex items-center gap-2.5 rounded-md">
             <WaveLogo size={34} />
