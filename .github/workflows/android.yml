@@ -10,6 +10,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     timeout-minutes: 40
     defaults:
       run:
@@ -32,8 +34,16 @@ jobs:
           pnpm install --frozen-lockfile --filter @sonora/design-tokens...
           pnpm --filter @sonora/design-tokens build
           diff -u packages/design-tokens/dist/kotlin/SonoraTokens.kt apps/android/app/src/main/java/com/sonora/app/core/designsystem/tokens/SonoraTokens.kt
-      - name: Unit tests
-        run: ./gradlew --no-daemon testDebugUnitTest
+      - name: Unit tests and screen renders
+        run: ./gradlew --no-daemon recordRoborazziDebug
+      - name: Publish screen renders to the android-screenshots branch
+        if: github.event_name == 'push'
+        run: |
+          cd app/build/outputs/roborazzi
+          git init -q -b android-screenshots
+          git add .
+          git -c user.name="sonora-ci" -c user.email="ci@sonora.invalid" commit -qm "Screens for ${GITHUB_SHA::7}"
+          git push -fq "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" android-screenshots
       - name: Build APK (debug) and AAB (release)
         run: ./gradlew --no-daemon assembleDebug assembleRelease bundleRelease
       - name: Lint

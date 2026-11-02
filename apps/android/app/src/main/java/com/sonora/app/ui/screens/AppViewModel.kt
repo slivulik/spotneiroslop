@@ -15,7 +15,6 @@ import com.sonora.app.data.repo.ServerAddress
 import com.sonora.app.data.repo.SettingsRepository
 import com.sonora.app.playback.PlayContext
 import com.sonora.app.playback.PlayerConnection
-import com.sonora.app.ui.components.TrackActions
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.channels.Channel
@@ -41,6 +40,18 @@ class AppViewModel @Inject constructor(
     private val _messages = Channel<String>(Channel.BUFFERED)
     val messages = _messages.receiveAsFlow()
 
+    /** Track whose action sheet is open (null = closed). */
+    private val _menu = MutableStateFlow<Pair<Track, PlayContext>?>(null)
+    val menu: StateFlow<Pair<Track, PlayContext>?> = _menu
+
+    fun openMenu(track: Track, ctx: PlayContext) {
+        _menu.value = track to ctx
+    }
+
+    fun closeMenu() {
+        _menu.value = null
+    }
+
     /** Track waiting for a playlist choice (null = picker closed). */
     private val _picking = MutableStateFlow<Track?>(null)
     val picking: StateFlow<Track?> = _picking
@@ -62,17 +73,6 @@ class AppViewModel @Inject constructor(
     fun say(text: String) {
         _messages.trySend(text)
     }
-
-    fun actions(navigate: (String) -> Unit, context: PlayContext) = TrackActions(
-        onPlayNext = { player.playNext(it, context); say("Будет следующим") },
-        onAddToQueue = { player.addToQueue(it, context); say("Добавлено в очередь") },
-        onAddToPlaylist = ::pickPlaylist,
-        onOpenAlbum = { navigate("album/$it") },
-        onOpenArtist = { navigate("artist/$it") },
-        onShare = { share("/track/${it.id}", "${it.fullTitle} — ${it.artistLine}") },
-        isLiked = { library.ids.value.tracks.contains(it) },
-        onToggleLike = { toggle("tracks", it.id) },
-    )
 
     fun toggle(kind: String, id: String) = viewModelScope.launch {
         if (!library.toggle(kind, id)) say("Не удалось сохранить — нет соединения")

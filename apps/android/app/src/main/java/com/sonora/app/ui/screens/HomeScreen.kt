@@ -7,18 +7,17 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Pause
-import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -32,7 +31,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -43,15 +41,16 @@ import com.sonora.app.data.net.Home
 import com.sonora.app.data.net.HomeBlock
 import com.sonora.app.data.net.MixSummary
 import com.sonora.app.data.net.PlaylistSummary
+import com.sonora.app.data.net.SessionStore
 import com.sonora.app.data.net.SonoraApi
 import com.sonora.app.data.net.Track
-import com.sonora.app.data.net.SessionStore
 import com.sonora.app.data.repo.OfflineCache
 import com.sonora.app.data.repo.userMessage
 import com.sonora.app.playback.PlayContext
-import com.sonora.app.ui.AppTopBar
+import com.sonora.app.ui.LocalActions
 import com.sonora.app.ui.LocalBottomInset
-import com.sonora.app.ui.components.ArtistCard
+import com.sonora.app.ui.LocalEnv
+import com.sonora.app.ui.components.ArtistCircle
 import com.sonora.app.ui.components.Cover
 import com.sonora.app.ui.components.GenreTile
 import com.sonora.app.ui.components.LoadState
@@ -59,19 +58,16 @@ import com.sonora.app.ui.components.MediaCard
 import com.sonora.app.ui.components.PlaylistCard
 import com.sonora.app.ui.components.ReleaseCard
 import com.sonora.app.ui.components.Shelf
-import com.sonora.app.ui.components.TrackListBox
 import com.sonora.app.ui.components.TrackRow
 import com.sonora.app.ui.components.UiState
+import com.sonora.app.ui.components.tracksWord
 import com.sonora.app.ui.design.C
 import com.sonora.app.ui.design.EqBars
-import com.sonora.app.ui.design.GradientHeadline
-import com.sonora.app.ui.design.MonoLabel
-import com.sonora.app.ui.design.SectionHeader
+import com.sonora.app.ui.design.PlayButton
+import com.sonora.app.ui.design.S
+import com.sonora.app.ui.design.SectionTitle
 import com.sonora.app.ui.design.T
-import com.sonora.app.ui.design.WaveLine
-import com.sonora.app.ui.design.WhitePillButton
-import com.sonora.app.ui.design.appear
-import com.sonora.app.ui.design.pressable
+import com.sonora.app.ui.design.press
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -79,10 +75,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
-import java.time.LocalDate
 import java.time.LocalTime
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 import javax.inject.Inject
 
 /** Loads a screen through the offline cache into a [UiState]. */
@@ -126,184 +119,159 @@ class HomeViewModel @Inject constructor(private val api: SonoraApi, private val 
     init { load() }
 }
 
-/** Same words as the web home (app/page.tsx). */
-private fun greeting(): String {
-    val h = LocalTime.now().hour
-    return when {
-        h < 5 -> "Ночной эфир"
-        h < 12 -> "Утренний эфир"
-        h < 18 -> "Дневной эфир"
-        else -> "Вечерний эфир"
-    }
+fun greeting(hour: Int = LocalTime.now().hour): String = when {
+    hour < 5 -> "Доброй ночи"
+    hour < 12 -> "Доброе утро"
+    hour < 18 -> "Добрый день"
+    else -> "Добрый вечер"
 }
-
-private val dateFormat = DateTimeFormatter.ofPattern("EEEE, d MMMM", Locale.forLanguageTag("ru"))
 
 @UnstableApi
 @Composable
-fun HomeScreen(app: AppViewModel, navigate: (String) -> Unit, vm: HomeViewModel = hiltViewModel()) {
+fun HomeScreen(app: AppViewModel, vm: HomeViewModel = hiltViewModel()) {
     val state by vm.state.collectAsStateWithLifecycle()
-    val player by app.player.state.collectAsStateWithLifecycle()
     val signedIn by app.auth.signedIn.collectAsStateWithLifecycle()
-    val me by app.auth.me.collectAsStateWithLifecycle()
-    val ids by app.library.ids.collectAsStateWithLifecycle()
     LaunchedEffect(signedIn) { vm.load() }
-    LoadState(state, onRetry = { vm.load() }) { data ->
-        LazyColumn(contentPadding = PaddingValues(bottom = LocalBottomInset.current + 16.dp)) {
-            var section = 0 // numbering "01, 02…" is fixed while the list is built
-            item { AppTopBar(app, navigate) }
-            item {
-                Column(Modifier.padding(horizontal = 16.dp).padding(top = 8.dp, bottom = 4.dp)) {
-                    MonoLabel(LocalDate.now().format(dateFormat), color = C.text2, dot = true)
-                    Spacer(Modifier.height(12.dp))
-                    GradientHeadline(greeting(), me?.displayName?.let { ", $it" }, modifier = Modifier.appear(0))
-                    WaveLine(Modifier.padding(top = 4.dp), amplitude = 6.dp, energy = if (player.isPlaying) 0.6f else 0f)
-                }
+    LoadState(state, onRetry = { vm.load() }) { HomeContent(it) }
+}
+
+@Composable
+fun HomeContent(data: HomeData, hour: Int = LocalTime.now().hour) {
+    val env = LocalEnv.current
+    val actions = LocalActions.current
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = LocalBottomInset.current + S.l)) {
+        item {
+            Row(Modifier.fillMaxWidth().statusBarsPadding().padding(start = S.page, end = S.page, top = S.m, bottom = S.s), verticalAlignment = Alignment.CenterVertically) {
+                Text(greeting(hour), style = com.sonora.app.ui.design.T.PageTitle, color = C.text, modifier = Modifier.weight(1f))
+                Avatar(env.userName ?: env.email, env.signedIn) { actions.navigate(if (env.signedIn) "settings" else "login") }
             }
-            if (signedIn != null) {
-                item { WaveCard(playing = player.context?.type == "wave" && player.isPlaying) { if (player.context?.type == "wave") app.player.toggle() else app.player.playWave() } }
-                if (data.recent.isNotEmpty()) item { ContinueListening(data.recent.take(6), player.track?.id, player.isPlaying, app) }
-                if (data.mixes.isNotEmpty()) {
-                    val n = section++
-                    item { SectionHeader(n, "Миксы дня", "Собраны из того, что вы слушаете") }
-                    item { Shelf(data.mixes, { it.key }) { i, m -> MediaCard(m.mosaic.firstOrNull(), m.title, m.subtitle ?: "${m.trackCount} треков", index = i, seed = m.key) { navigate("mix/${m.key}") } } }
+        }
+        if (env.signedIn && data.recent.isNotEmpty()) item { RecentGrid(data.recent.take(6)) }
+        if (env.signedIn) item { WaveCard() }
+        if (data.mixes.isNotEmpty()) {
+            item { SectionTitle("Миксы для вас") }
+            item { Shelf(data.mixes, { it.key }) { m -> MediaCard(m.mosaic.firstOrNull(), m.title, m.subtitle ?: tracksWord(m.trackCount), m.key) { actions.navigate("mix/${m.key}") } } }
+        }
+        if (data.artists.isNotEmpty()) {
+            item { SectionTitle("Ваши артисты") }
+            item { Shelf(data.artists, { it.id }) { ArtistCircle(it) } }
+        }
+        if (data.playlists.isNotEmpty()) {
+            item { SectionTitle("Ваши плейлисты") }
+            item { Shelf(data.playlists, { it.id }) { PlaylistCard(it) } }
+        }
+        data.home.sections.forEach { block -> item(key = block.id) { Block(block) } }
+    }
+}
+
+@Composable
+fun Avatar(name: String?, signedIn: Boolean, onClick: () -> Unit) {
+    if (signedIn) {
+        Box(Modifier.size(36.dp).clip(CircleShape).background(C.accent).press(onClick, scale = true, label = "Профиль и настройки"), contentAlignment = Alignment.Center) {
+            Text((name ?: "S").take(1).uppercase(), style = T.Title, color = C.onAccent)
+        }
+    } else {
+        Box(Modifier.height(36.dp).clip(CircleShape).background(C.surfaceHigh).press(onClick).padding(horizontal = S.l), contentAlignment = Alignment.Center) {
+            Text("Войти", style = T.LabelBold, color = C.text)
+        }
+    }
+}
+
+/** 2 × 3 grid of recent tracks (Spotify's top grid). */
+@Composable
+private fun RecentGrid(tracks: List<Track>) {
+    val env = LocalEnv.current
+    val actions = LocalActions.current
+    val ctx = PlayContext("tracks", null, "Недавнее")
+    Column(Modifier.padding(horizontal = S.page, vertical = S.s), verticalArrangement = Arrangement.spacedBy(S.s)) {
+        tracks.chunked(2).forEach { row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(S.s)) {
+                row.forEach { t ->
+                    val i = tracks.indexOf(t)
+                    val current = t.id == env.currentId
+                    Row(
+                        Modifier.weight(1f).height(56.dp).clip(RoundedCornerShape(6.dp)).background(C.surfaceHigh)
+                            .press({ if (current) actions.togglePlay() else actions.play(tracks, i, ctx) }, label = t.fullTitle),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Cover(t.release.artwork, 56.dp, shape = RoundedCornerShape(topStart = 6.dp, bottomStart = 6.dp), seed = t.release.id)
+                        Text(
+                            t.fullTitle, style = T.LabelBold, color = if (current) C.accent else C.text, maxLines = 2, overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f).padding(horizontal = S.s),
+                        )
+                        if (current) EqBars(env.playing, modifier = Modifier.padding(end = S.s))
+                    }
                 }
-                if (data.artists.isNotEmpty()) {
-                    val n = section++
-                    item { SectionHeader(n, "Ваши артисты") }
-                    item { Shelf(data.artists, { it.id }) { i, a -> ArtistCard(a, a.id in ids.artists, { app.toggle("artists", a.id) }, index = i) { navigate("artist/${a.id}") } } }
-                }
-                if (data.playlists.isNotEmpty()) {
-                    val n = section++
-                    item { SectionHeader(n, "Ваши плейлисты") }
-                    item { Shelf(data.playlists, { it.id }) { i, p -> PlaylistCard(p, i) { navigate("playlist/${p.id}") } } }
-                }
-            }
-            val first = section
-            items(data.home.sections.size, key = { data.home.sections[it].id }) { i ->
-                Block(data.home.sections[i], first + i, app, navigate, player.track?.id, player.isPlaying, ids.artists)
+                if (row.size == 1) Spacer(Modifier.weight(1f))
             }
         }
     }
 }
 
-/** «Моя волна»: radial accent card, mono kicker, display title, white pill (Personal.tsx WaveCard). */
+/** «Моя волна»: one calm accent card with a single action. */
 @Composable
-private fun WaveCard(playing: Boolean, onPlay: () -> Unit) {
-    val hover = C.accentHover
-    val pressed = C.accentPressed
-    Box(
-        Modifier.padding(horizontal = 16.dp, vertical = 16.dp).fillMaxWidth().heightIn(min = 220.dp).appear(1).clip(RoundedCornerShape(22.dp))
-            .drawBehind {
-                drawRect(Brush.radialGradient(0f to hover, 0.45f to pressed, 1f to Color(0xFF120E24), center = Offset.Zero, radius = size.width * 1.4f))
-            },
+private fun WaveCard() {
+    val env = LocalEnv.current
+    val actions = LocalActions.current
+    val waving = env.currentContext?.type == "wave"
+    val accent = C.accent
+    Row(
+        Modifier.padding(horizontal = S.page, vertical = S.m).fillMaxWidth().height(120.dp).clip(RoundedCornerShape(12.dp))
+            .drawBehind { drawRect(Brush.linearGradient(listOf(accent, Color(0xFF2A1A6E)), Offset.Zero, Offset(size.width, size.height))) }
+            .press({ if (waving) actions.togglePlay() else actions.playWave() }, label = "Моя волна")
+            .padding(horizontal = S.xl),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        WaveLine(Modifier.align(Alignment.BottomCenter).padding(bottom = 28.dp), amplitude = 10.dp, energy = if (playing) 0.8f else 0f)
-        Column(Modifier.padding(24.dp)) {
-            MonoLabel("Персональный поток", color = Color.White.copy(alpha = 0.75f))
-            Spacer(Modifier.height(4.dp))
-            Text("Моя волна", style = T.DisplayL, color = Color.White)
-            Spacer(Modifier.height(8.dp))
-            Text("Бесконечная музыка под ваш вкус: любимое, похожее и новое, без повторов.", style = T.Body, color = Color.White.copy(alpha = 0.8f))
-            Spacer(Modifier.height(16.dp))
-            WhitePillButton(if (playing) "Пауза" else "Слушать", if (playing) Icons.Filled.Pause else Icons.Filled.PlayArrow, onPlay)
+        Column(Modifier.weight(1f)) {
+            Text("Моя волна", style = T.Headline.copy(color = Color.White))
+            Spacer(Modifier.height(S.xs))
+            Text("Бесконечный поток под ваш вкус", style = T.Caption, color = Color.White.copy(alpha = 0.8f))
         }
+        PlayButton(waving && env.playing, { if (waving) actions.togglePlay() else actions.playWave() }, size = 52.dp, container = Color.White, content = Color(0xFF1B1238))
     }
 }
 
-@UnstableApi
 @Composable
-private fun ContinueListening(tracks: List<Track>, currentId: String?, playing: Boolean, app: AppViewModel) {
-    Column(Modifier.padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        MonoLabel("Продолжить слушать", Modifier.padding(start = 4.dp, bottom = 2.dp))
-        tracks.forEachIndexed { i, t ->
-            val current = t.id == currentId
-            Row(
-                Modifier.fillMaxWidth().appear(i + 2).clip(RoundedCornerShape(14.dp)).background(C.fg.copy(alpha = 0.05f))
-                    .pressable({ if (current) app.player.toggle() else app.player.play(tracks, i, PlayContext("tracks", null, "Недавнее")) }, scaleTo = 0.98f),
-                verticalAlignment = Alignment.CenterVertically,
+private fun Block(block: HomeBlock) {
+    val actions = LocalActions.current
+    when (block.type) {
+        "hero" -> block.hero?.let { hero ->
+            Box(
+                Modifier.padding(horizontal = S.page, vertical = S.m).fillMaxWidth().aspectRatio(16f / 9f).clip(RoundedCornerShape(12.dp))
+                    .press({ hero.link?.let { actions.navigate(it.trimStart('/')) } }, enabled = hero.link != null, label = block.title),
             ) {
-                Box {
-                    Cover(t.release.artwork, 56.dp, shape = RoundedCornerShape(0.dp), seed = t.release.id)
-                    if (current) Box(Modifier.size(56.dp).background(Color.Black.copy(alpha = 0.45f)), contentAlignment = Alignment.Center) { EqBars(playing, Color.White) }
-                }
-                Column(Modifier.weight(1f).padding(horizontal = 12.dp)) {
-                    Text(t.fullTitle, style = T.CaptionBold.copy(fontSize = 15.sp), color = if (current) C.accent else C.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Text(t.artistLine, style = T.Caption, color = C.text2, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Cover(hero.artwork, 400.dp, modifier = Modifier.fillMaxSize(), shape = RoundedCornerShape(0.dp), seed = block.id)
+                Box(Modifier.fillMaxSize().background(Brush.verticalGradient(0.4f to Color.Transparent, 1f to Color.Black.copy(alpha = 0.75f))))
+                Column(Modifier.align(Alignment.BottomStart).padding(S.l)) {
+                    Text(block.title, style = T.Headline.copy(color = Color.White), maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    block.subtitle?.let { Text(it, style = T.Caption, color = Color.White.copy(alpha = 0.85f), maxLines = 1, overflow = TextOverflow.Ellipsis) }
                 }
             }
         }
-    }
-}
-
-@UnstableApi
-@Composable
-private fun Block(block: HomeBlock, index: Int, app: AppViewModel, navigate: (String) -> Unit, currentId: String?, playing: Boolean, followed: List<String>) {
-    Column(Modifier.padding(top = 20.dp)) {
-        when (block.type) {
-            "hero" -> block.hero?.let { hero ->
-                Box(
-                    Modifier.padding(horizontal = 16.dp).fillMaxWidth().height(200.dp).appear().clip(RoundedCornerShape(22.dp))
-                        .pressable({ hero.link?.let { navigate(it.trimStart('/')) } }, scaleTo = 0.98f, enabled = hero.link != null),
-                ) {
-                    Cover(hero.artwork, 400.dp, modifier = Modifier.fillMaxWidth().height(200.dp), shape = RoundedCornerShape(0.dp), seed = block.id)
-                    Box(Modifier.fillMaxWidth().height(200.dp).background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.75f)))))
-                    Column(Modifier.align(Alignment.BottomStart).padding(18.dp)) {
-                        Text(block.title, style = T.Title1, color = Color.White, maxLines = 2)
-                        block.subtitle?.let { Text(it, style = T.Body, color = Color.White.copy(alpha = 0.85f), maxLines = 2) }
-                        hero.ctaLabel?.let {
-                            Spacer(Modifier.height(10.dp))
-                            Box(Modifier.clip(CircleShape).background(Color.White).padding(horizontal = 16.dp, vertical = 8.dp)) { Text(it, style = T.CaptionBold, color = Color(0xFF1B1238)) }
-                        }
-                    }
-                }
-            }
-            "tracks" -> {
-                SectionHeader(index, block.title, block.subtitle)
-                val ctx = PlayContext("home", null, block.title)
-                TrackListBox {
-                    block.tracks.take(8).forEachIndexed { i, t ->
-                        TrackRow(t, t.id == currentId, playing, app.actions(navigate, ctx), onPlay = { app.player.play(block.tracks, i, ctx) }, showCover = true)
-                    }
-                }
-            }
-            "releases" -> {
-                SectionHeader(index, block.title, block.subtitle)
-                if (block.style == "stories") {
-                    Shelf(block.releases, { it.id }) { i, r -> StoryCircle(r.artwork, r.title, r.id, i, r.id == currentId) { navigate("album/${r.id}") } }
-                } else {
-                    Shelf(block.releases, { it.id }) { i, r -> ReleaseCard(r, i) { navigate("album/${r.id}") } }
-                }
-            }
-            "playlists" -> {
-                SectionHeader(index, block.title, block.subtitle)
-                Shelf(block.playlists, { it.id }) { i, p -> PlaylistCard(p, i) { navigate("playlist/${p.id}") } }
-            }
-            "artists" -> {
-                SectionHeader(index, block.title, block.subtitle)
-                Shelf(block.artists, { it.id }) { i, a -> ArtistCard(a, a.id in followed, { app.toggle("artists", a.id) }, index = i) { navigate("artist/${a.id}") } }
-            }
-            "genres" -> {
-                SectionHeader(index, block.title, block.subtitle)
-                Shelf(block.genres, { it.id }) { i, g -> GenreTile(g, i) { navigate("genre/${g.slug}") } }
+        "tracks" -> Column {
+            SectionTitle(block.title)
+            val ctx = PlayContext("home", null, block.title)
+            block.tracks.take(5).forEachIndexed { i, t -> TrackRow(t, block.tracks, i, ctx) }
+        }
+        "releases" -> Column {
+            SectionTitle(block.title)
+            if (block.style == "stories") {
+                Shelf(block.releases, { it.id }) { r -> MediaCard(r.artwork, r.title, r.artists.firstOrNull()?.name, r.id, 104.dp, round = true) { actions.navigate("album/${r.id}") } }
+            } else {
+                Shelf(block.releases, { it.id }) { ReleaseCard(it) }
             }
         }
-    }
-}
-
-/** Round release with a resonance ring (Blocks.tsx StoryCircle). */
-@Composable
-private fun StoryCircle(artwork: com.sonora.app.data.net.Artwork?, title: String, seed: String, index: Int, live: Boolean, onClick: () -> Unit) {
-    val a = com.sonora.app.ui.design.WaveA
-    val b = com.sonora.app.ui.design.WaveB
-    Column(Modifier.width(112.dp).appear(index).pressable(onClick, scaleTo = 0.94f, label = title), horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(
-            Modifier.size(112.dp).drawBehind {
-                drawCircle(Brush.sweepGradient(listOf(a, b, a)), radius = size.minDimension / 2, style = androidx.compose.ui.graphics.drawscope.Stroke(if (live) 3.dp.toPx() else 2.dp.toPx()))
-            },
-            contentAlignment = Alignment.Center,
-        ) { Cover(artwork, 96.dp, shape = CircleShape, seed = seed, description = title) }
-        Spacer(Modifier.height(6.dp))
-        Text(title, style = T.CaptionBold, color = C.text, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        "playlists" -> Column {
+            SectionTitle(block.title)
+            Shelf(block.playlists, { it.id }) { PlaylistCard(it) }
+        }
+        "artists" -> Column {
+            SectionTitle(block.title)
+            Shelf(block.artists, { it.id }) { ArtistCircle(it) }
+        }
+        "genres" -> Column {
+            SectionTitle(block.title)
+            Shelf(block.genres, { it.id }) { GenreTile(it, Modifier.width(160.dp)) }
+        }
     }
 }

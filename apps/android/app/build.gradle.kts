@@ -5,6 +5,7 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
+    alias(libs.plugins.roborazzi)
 }
 
 /** Server the app talks to; override with -PsonoraBaseUrl=https://music.example.com */
@@ -59,6 +60,11 @@ android {
         compose = true
         buildConfig = true
     }
+    testOptions {
+        unitTests {
+            isIncludeAndroidResources = true
+        }
+    }
     packaging {
         resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
     }
@@ -107,8 +113,15 @@ dependencies {
     implementation(libs.coroutines.android)
     implementation(libs.coroutines.guava)
     implementation(libs.coil.compose)
-    implementation(libs.haze)
 
     testImplementation(libs.junit)
     testImplementation(libs.coroutines.test)
+    // Screens rendered to PNG on the JVM (Robolectric native graphics) so the design can be reviewed in CI.
+    testImplementation(libs.robolectric)
+    testImplementation(libs.roborazzi)
+    testImplementation(libs.roborazzi.compose)
+    testImplementation(libs.roborazzi.rule)
+    testImplementation(platform(libs.compose.bom))
+    testImplementation(libs.compose.ui.test)
+    debugImplementation(libs.compose.ui.test.manifest)
 }
