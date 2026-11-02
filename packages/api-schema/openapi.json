@@ -17010,7 +17010,7 @@
     },
     "/v1/me/wave": {
       "get": {
-        "description": "Next batch of the endless personal radio; pass the session's track ids in `exclude`.",
+        "description": "Next batch of the endless personal radio; pass the session's track ids in `exclude`.\n\nWith `seed_track` / `seed_artist` it becomes a radio station started from that track or artist.",
         "operationId": "recommendations_get_wave",
         "parameters": [
           {
@@ -17038,6 +17038,40 @@
               "maxItems": 300,
               "title": "Exclude",
               "type": "array"
+            }
+          },
+          {
+            "in": "query",
+            "name": "seed_track",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Seed Track"
+            }
+          },
+          {
+            "in": "query",
+            "name": "seed_artist",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "uuid",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Seed Artist"
             }
           }
         ],

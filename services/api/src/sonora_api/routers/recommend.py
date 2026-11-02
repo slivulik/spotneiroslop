@@ -23,9 +23,16 @@ async def get_wave(
     ctx: Ctx,
     limit: Annotated[int, Query(ge=1, le=50)] = 20,
     exclude: Annotated[list[uuid.UUID], Query(max_length=300)] = [],  # noqa: B006 - FastAPI query default
+    seed_track: uuid.UUID | None = None,
+    seed_artist: uuid.UUID | None = None,
 ) -> list[TrackOut]:
-    """Next batch of the endless personal radio; pass the session's track ids in `exclude`."""
-    return await recommend.wave(session, ctx.settings, viewer.user, limit, set(exclude))
+    """Next batch of the endless personal radio; pass the session's track ids in `exclude`.
+
+    With `seed_track` / `seed_artist` it becomes a radio station started from that track or artist.
+    """
+    return await recommend.wave(
+        session, ctx.settings, viewer.user, limit, set(exclude), seed_track, seed_artist
+    )
 
 
 @router.get("/me/mixes")

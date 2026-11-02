@@ -1395,6 +1395,8 @@ export interface paths {
         /**
          * Get Wave
          * @description Next batch of the endless personal radio; pass the session's track ids in `exclude`.
+         *
+         *     With `seed_track` / `seed_artist` it becomes a radio station started from that track or artist.
          */
         get: operations["recommendations_get_wave"];
         put?: never;
@@ -12185,6 +12187,8 @@ export interface operations {
             query?: {
                 limit?: number;
                 exclude?: string[];
+                seed_track?: string | null;
+                seed_artist?: string | null;
             };
             header?: never;
             path?: never;

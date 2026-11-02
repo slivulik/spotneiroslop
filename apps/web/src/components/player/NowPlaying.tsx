@@ -9,7 +9,7 @@ import { ChevronDownIcon } from "@/components/icons";
 import { LikeButton } from "@/components/LikeButton";
 import { LyricsView } from "@/components/player/Lyrics";
 import { InfoPanel, PANEL_META, type PanelKind, QueuePanel } from "@/components/player/Panels";
-import { ProgressBar, QualitySelect, TransportControls, VolumeControl } from "@/components/player/Controls";
+import { ProgressBar, QualitySelect, SleepTimer, TransportControls, VolumeControl } from "@/components/player/Controls";
 import { useCurrentTrack, useIsPlaying } from "@/components/player/hooks";
 import { TrackTitle } from "@/components/player/PlayerBar";
 import { player } from "@/player/controller";
@@ -137,7 +137,7 @@ export function NowPlaying() {
                 </div>
                 <ProgressBar onColor large />
                 <div className="flex justify-center"><TransportControls large /></div>
-                <div className="flex items-center justify-between"><QualitySelect /><VolumeControl /></div>
+                <div className="flex items-center justify-between"><QualitySelect /><div className="flex items-center gap-1"><SleepTimer onColor /><VolumeControl /></div></div>
               </div>
             </div>
             {panel !== "none" ? (

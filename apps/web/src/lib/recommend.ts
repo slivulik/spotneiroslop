@@ -11,21 +11,33 @@ import { usePlayer } from "@/player/store";
 const WAVE = { type: "wave" as const, id: null, title: "Моя волна" };
 let refilling = false;
 
-async function nextWave(exclude: string[], limit = 20) {
-  return unwrap(api.GET("/v1/me/wave", { params: { query: { limit, exclude: exclude.slice(-300) } } }));
+type Seed = { seed_track?: string; seed_artist?: string };
+
+/** Radio contexts carry their seed in the id: "track:<uuid>" or "artist:<uuid>"; plain wave has none. */
+function seedOf(id: string | null | undefined): Seed {
+  const [kind, value] = (id ?? "").split(":");
+  if (kind === "track" && value) return { seed_track: value };
+  if (kind === "artist" && value) return { seed_artist: value };
+  return {};
 }
 
-/** Top the wave up when the queue runs low: never repeats a track from this session. */
+async function nextWave(exclude: string[], seed: Seed = {}, limit = 20) {
+  return unwrap(api.GET("/v1/me/wave", { params: { query: { limit, exclude: exclude.slice(-300), ...seed } } }));
+}
+
+/** Top the wave (or a radio) up when the queue runs low: never repeats a track from this session. */
 async function refill(): Promise<void> {
-  const queue = usePlayer.getState().queue;
-  if (refilling || !queue) return;
+  const { queue, context } = usePlayer.getState();
+  if (refilling || !queue || context?.type !== "wave") return;
   refilling = true;
   try {
+    const seed = seedOf(context.id);
     const ids = queue.items.map((t) => t.id);
-    let tracks = (await nextWave(ids)).filter((t) => t.playable);
+    let tracks = (await nextWave(ids, seed)).filter((t) => t.playable);
     // Small catalogue exhausted: keep the wave endless by only avoiding the last few tracks.
-    if (!tracks.length) tracks = (await nextWave(ids.slice(-10))).filter((t) => t.playable);
-    if (tracks.length && usePlayer.getState().context?.type === "wave") player.addToQueue(tracks.map(toQueueTrack), WAVE);
+    if (!tracks.length) tracks = (await nextWave(ids.slice(-10), seed)).filter((t) => t.playable);
+    const now = usePlayer.getState().context;
+    if (tracks.length && now?.type === "wave" && now.id === context.id) player.addToQueue(tracks.map(toQueueTrack), now);
   } finally {
     refilling = false;
   }
@@ -38,6 +50,25 @@ export async function playWave(): Promise<void> {
   if (!tracks.length) return;
   player.setQueueLowHandler(() => void refill());
   player.playTracks(tracks.map(toQueueTrack), 0, WAVE);
+}
+
+/**
+ * Endless radio around one track or artist: similar music, still bent to the listener's taste.
+ * A track radio starts with the track itself, then flows on.
+ */
+export async function playRadio(seed: { trackId: string; title: string } | { artistId: string; title: string }): Promise<boolean> {
+  if (!requireLogin()) return false;
+  const query: Seed = "trackId" in seed ? { seed_track: seed.trackId } : { seed_artist: seed.artistId };
+  const id = "trackId" in seed ? `track:${seed.trackId}` : `artist:${seed.artistId}`;
+  let tracks = (await nextWave([], query)).filter((t) => t.playable);
+  if ("trackId" in seed) {
+    const first = await unwrap(api.GET("/v1/tracks/{track_id}", { params: { path: { track_id: seed.trackId } } })).catch(() => null);
+    if (first?.playable) tracks = [first, ...tracks.filter((t) => t.id !== first.id)];
+  }
+  if (!tracks.length) return false;
+  player.setQueueLowHandler(() => void refill());
+  player.playTracks(tracks.map(toQueueTrack), 0, { type: "wave", id, title: `Радио: ${seed.title}` });
+  return true;
 }
 
 function useAuthed() {

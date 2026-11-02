@@ -7,7 +7,7 @@ import { Artwork } from "@/components/Artwork";
 import { ExplicitBadge } from "@/components/Badges";
 import { ExpandIcon, InfoIcon, LyricsIcon, NextIcon, QueueIcon } from "@/components/icons";
 import { LikeButton } from "@/components/LikeButton";
-import { PlayPauseButton, ProgressBar, QualitySelect, TransportControls, VolumeControl } from "@/components/player/Controls";
+import { PlayPauseButton, ProgressBar, QualitySelect, SleepTimer, TransportControls, VolumeControl } from "@/components/player/Controls";
 import { useCurrentTrack } from "@/components/player/hooks";
 import { player } from "@/player/controller";
 import { usePlayer } from "@/player/store";
@@ -138,6 +138,7 @@ export function PlayerBar() {
           <PanelButton kind="lyrics" label="Текст песни" icon={<LyricsIcon size={18} />} />
           <PanelButton kind="info" label="О треке" icon={<InfoIcon size={18} />} />
           <PanelButton kind="queue" label="Очередь" icon={<QueueIcon size={18} />} />
+          <SleepTimer />
           <VolumeControl />
           <button type="button" aria-label="Полноэкранный плеер" title="Полноэкранный плеер" onClick={() => player.setNowPlaying(true)} className="flex h-9 w-9 items-center justify-center rounded-md text-text-secondary transition-colors hover:bg-fg/8 hover:text-text-primary">
             <ExpandIcon size={18} />

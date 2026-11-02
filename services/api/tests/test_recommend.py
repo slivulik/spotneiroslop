@@ -92,3 +92,22 @@ async def test_cold_start_wave_uses_popular_and_new(harness: Harness, catalog_da
     wave = (await harness.client.get("/v1/me/wave", headers=me, params={"limit": 3})).json()
     assert 0 < len(wave) <= 3
     assert (await harness.client.get("/v1/me/mixes", headers=me)).json() == []  # no genres yet, no fake mixes
+
+
+async def test_radio_from_a_track_or_artist(harness: Harness, catalog_data: Catalog) -> None:
+    """A radio station leads with the seed: never repeats the seed track, favours the seed artist."""
+    me = bearer(await register(harness.client))
+    seed = catalog_data.tracks[0]
+    radio = (
+        await harness.client.get("/v1/me/wave", headers=me, params={"limit": 10, "seed_track": str(seed.id)})
+    ).json()
+    assert radio
+    assert str(seed.id) not in [t["id"] for t in radio]
+    artist = catalog_data.artist
+    by_artist = (
+        await harness.client.get(
+            "/v1/me/wave", headers=me, params={"limit": 10, "seed_artist": str(artist.id)}
+        )
+    ).json()
+    assert by_artist
+    assert any(a["id"] == str(artist.id) for t in by_artist[:3] for a in t["artists"])

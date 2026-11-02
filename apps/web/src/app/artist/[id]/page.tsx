@@ -7,14 +7,15 @@ import { ArtistCard } from "@/components/ArtistCard";
 import { Artwork } from "@/components/Artwork";
 import { ReleaseCard } from "@/components/home/Blocks";
 import { SectionHeader } from "@/components/home/Section";
-import { PauseIcon, PlayIcon, ShareIcon, ShuffleIcon } from "@/components/icons";
+import { PauseIcon, PlayIcon, RadioIcon, ShareIcon, ShuffleIcon } from "@/components/icons";
 import { LikeButton } from "@/components/LikeButton";
 import { PageError, Skeleton } from "@/components/Page";
 import { useIsPlaying } from "@/components/player/hooks";
 import { TrackList } from "@/components/TrackList";
 import { playTracks } from "@/lib/play";
 import { useArtist, useArtistReleases, useArtistTopTracks } from "@/lib/queries";
-import { useArtistStats, useSimilarArtists } from "@/lib/recommend";
+import { playRadio, useArtistStats, useSimilarArtists } from "@/lib/recommend";
+import { toast } from "@/components/admin/ui";
 import { share } from "@/lib/share";
 import { player } from "@/player/controller";
 import { usePlayer } from "@/player/store";
@@ -95,6 +96,7 @@ export default function ArtistPage({ params }: { params: Promise<{ id: string }>
               {isThis && playing ? <PauseIcon size={24} /> : <PlayIcon size={24} style={{ marginLeft: 3 }} />}
             </button>
             <button type="button" disabled={!tracks.length} aria-label="Перемешать" onClick={() => playTracks(tracks, null, context, { shuffle: true })} className="flex h-12 w-12 items-center justify-center rounded-full bg-white/15 backdrop-blur transition-transform hover:scale-110 disabled:opacity-40"><ShuffleIcon size={20} /></button>
+            <button type="button" aria-label={`Радио: ${data.name}`} onClick={() => void playRadio({ artistId: id, title: data.name }).then((ok) => { if (!ok) toast("Не нашлось похожих треков"); })} className="flex h-12 items-center gap-2 rounded-full bg-white/15 px-4 text-caption font-bold backdrop-blur transition-transform hover:scale-105"><RadioIcon size={18} /> Радио</button>
             <span className="rounded-full bg-white/15 backdrop-blur"><LikeButton kind="artists" id={id} size={22} className="h-12 w-12 text-white" /></span>
             <button type="button" aria-label="Поделиться" onClick={() => void share(`/artist/${id}`, data.name)} className="flex h-12 w-12 items-center justify-center rounded-full bg-white/15 backdrop-blur transition-transform hover:scale-110"><ShareIcon size={20} /></button>
           </div>

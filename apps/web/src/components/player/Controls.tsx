@@ -1,11 +1,12 @@
 "use client";
 
-import { NextIcon, PauseIcon, PlayIcon, PrevIcon, RepeatIcon, ShuffleIcon, VolumeIcon } from "@/components/icons";
+import { MoonIcon, NextIcon, PauseIcon, PlayIcon, PrevIcon, RepeatIcon, ShuffleIcon, VolumeIcon } from "@/components/icons";
 import { useCurrentTrack, useIsPlaying } from "@/components/player/hooks";
 import { WaveformSeek } from "@/components/visual/Sonic";
 import { formatDuration } from "@/lib/format";
 import { player } from "@/player/controller";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useSleep } from "@/player/sleep";
 import { useSettings } from "@/lib/settings";
 import { canDecode } from "@/player/engine";
 import { type Rendition, type RequestedQuality, usePlayer } from "@/player/store";
@@ -205,5 +206,95 @@ export function QualitySelect() {
         ))}
       </select>
     </label>
+  );
+}
+
+const SLEEP_OPTIONS: { label: string; value: number | "track" }[] = [
+  { label: "15 минут", value: 15 },
+  { label: "30 минут", value: 30 },
+  { label: "45 минут", value: 45 },
+  { label: "1 час", value: 60 },
+  { label: "До конца трека", value: "track" },
+];
+
+/** Sleep timer: the music fades out gently and pauses. Shows the minutes left while it runs. */
+export function SleepTimer({ onColor = false }: { onColor?: boolean }) {
+  const { endsAt, endOfTrack } = useSleep();
+  const [open, setOpen] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
+  const box = useRef<HTMLDivElement>(null);
+  const on = endsAt !== null || endOfTrack;
+
+  useEffect(() => {
+    if (!endsAt) return;
+    const update = () => setNow(Date.now());
+    const first = setTimeout(update, 0);
+    const id = setInterval(update, 15_000);
+    return () => {
+      clearTimeout(first);
+      clearInterval(id);
+    };
+  }, [endsAt]);
+
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: PointerEvent | KeyboardEvent) => {
+      if (e instanceof KeyboardEvent ? e.key === "Escape" : !box.current?.contains(e.target as Node)) setOpen(false);
+    };
+    window.addEventListener("pointerdown", close);
+    window.addEventListener("keydown", close);
+    return () => {
+      window.removeEventListener("pointerdown", close);
+      window.removeEventListener("keydown", close);
+    };
+  }, [open]);
+
+  const left = endsAt ? Math.max(1, Math.ceil((endsAt - now) / 60_000)) : null;
+  const badge = left !== null ? `${left} мин` : endOfTrack ? "трек" : null;
+  const idle = onColor ? "text-white/70 hover:text-white" : "text-text-secondary hover:text-text-primary";
+  return (
+    <div ref={box} className="relative">
+      <button
+        type="button"
+        aria-label={on ? `Таймер сна: ${badge}` : "Таймер сна"}
+        title="Таймер сна"
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+        className={`flex h-9 items-center gap-1 rounded-md px-2 transition-colors hover:bg-fg/8 ${on ? "text-accent" : idle}`}
+      >
+        <MoonIcon size={18} />
+        {badge ? <span className="text-micro font-bold tabular-nums">{badge}</span> : null}
+      </button>
+      {open ? (
+        <div role="menu" aria-label="Таймер сна" className="glass reveal absolute bottom-full right-0 z-50 mb-2 w-52 rounded-xl p-1.5 text-text-primary">
+          <div className="px-3 pb-1 pt-2 text-micro uppercase tracking-[0.14em] text-text-tertiary">Выключить музыку через</div>
+          {SLEEP_OPTIONS.map((o) => {
+            const chosen = o.value === "track" ? endOfTrack : false;
+            return (
+              <button
+                key={o.label}
+                type="button"
+                role="menuitemradio"
+                aria-checked={chosen}
+                onClick={() => {
+                  player.setSleep(o.value);
+                  setOpen(false);
+                }}
+                className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-body-s hover:bg-fg/8"
+              >
+                {o.label}
+                {chosen ? <span className="h-1.5 w-1.5 rounded-full bg-accent" /> : null}
+              </button>
+            );
+          })}
+          {on ? (
+            <button type="button" role="menuitem" onClick={() => { player.setSleep(null); setOpen(false); }} className="mt-1 w-full rounded-lg px-3 py-2 text-left text-body-s text-state-danger hover:bg-fg/8">
+              Выключить таймер
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+    </div>
   );
 }

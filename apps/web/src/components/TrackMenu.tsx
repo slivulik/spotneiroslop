@@ -5,9 +5,10 @@ import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { toast } from "@/components/admin/ui";
-import { ListIcon, MoreIcon, PlusIcon, QueueIcon, ShareIcon, TrashIcon } from "@/components/icons";
+import { ListIcon, MoreIcon, PlusIcon, QueueIcon, RadioIcon, ShareIcon, TrashIcon } from "@/components/icons";
 import { addToPlaylist, createPlaylist, useMyPlaylists, usePlaylistInvalidate } from "@/lib/library";
 import { navigate } from "@/lib/navigation";
+import { playRadio } from "@/lib/recommend";
 import { useSession } from "@/lib/session";
 import { share } from "@/lib/share";
 import { player } from "@/player/controller";
@@ -125,6 +126,9 @@ export function TrackMenu({
               </button>
               <button type="button" role="menuitem" disabled={!track.playable} onClick={() => { if (needAuth()) return; player.addToQueue([toQueueTrack(track)], context); done(); toast("Добавлено в очередь"); }} className={item}>
                 <ListIcon size={18} /> Добавить в очередь
+              </button>
+              <button type="button" role="menuitem" disabled={!track.playable} onClick={() => { if (needAuth()) return; done(); void playRadio({ trackId: track.id, title: track.title }).then((ok) => toast(ok ? `Радио: ${track.title}` : "Не нашлось похожих треков")); }} className={item}>
+                <RadioIcon size={18} /> Радио по треку
               </button>
               <button type="button" role="menuitem" onClick={() => { if (!needAuth()) setPicking(true); }} className={item}>
                 <PlusIcon size={18} /> Добавить в плейлист…

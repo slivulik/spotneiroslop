@@ -6,6 +6,7 @@ import { NowPlaying } from "@/components/player/NowPlaying";
 import { PlayerBar } from "@/components/player/PlayerBar";
 import { SidePanel } from "@/components/player/Panels";
 import { Announcement } from "@/components/shell/Announcement";
+import { Shortcuts } from "@/components/shell/Shortcuts";
 import { Sidebar } from "@/components/shell/Sidebar";
 import { MobileTabBar } from "@/components/shell/MobileTabBar";
 import { TopBar } from "@/components/shell/TopBar";
@@ -44,6 +45,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <SidePanel />
       <PlayerBar />
       <NowPlaying />
+      <Shortcuts />
     </>
   );
 }

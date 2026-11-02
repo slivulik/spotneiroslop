@@ -137,7 +137,7 @@ export class PlayerEngine {
   /** Diagnostics for tests and support (`window.__sonoraPlayback()`), read-only. */
   playbackSnapshot() {
     const a = this.audio;
-    return { paused: a.paused, currentTime: a.currentTime, readyState: a.readyState, error: a.error?.code ?? null, instances: PlayerEngine.instances };
+    return { paused: a.paused, volume: a.volume, currentTime: a.currentTime, readyState: a.readyState, error: a.error?.code ?? null, instances: PlayerEngine.instances };
   }
 
   static instances = 0;
@@ -453,6 +453,22 @@ export class PlayerEngine {
 
   seek(ms: number): void {
     if (Number.isFinite(ms)) this.audio.currentTime = Math.max(0, ms / 1000);
+  }
+
+  /** Lower the element volume to silence over `ms` (sleep timer); the caller pauses and restores it. */
+  fadeOut(ms: number): Promise<void> {
+    const from = this.audio.volume;
+    const started = performance.now();
+    return new Promise((resolve) => {
+      const step = () => {
+        const k = Math.min(1, (performance.now() - started) / ms);
+        // Ease out in perceived loudness: quadratic falls faster at the start than a linear ramp.
+        this.audio.volume = from * (1 - k) * (1 - k);
+        if (k < 1 && !this.audio.paused) setTimeout(step, 50);
+        else resolve();
+      };
+      step();
+    });
   }
 
   setVolume(volume: number, muted: boolean): void {

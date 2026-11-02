@@ -26,10 +26,14 @@ import {
   upcoming,
 } from "@/player/queue";
 import { listening } from "@/player/events";
+import { useSleep } from "@/player/sleep";
 import { readResumePosition, type RequestedQuality, saveResumePosition, usePlayer } from "@/player/store";
 
 const PREFETCH_BEFORE_END_MS = 20_000;
 const SAVE_EVERY_MS = 5_000;
+/** The sleep timer fades the music out over this long before pausing. */
+const SLEEP_FADE_MS = 10_000;
+let sleepTimer: ReturnType<typeof setTimeout> | null = null;
 
 let engine: PlayerEngine | null = null;
 let pendingEq: Equalizer | null = null;
@@ -97,6 +101,17 @@ function getEngine(): PlayerEngine {
     onEnded: () => {
       listening.end();
       startedFor = null;
+      if (useSleep.getState().endOfTrack) {
+        // "Until the end of the track": stop here, cue the next one without playing it.
+        useSleep.setState({ endOfTrack: false });
+        const s = state();
+        const cursor = s.queue ? nextCursor(s.queue, false) : null;
+        if (s.queue && cursor !== null) {
+          s.patch({ queue: { ...s.queue, cursor } });
+          void loadCurrent(false);
+        }
+        return;
+      }
       advance(false);
     },
     onError: (message) => {
@@ -124,6 +139,16 @@ async function loadCurrent(autoplay: boolean, startAtMs = 0): Promise<void> {
   s.patch({ positionMs: startAtMs, durationMs: track.durationMs, bufferedMs: 0, error: null });
   updateMediaMetadata(track);
   await getEngine().load(track.id, { autoplay, startAtMs, quality: s.quality, gain: gainFor });
+}
+
+async function fallAsleep(): Promise<void> {
+  sleepTimer = null;
+  const e = getEngine();
+  if (state().status === "playing") await e.fadeOut(SLEEP_FADE_MS);
+  e.pause();
+  const s = state();
+  e.setVolume(s.volume, s.muted);
+  useSleep.setState({ endsAt: null, endOfTrack: false });
 }
 
 function advance(manual: boolean): void {
@@ -255,6 +280,17 @@ export const player = {
     if (!s.queue || cursor < 0 || cursor >= s.queue.order.length) return;
     s.patch({ queue: { ...s.queue, cursor } });
     void loadCurrent(true);
+  },
+
+  /** Sleep timer: pause after `minutes` (with a soft fade), at the end of the track, or cancel (null). */
+  setSleep(minutes: number | "track" | null): void {
+    if (sleepTimer) clearTimeout(sleepTimer);
+    sleepTimer = null;
+    if (minutes === null) return useSleep.setState({ endsAt: null, endOfTrack: false });
+    if (minutes === "track") return useSleep.setState({ endsAt: null, endOfTrack: true });
+    const endsAt = Date.now() + minutes * 60_000;
+    useSleep.setState({ endsAt, endOfTrack: false });
+    sleepTimer = setTimeout(() => void fallAsleep(), Math.max(0, endsAt - Date.now() - SLEEP_FADE_MS));
   },
 
   setQueueLowHandler(fn: (() => void) | null): void {

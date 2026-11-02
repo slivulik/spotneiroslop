@@ -241,11 +241,67 @@ def _diversify(ranked: list[_Cand], limit: int, per_artist: int = 2) -> list[_Ca
     return out
 
 
+async def _seed_taste(
+    session: AsyncSession, seed_track: uuid.UUID | None, seed_artist: uuid.UUID | None
+) -> Taste:
+    """Taste of a radio station started from one track or one artist."""
+    t = Taste()
+    if seed_track:
+        t.tracks[seed_track] = 1.0
+        for aid in await session.scalars(
+            select(TrackArtist.artist_id).where(
+                TrackArtist.track_id == seed_track, TrackArtist.role.in_(PERFORMER)
+            )
+        ):
+            t.artists[aid] = 1.0
+        for gid in await session.scalars(
+            select(TrackGenre.genre_id).where(TrackGenre.track_id == seed_track)
+        ):
+            t.genres[gid] = 1.0
+    if seed_artist:
+        t.artists[seed_artist] = 1.0
+        tids = list(
+            await session.scalars(
+                select(TrackArtist.track_id)
+                .where(TrackArtist.artist_id == seed_artist, TrackArtist.role.in_(PERFORMER))
+                .limit(30)
+            )
+        )
+        for tid in tids:
+            t.tracks.setdefault(tid, 0.6)
+        for gid, n in await session.execute(
+            select(TrackGenre.genre_id, func.count())
+            .where(TrackGenre.track_id.in_(tids))
+            .group_by(TrackGenre.genre_id)
+        ):
+            t.genres[gid] = float(n)
+    return t
+
+
+def _blend(seed: Taste, personal: Taste, weight: float = 0.25) -> Taste:
+    """The seed leads; the listener's own taste nudges ties (and supplies what they just heard)."""
+    out = Taste(dict(_norm(seed.artists)), dict(_norm(seed.genres)), dict(seed.tracks), set(personal.recent))
+    for src, dst in ((_norm(personal.artists), out.artists), (_norm(personal.genres), out.genres)):
+        for k, v in src.items():
+            dst[k] = dst.get(k, 0) + v * weight
+    return out
+
+
 async def wave(
-    session: AsyncSession, settings: Settings, user: User, limit: int, exclude: set[uuid.UUID]
+    session: AsyncSession,
+    settings: Settings,
+    user: User,
+    limit: int,
+    exclude: set[uuid.UUID],
+    seed_track: uuid.UUID | None = None,
+    seed_artist: uuid.UUID | None = None,
 ) -> list[TrackOut]:
-    """The next batch of "Моя волна": endless, personal, never repeating the session's tracks."""
+    """The next batch of "Моя волна" (or of a radio from a track/artist): endless, never repeating."""
     t = await taste(session, user)
+    if seed_track or seed_artist:
+        t = _blend(await _seed_taste(session, seed_track, seed_artist), t)
+        if seed_track:
+            exclude = exclude | {seed_track}
     cooc = await _co_listened(session, user, _top(t.tracks, 20))
     cands = await _load(session, await _candidate_ids(session, t, user, cooc))
     ranked = _rank(cands, t, cooc, random.Random(), exclude)  # noqa: S311 - shuffling, not security
