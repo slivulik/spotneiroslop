@@ -16,6 +16,7 @@ import com.sonora.app.data.repo.AppSettings
 import com.sonora.app.data.repo.ThemeMode
 import com.sonora.app.playback.PlayerUi
 import com.sonora.app.ui.BottomBar
+import com.sonora.app.ui.Dock
 import com.sonora.app.ui.LocalBottomInset
 import com.sonora.app.ui.LocalEnv
 import com.sonora.app.ui.MiniPlayer
@@ -55,11 +56,11 @@ class ScreenshotTest {
         compose.mainClock.autoAdvance = false
         compose.setContent {
             SonoraTheme(ThemeMode.Dark) {
-                CompositionLocalProvider(LocalEnv provides FakeData.env, LocalBottomInset provides if (withDock) 136.dp else 0.dp) {
+                CompositionLocalProvider(LocalEnv provides FakeData.env, LocalBottomInset provides if (withDock) 152.dp else 0.dp) {
                     Box(Modifier.fillMaxSize().background(C.bg)) {
                         content()
                         if (withDock) {
-                            Column(Modifier.align(Alignment.BottomCenter)) {
+                            Dock(Modifier.align(Alignment.BottomCenter)) {
                                 if (ui != null) MiniPlayer(ui, null) {}
                                 BottomBar(null, admin = false, selectedOverride = 0) {}
                             }

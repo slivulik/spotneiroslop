@@ -172,7 +172,7 @@ fun SonoraAppUi(app: AppViewModel, deepLink: String?, onDeepLinkHandled: () -> U
     }
 
     val hasTrack = player.track != null
-    CompositionLocalProvider(LocalEnv provides env, LocalActions provides actions, LocalBottomInset provides if (hasTrack) 136.dp else 72.dp) {
+    CompositionLocalProvider(LocalEnv provides env, LocalActions provides actions, LocalBottomInset provides if (hasTrack) 152.dp else 88.dp) {
         SharedTransitionLayout(Modifier.fillMaxSize().background(C.bg)) {
             Box(Modifier.fillMaxSize()) {
                 Routes(nav, app)
@@ -186,7 +186,7 @@ fun SonoraAppUi(app: AppViewModel, deepLink: String?, onDeepLinkHandled: () -> U
                         FullPlayer(app, onClose = { playerOpen = false }, morph = CoverMorph(this@SharedTransitionLayout, this))
                     } else {
                         Box(Modifier.fillMaxSize()) {
-                            Column(Modifier.align(Alignment.BottomCenter)) {
+                            Dock(Modifier.align(Alignment.BottomCenter)) {
                                 AnimatedVisibility(hasTrack, enter = slideInVertically { it } + fadeIn(), exit = slideOutVertically { it } + fadeOut()) {
                                     MiniPlayer(player, CoverMorph(this@SharedTransitionLayout, this@AnimatedContent), { playerOpen = true })
                                 }
@@ -247,18 +247,26 @@ private fun Routes(nav: NavHostController, app: AppViewModel) {
     }
 }
 
-/** Full-width bar fading out of the content (Spotify-style): icon over label, active in white. */
+/** Mini player + bottom bar on one solid ground; a short fade above so scrolling content never shows through. */
+@Composable
+fun Dock(modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    val bg = C.bg
+    Column(
+        modifier.fillMaxWidth().drawBehind {
+            val fade = 24.dp.toPx() / size.height
+            drawRect(Brush.verticalGradient(0f to bg.copy(alpha = 0f), fade to bg.copy(alpha = 0.96f), 1f to bg))
+        }.padding(top = 24.dp),
+    ) { content() }
+}
+
+/** Full-width bar: icon over label, active in white. */
 @Composable
 fun BottomBar(nav: NavHostController?, admin: Boolean, selectedOverride: Int? = null, onAdmin: () -> Unit) {
     val back = nav?.currentBackStackEntryAsState()?.value
     val route = back?.destination?.route
     val selected = selectedOverride ?: TABS.indexOfFirst { it.route == route }
     val bg = C.bg
-    Row(
-        Modifier.fillMaxWidth()
-            .drawBehind { drawRect(Brush.verticalGradient(0f to bg.copy(alpha = 0.85f), 0.35f to bg, 1f to bg)) }
-            .navigationBarsPadding().height(64.dp),
-    ) {
+    Row(Modifier.fillMaxWidth().background(bg).padding(top = 4.dp).navigationBarsPadding().height(60.dp)) {
         TABS.forEachIndexed { i, tab ->
             BarItem(tab.label, if (i == selected) tab.active else tab.icon, i == selected, Modifier.weight(1f)) {
                 nav?.navigate(tab.route) {
