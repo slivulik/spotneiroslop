@@ -7,7 +7,7 @@ import { Artwork } from "@/components/Artwork";
 import { ExplicitBadge } from "@/components/Badges";
 import { ExpandIcon, InfoIcon, LyricsIcon, NextIcon, QueueIcon } from "@/components/icons";
 import { LikeButton } from "@/components/LikeButton";
-import { PlayPauseButton, ProgressBar, QualitySelect, SleepTimer, TransportControls, VolumeControl } from "@/components/player/Controls";
+import { dockButton, PlayPauseButton, ProgressBar, QualitySelect, SleepTimer, TransportControls, VolumeControl } from "@/components/player/Controls";
 import { useCurrentTrack } from "@/components/player/hooks";
 import { player } from "@/player/controller";
 import { usePlayer } from "@/player/store";
@@ -72,7 +72,7 @@ function PanelButton({ kind, label, icon }: { kind: "lyrics" | "info" | "queue";
       title={label}
       aria-pressed={active}
       onClick={() => usePlayer.getState().patch({ sidePanel: active ? "none" : kind })}
-      className={`hidden h-9 w-9 items-center justify-center rounded-md transition-colors lg:flex ${active ? "bg-accent-muted text-accent" : "text-text-secondary hover:bg-fg/8 hover:text-text-primary"}`}
+      className={`${dockButton(active)} max-lg:!hidden ${active ? "bg-accent-muted" : ""}`}
     >
       {icon}
     </button>
@@ -118,7 +118,7 @@ export function PlayerBar() {
       </div>
 
       {/* Desktop dock */}
-      <div className="player-surface hidden h-[88px] grid-cols-[minmax(0,1fr)_minmax(360px,1.5fr)_minmax(0,1fr)] items-center gap-6 rounded-xl px-3 md:grid">
+      <div className="player-surface hidden h-[88px] grid-cols-[minmax(0,1fr)_clamp(280px,28vw,520px)_minmax(0,1fr)] items-center gap-6 rounded-xl px-3 md:grid">
         <div className="flex min-w-0 items-center gap-3">
           <button type="button" aria-label="Открыть плеер на весь экран" onClick={() => player.setNowPlaying(true)} className="group relative shrink-0">
             <motion.div layoutId="now-playing-art" className="h-[60px] w-[60px] overflow-hidden rounded-md shadow-md transition-transform group-hover:scale-105">
@@ -126,21 +126,22 @@ export function PlayerBar() {
             </motion.div>
           </button>
           <TrackTitle />
-          <LikeButton kind="tracks" id={track.id} size={20} />
+          <LikeButton kind="tracks" id={track.id} size={18} className="h-9 w-9 shrink-0 hover:bg-fg/8" />
         </div>
-        <div className="flex flex-col items-center gap-1">
+        <div className="flex flex-col items-center gap-0.5">
           <TransportControls />
           <ProgressBar />
         </div>
-        <div className="flex items-center justify-end gap-1.5 pr-1">
+        <div className="flex items-center justify-end gap-1 pr-1">
           {error ? <span className="max-w-[160px] truncate text-caption text-state-danger" title={error}>{error}</span> : null}
-          <QualitySelect />
+          <span className="mr-2 hidden min-[1440px]:block"><QualitySelect /></span>
           <PanelButton kind="lyrics" label="Текст песни" icon={<LyricsIcon size={18} />} />
-          <PanelButton kind="info" label="О треке" icon={<InfoIcon size={18} />} />
           <PanelButton kind="queue" label="Очередь" icon={<QueueIcon size={18} />} />
+          <PanelButton kind="info" label="О треке" icon={<InfoIcon size={18} />} />
           <SleepTimer />
-          <VolumeControl />
-          <button type="button" aria-label="Полноэкранный плеер" title="Полноэкранный плеер" onClick={() => player.setNowPlaying(true)} className="flex h-9 w-9 items-center justify-center rounded-md text-text-secondary transition-colors hover:bg-fg/8 hover:text-text-primary">
+          <span className="mx-1 h-5 w-px bg-fg/10" aria-hidden />
+          <VolumeControl compact />
+          <button type="button" aria-label="Полноэкранный плеер" title="Полноэкранный плеер" onClick={() => player.setNowPlaying(true)} className={dockButton()}>
             <ExpandIcon size={18} />
           </button>
         </div>

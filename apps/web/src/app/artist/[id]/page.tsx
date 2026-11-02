@@ -77,7 +77,7 @@ export default function ArtistPage({ params }: { params: Promise<{ id: string }>
           </motion.div>
         ) : null}
         <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-black/5" />
-        {data.photo_credit ? <a href={data.photo_credit} target="_blank" rel="noreferrer" className="absolute right-4 top-4 rounded-full bg-black/40 px-2.5 py-1 text-micro text-white/75 backdrop-blur hover:text-white md:right-6 md:top-6">Фото: Wikimedia Commons</a> : null}
+        {data.photo_credit ? <a href={data.photo_credit} target="_blank" rel="noreferrer" className="absolute right-4 top-4 rounded-full bg-black/40 px-2.5 py-1 text-micro text-white/75 hover:text-white md:right-6 md:top-6">Фото: Wikimedia Commons</a> : null}
         <div className="absolute inset-x-0 bottom-0 flex flex-col gap-3 p-6 text-white md:p-10">
           {data.verified ? <span className="mono-label text-white/80">✓ Подтверждённый артист</span> : <span className="mono-label text-white/70">Артист</span>}
           <motion.h1 initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ type: "spring", stiffness: 200, damping: 24, delay: 0.1 }} className="font-display text-display-l leading-[0.95] md:text-[clamp(56px,7vw,96px)]">
@@ -87,7 +87,7 @@ export default function ArtistPage({ params }: { params: Promise<{ id: string }>
             <span>{nf.format(stats?.monthly_listeners ?? data.monthly_listeners)} слушателей за месяц</span>
             {stats?.genres.length ? (
               <span className="flex flex-wrap gap-1.5">
-                {stats.genres.slice(0, 3).map((g) => <Link key={g.id} href={`/genre/${g.slug}`} className="rounded-full bg-white/15 px-2.5 py-0.5 text-caption font-semibold backdrop-blur hover:bg-white/25">{g.name}</Link>)}
+                {stats.genres.slice(0, 3).map((g) => <Link key={g.id} href={`/genre/${g.slug}`} className="rounded-full bg-black/35 px-2.5 py-0.5 text-caption font-semibold hover:bg-white/25">{g.name}</Link>)}
               </span>
             ) : null}
           </div>
@@ -95,10 +95,10 @@ export default function ArtistPage({ params }: { params: Promise<{ id: string }>
             <button type="button" data-ripple disabled={!tracks.length} aria-label={isThis && playing ? "Пауза" : "Слушать"} onClick={() => (isThis ? player.toggle() : playTracks(tracks, null, context))} className="btn-accent flex h-14 w-14 items-center justify-center rounded-full transition-transform hover:scale-105 disabled:opacity-40">
               {isThis && playing ? <PauseIcon size={24} /> : <PlayIcon size={24} style={{ marginLeft: 3 }} />}
             </button>
-            <button type="button" disabled={!tracks.length} aria-label="Перемешать" onClick={() => playTracks(tracks, null, context, { shuffle: true })} className="flex h-12 w-12 items-center justify-center rounded-full bg-white/15 backdrop-blur transition-transform hover:scale-110 disabled:opacity-40"><ShuffleIcon size={20} /></button>
-            <button type="button" aria-label={`Радио: ${data.name}`} onClick={() => void playRadio({ artistId: id, title: data.name }).then((ok) => { if (!ok) toast("Не нашлось похожих треков"); })} className="flex h-12 items-center gap-2 rounded-full bg-white/15 px-4 text-caption font-bold backdrop-blur transition-transform hover:scale-105"><RadioIcon size={18} /> Радио</button>
-            <span className="rounded-full bg-white/15 backdrop-blur"><LikeButton kind="artists" id={id} size={22} className="h-12 w-12 text-white" /></span>
-            <button type="button" aria-label="Поделиться" onClick={() => void share(`/artist/${id}`, data.name)} className="flex h-12 w-12 items-center justify-center rounded-full bg-white/15 backdrop-blur transition-transform hover:scale-110"><ShareIcon size={20} /></button>
+            <button type="button" disabled={!tracks.length} aria-label="Перемешать" onClick={() => playTracks(tracks, null, context, { shuffle: true })} className="flex h-12 w-12 items-center justify-center rounded-full bg-black/35 transition-transform hover:scale-110 disabled:opacity-40"><ShuffleIcon size={20} /></button>
+            <button type="button" aria-label={`Радио: ${data.name}`} onClick={() => void playRadio({ artistId: id, title: data.name }).then((ok) => { if (!ok) toast("Не нашлось похожих треков"); })} className="flex h-12 items-center gap-2 rounded-full bg-black/35 px-4 text-caption font-bold transition-transform hover:scale-105"><RadioIcon size={18} /> Радио</button>
+            <span className="rounded-full bg-white/15"><LikeButton kind="artists" id={id} size={22} className="h-12 w-12 text-white" /></span>
+            <button type="button" aria-label="Поделиться" onClick={() => void share(`/artist/${id}`, data.name)} className="flex h-12 w-12 items-center justify-center rounded-full bg-black/35 transition-transform hover:scale-110"><ShareIcon size={20} /></button>
           </div>
         </div>
       </header>

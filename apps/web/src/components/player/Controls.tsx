@@ -11,6 +11,12 @@ import { useSettings } from "@/lib/settings";
 import { canDecode } from "@/player/engine";
 import { type Rendition, type RequestedQuality, usePlayer } from "@/player/store";
 
+/** One 36×36 slot for every icon button in the dock, so the row reads evenly. */
+export const dockButton = (on = false, onColor = false) =>
+  `flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition-colors ${
+    on ? "text-accent hover:bg-fg/8" : onColor ? "text-white/70 hover:bg-white/10 hover:text-white" : "text-text-secondary hover:bg-fg/8 hover:text-text-primary"
+  }`;
+
 export function PlayPauseButton({ size = 40, className = "" }: { size?: number; className?: string }) {
   const playing = useIsPlaying();
   const loading = usePlayer((s) => s.status === "loading" || s.status === "buffering");
@@ -34,28 +40,32 @@ export function PlayPauseButton({ size = 40, className = "" }: { size?: number; 
 export function TransportControls({ large = false }: { large?: boolean }) {
   const shuffle = usePlayer((s) => s.queue?.shuffle ?? false);
   const repeat = usePlayer((s) => s.queue?.repeat ?? "off");
-  const iconSize = large ? 30 : 20;
-  const toggleClass = (on: boolean) =>
-    `relative p-2 transition-colors ${on ? "text-accent" : "text-text-secondary hover:text-text-primary"}`;
+  // Large (full-screen player): bigger slots; dock: the shared 36 px slot, all five evenly spaced.
+  const slot = (on: boolean, primary = false) =>
+    large
+      ? `flex h-14 w-14 items-center justify-center rounded-full transition-colors hover:bg-white/10 ${on ? "text-accent" : primary ? "text-white" : "text-white/70 hover:text-white"}`
+      : dockButton(on).replace("text-text-secondary", primary ? "text-text-primary" : "text-text-secondary");
+  const side = large ? 24 : 18;
+  const skip = large ? 30 : 20;
   return (
-    <div className={`flex items-center ${large ? "gap-6" : "gap-3"}`}>
-      <button type="button" aria-label="Перемешать" aria-pressed={shuffle} onClick={() => player.toggleShuffle()} className={toggleClass(shuffle)}>
-        <ShuffleIcon size={large ? 24 : 18} />
+    <div className={`flex items-center ${large ? "gap-5" : "gap-2"}`}>
+      <button type="button" aria-label="Перемешать" aria-pressed={shuffle} onClick={() => player.toggleShuffle()} className={slot(shuffle)}>
+        <ShuffleIcon size={side} />
       </button>
-      <button type="button" aria-label="Предыдущий" onClick={() => player.prev()} className="p-2 text-text-primary/90 hover:text-text-primary">
-        <PrevIcon size={iconSize} />
+      <button type="button" aria-label="Предыдущий" onClick={() => player.prev()} className={slot(false, true)}>
+        <PrevIcon size={skip} />
       </button>
-      <PlayPauseButton size={large ? 72 : 36} />
-      <button type="button" aria-label="Следующий" onClick={() => player.next()} className="p-2 text-text-primary/90 hover:text-text-primary">
-        <NextIcon size={iconSize} />
+      <PlayPauseButton size={large ? 72 : 40} />
+      <button type="button" aria-label="Следующий" onClick={() => player.next()} className={slot(false, true)}>
+        <NextIcon size={skip} />
       </button>
       <button
         type="button"
         aria-label={repeat === "one" ? "Повтор трека" : repeat === "all" ? "Повтор очереди" : "Повтор выключен"}
         onClick={() => player.cycleRepeat()}
-        className={toggleClass(repeat !== "off")}
+        className={slot(repeat !== "off")}
       >
-        <RepeatIcon size={large ? 24 : 18} one={repeat === "one"} />
+        <RepeatIcon size={side} one={repeat === "one"} />
       </button>
     </div>
   );
@@ -130,26 +140,61 @@ export function ProgressBar({ showTimes = true, onColor = false, large = false }
   );
 }
 
-export function VolumeControl() {
+export function VolumeControl({ compact = false }: { compact?: boolean }) {
   const volume = usePlayer((s) => s.volume);
   const muted = usePlayer((s) => s.muted);
   const level = muted ? 0 : volume;
+  const box = useRef<HTMLDivElement>(null);
+
+  // Wheel over the control changes volume (non-passive, so the page does not scroll instead).
+  useEffect(() => {
+    const el = box.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const s = usePlayer.getState();
+      player.setVolume(Math.min(1, Math.max(0, (s.muted ? 0 : s.volume) - Math.sign(e.deltaY) * 0.05)));
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, []);
+
+  const slider = (
+    <input
+      type="range"
+      aria-label="Громкость"
+      className={`slider ${compact ? "w-28" : "w-24"}`}
+      min={0}
+      max={1}
+      step={0.01}
+      value={level}
+      style={{ ["--fill" as string]: `${level * 100}%` }}
+      onChange={(e) => player.setVolume(Number(e.target.value))}
+    />
+  );
+  const mute = (
+    <button type="button" aria-label={muted ? "Включить звук" : "Выключить звук"} title="Громкость: колесо мыши, M — без звука" onClick={() => player.toggleMute()} className={dockButton()}>
+      <VolumeIcon size={18} level={level} />
+    </button>
+  );
+  if (!compact) {
+    return (
+      <div ref={box} className="flex items-center gap-1">
+        {mute}
+        {slider}
+      </div>
+    );
+  }
+  // Dock: just the icon; the slider floats above it on hover or keyboard focus.
   return (
-    <div className="flex items-center gap-2">
-      <button type="button" aria-label={muted ? "Включить звук" : "Выключить звук"} onClick={() => player.toggleMute()} className="p-1 text-text-secondary hover:text-text-primary">
-        <VolumeIcon size={20} level={level} />
-      </button>
-      <input
-        type="range"
-        aria-label="Громкость"
-        className="slider w-24"
-        min={0}
-        max={1}
-        step={0.01}
-        value={level}
-        style={{ ["--fill" as string]: `${level * 100}%` }}
-        onChange={(e) => player.setVolume(Number(e.target.value))}
-      />
+    <div ref={box} className="group relative">
+      {mute}
+      <div className="invisible absolute bottom-full left-1/2 z-50 -translate-x-1/2 pb-2 opacity-0 transition-opacity duration-150 group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100">
+        <div className="player-surface flex items-center gap-3 rounded-full px-4 py-3">
+          {slider}
+          <span className="w-8 text-right font-mono text-micro tabular-nums text-text-secondary">{Math.round(level * 100)}</span>
+        </div>
+      </div>
     </div>
   );
 }
@@ -251,7 +296,6 @@ export function SleepTimer({ onColor = false }: { onColor?: boolean }) {
 
   const left = endsAt ? Math.max(1, Math.ceil((endsAt - now) / 60_000)) : null;
   const badge = left !== null ? `${left} мин` : endOfTrack ? "трек" : null;
-  const idle = onColor ? "text-white/70 hover:text-white" : "text-text-secondary hover:text-text-primary";
   return (
     <div ref={box} className="relative">
       <button
@@ -261,10 +305,14 @@ export function SleepTimer({ onColor = false }: { onColor?: boolean }) {
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
-        className={`flex h-9 items-center gap-1 rounded-md px-2 transition-colors hover:bg-fg/8 ${on ? "text-accent" : idle}`}
+        className={`relative ${dockButton(on, onColor)}`}
       >
         <MoonIcon size={18} />
-        {badge ? <span className="whitespace-nowrap text-micro font-bold tabular-nums">{badge}</span> : null}
+        {badge ? (
+          <span className="pointer-events-none absolute -right-0.5 -top-0.5 min-w-4 rounded-full bg-accent px-1 text-center text-[9px] font-bold leading-4 tabular-nums text-accent-on">
+            {left ?? "♪"}
+          </span>
+        ) : null}
       </button>
       {open ? (
         <div role="menu" aria-label="Таймер сна" className="player-surface reveal absolute bottom-full right-0 z-50 mb-2 w-52 rounded-xl p-1.5 text-text-primary">

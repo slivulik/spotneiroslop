@@ -21,7 +21,7 @@ export function ArtistCard({ artist, caption = "Артист" }: { artist: Artis
     <Link href={`/artist/${artist.id}`} className="group relative block aspect-[3/4] overflow-hidden rounded-xl bg-bg-raised shadow-md transition-transform duration-300 ease-standard hover:-translate-y-1">
       <Artwork artwork={artist.artwork} alt={artist.name} seed={artist.name} sizes="(min-width: 1024px) 16vw, 40vw" className="absolute inset-0 h-full w-full transition-transform duration-700 ease-standard group-hover:scale-[1.06]" />
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
-      <div className="absolute right-2 top-2 rounded-full bg-black/35 backdrop-blur-md">
+      <div className="absolute right-2 top-2 rounded-full bg-black/55">
         <LikeButton kind="artists" id={artist.id} size={16} className="text-white" />
       </div>
       <div className="absolute inset-x-0 bottom-0 flex items-end gap-2 p-3">

@@ -83,8 +83,8 @@
     background:
       linear-gradient(180deg, rgba(255, 255, 255, 0.09) 0%, rgba(255, 255, 255, 0.02) 40%, rgba(255, 255, 255, 0.03) 100%),
       color-mix(in srgb, var(--sonora-color-bg-elevated) 62%, transparent);
-    backdrop-filter: blur(22px) saturate(1.7);
     -webkit-backdrop-filter: blur(22px) saturate(1.7);
+    backdrop-filter: blur(22px) saturate(1.7);
     box-shadow:
       inset 0 1px 0 var(--glass-highlight),
       inset 0 0 0 1px var(--glass-stroke),
@@ -155,13 +155,15 @@
     background-clip: text;
     color: transparent;
   }
-  /* Player dock: opaque layered surface (no see-through), hairline on top, soft lift. */
+  /*
+   * Player dock and popovers: a solid glass-styled surface (top highlight, hairline, soft lift).
+   * No live backdrop blur here on purpose: at 86 % opacity the blur was barely visible (and let text show through), yet a
+   * full-width blurred layer over scrolling content cost ~40 dropped frames per scripted scroll.
+   */
   .player-surface {
     background:
       linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02) 50%),
-      color-mix(in srgb, var(--sonora-color-bg-elevated) 86%, transparent);
-    backdrop-filter: blur(28px) saturate(1.7);
-    -webkit-backdrop-filter: blur(28px) saturate(1.7);
+      var(--sonora-color-bg-elevated);
     box-shadow:
       inset 0 1px 0 var(--glass-highlight),
       inset 0 0 0 1px var(--glass-stroke),
