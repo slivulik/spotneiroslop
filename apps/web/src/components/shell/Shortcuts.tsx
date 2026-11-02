@@ -63,11 +63,11 @@ export function Shortcuts() {
 
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-[var(--sonora-layer-toast)] flex items-center justify-center bg-black/50 p-4" onClick={() => setOpen(false)}>
+    <div className="fixed inset-0 z-[var(--sonora-layer-toast)] flex items-center justify-center bg-black/60 p-4" onClick={() => setOpen(false)}>
       <div
         role="dialog"
         aria-label="Горячие клавиши"
-        className="glass reveal w-full max-w-2xl rounded-2xl p-6 text-text-primary"
+        className="player-surface reveal w-full max-w-2xl rounded-2xl p-6 text-text-primary"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-5 flex items-center justify-between">

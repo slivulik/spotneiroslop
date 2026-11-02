@@ -264,10 +264,10 @@ export function SleepTimer({ onColor = false }: { onColor?: boolean }) {
         className={`flex h-9 items-center gap-1 rounded-md px-2 transition-colors hover:bg-fg/8 ${on ? "text-accent" : idle}`}
       >
         <MoonIcon size={18} />
-        {badge ? <span className="text-micro font-bold tabular-nums">{badge}</span> : null}
+        {badge ? <span className="whitespace-nowrap text-micro font-bold tabular-nums">{badge}</span> : null}
       </button>
       {open ? (
-        <div role="menu" aria-label="Таймер сна" className="glass reveal absolute bottom-full right-0 z-50 mb-2 w-52 rounded-xl p-1.5 text-text-primary">
+        <div role="menu" aria-label="Таймер сна" className="player-surface reveal absolute bottom-full right-0 z-50 mb-2 w-52 rounded-xl p-1.5 text-text-primary">
           <div className="px-3 pb-1 pt-2 text-micro uppercase tracking-[0.14em] text-text-tertiary">Выключить музыку через</div>
           {SLEEP_OPTIONS.map((o) => {
             const chosen = o.value === "track" ? endOfTrack : false;
