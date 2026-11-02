@@ -4,7 +4,7 @@ import json
 
 import httpx
 
-from sonora_api.enrich import lrclib, musicbrainz, wikimedia
+from sonora_api.enrich import deezer, lrclib, musicbrainz, wikimedia
 from sonora_api.enrich.common import normalize, same
 
 
@@ -152,3 +152,79 @@ def test_network_failure_is_quietly_none() -> None:
     assert lrclib.find("a", "b", None, 1, transport=t) is None
     assert musicbrainz.front_cover("x", transport=t) is None
     assert wikimedia.artist_info("Q1", transport=t) is None
+
+
+def test_deezer_cover_needs_exact_artist_and_title() -> None:
+
+    image = b"\xff\xd8" + b"x" * 4000
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/search/album":
+            return httpx.Response(
+                200,
+                json={
+                    "data": [
+                        {
+                            "title": "Северное сияние: Live",
+                            "artist": {"name": "Аврора Север"},
+                            "cover_xl": "https://img/x.jpg",
+                        },
+                        {
+                            "title": "Северное Сияние",
+                            "artist": {"name": "Аврора  Север"},
+                            "cover_xl": "https://img/ok.jpg",
+                            "link": "https://www.deezer.com/album/1",
+                        },
+                    ]
+                },
+            )
+        if request.url.host == "img":
+            return httpx.Response(200, content=image, headers={"content-type": "image/jpeg"})
+        return httpx.Response(404)
+
+    found = deezer.find_cover("Аврора Север", "Северное сияние", transport=httpx.MockTransport(handler))
+    assert found == (image, "https://www.deezer.com/album/1")
+
+
+def test_deezer_single_falls_back_to_track_search_and_rejects_strangers() -> None:
+
+    image = b"\x89PNG" + b"y" * 4000
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        if request.url.path == "/search/album":
+            return httpx.Response(200, json={"data": []})
+        if request.url.path == "/search/track":
+            return httpx.Response(
+                200,
+                json={
+                    "data": [
+                        {
+                            "title": "Мираж",
+                            "artist": {"name": "Другой артист"},
+                            "album": {"cover_xl": "https://img/no.jpg"},
+                        },
+                        {
+                            "title": "Мираж",
+                            "artist": {"name": "Сонора Тест"},
+                            "album": {"cover_xl": "https://img/yes.jpg"},
+                            "link": "https://www.deezer.com/track/9",
+                        },
+                    ]
+                },
+            )
+        if request.url.path == "/yes.jpg":
+            return httpx.Response(200, content=image, headers={"content-type": "image/png"})
+        return httpx.Response(500)
+
+    found = deezer.find_cover(
+        "Сонора Тест", "Мираж", track_title="Мираж", transport=httpx.MockTransport(handler)
+    )
+    assert found == (image, "https://www.deezer.com/track/9")
+    assert (
+        deezer.find_cover(
+            "Никто",
+            "Ничто",
+            transport=httpx.MockTransport(lambda r: httpx.Response(200, json={"error": {"code": 4}})),
+        )
+        is None
+    )

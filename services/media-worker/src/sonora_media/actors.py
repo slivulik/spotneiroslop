@@ -9,7 +9,7 @@ from functools import cache
 
 import dramatiq
 from dramatiq.brokers.redis import RedisBroker
-from sonora_api.core.tasks import MEDIA_QUEUE, PROCESS_UPLOAD_ACTOR
+from sonora_api.core.tasks import ENRICH_CATALOG_ACTOR, MEDIA_QUEUE, PROCESS_UPLOAD_ACTOR
 
 from sonora_media.config import get_settings
 from sonora_media.logs import configure_logging, get_logger
@@ -41,3 +41,24 @@ def pipeline() -> Pipeline:
 def process_upload(job_id: str, from_stage: str | None = None) -> None:
     status = pipeline().run(uuid.UUID(job_id))
     log.info("job_finished", job_id=job_id, status=status.value, from_stage=from_stage)
+
+
+@dramatiq.actor(
+    actor_name=ENRICH_CATALOG_ACTOR, queue_name=MEDIA_QUEUE, max_retries=0, time_limit=6 * 3600 * 1000
+)
+def enrich_catalog() -> None:
+    """Covers, synced lyrics and artist info for the whole existing catalogue (admin-triggered)."""
+    import tempfile  # noqa: PLC0415
+    from pathlib import Path  # noqa: PLC0415
+
+    from sonora_media import backfill  # noqa: PLC0415
+
+    p = pipeline()
+    if not settings.metadata_lookup:
+        log.info("backfill_disabled")
+        return
+    with tempfile.TemporaryDirectory(prefix="sonora-enrich-") as tmp:
+        report = backfill.run(backfill.Env(settings, p.storage, p.sessions, Path(tmp)))
+    log.info(
+        "backfill_done", covers=report.covers, lyrics_synced=report.lyrics_synced, artists=report.artists
+    )

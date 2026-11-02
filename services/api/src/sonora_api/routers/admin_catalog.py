@@ -1,11 +1,15 @@
 import uuid
-from typing import Annotated, Literal
+from datetime import UTC, datetime
+from typing import Annotated, Any, Literal
 
 from fastapi import APIRouter, BackgroundTasks, Query, status
 
 from sonora_api.core.context import AppContext
+from sonora_api.core.errors import AppError
 from sonora_api.core.logging import get_logger
+from sonora_api.core.tasks import enqueue_enrich_catalog
 from sonora_api.deps import AdminViewer, Ctx, Session
+from sonora_api.models import PlatformSetting
 from sonora_api.models.enums import ReleaseStatus, TrackStatus
 from sonora_api.routers import API_V1
 from sonora_api.schemas.admin_catalog import (
@@ -23,7 +27,7 @@ from sonora_api.schemas.admin_catalog import (
     LyricsSuggestion,
     SearchHit,
 )
-from sonora_api.schemas.common import ERROR_RESPONSES, AdminPage
+from sonora_api.schemas.common import ERROR_RESPONSES, AdminPage, ApiModel
 from sonora_api.services import admin_catalog
 from sonora_api.services import lookup as metadata
 
@@ -188,6 +192,45 @@ async def lookup_artist(
 ) -> ArtistSuggestion:
     """Photo from Wikimedia Commons and a summary from Wikipedia via Wikidata; apply with PATCH."""
     return await metadata.artist_info(session, ctx, artist_id)
+
+
+# --- catalogue-wide metadata --------------------------------------------------------------
+
+
+class EnrichStatus(ApiModel):
+    running: bool = False
+    started_at: str | None = None
+    finished_at: str | None = None
+    report: dict[str, Any] | None = None
+
+
+@router.get("/catalog/enrich")
+async def enrich_status(admin: AdminViewer, session: Session) -> EnrichStatus:
+    """Progress of the last «covers, synced lyrics, artist info for the whole catalogue» pass."""
+    row = await session.get(PlatformSetting, "enrich_status")
+    return EnrichStatus.model_validate(row.value if row else {})
+
+
+@router.post("/catalog/enrich", status_code=status.HTTP_202_ACCEPTED)
+async def enrich_catalog(admin: AdminViewer, session: Session, ctx: Ctx) -> EnrichStatus:
+    """Queue the pass in the media worker (one at a time)."""
+    row = await session.get(PlatformSetting, "enrich_status")
+    current = EnrichStatus.model_validate(row.value if row else {})
+    if current.running:
+        raise AppError("Поиск уже идёт", code="enrich_running", status_code=409)
+    await enqueue_enrich_catalog(ctx.broker)
+    value = {
+        "running": True,
+        "started_at": datetime.now(UTC).isoformat(),
+        "finished_at": None,
+        "report": None,
+    }
+    if row is None:
+        session.add(PlatformSetting(key="enrich_status", value=value))
+    else:
+        row.value = value
+    await session.commit()
+    return EnrichStatus.model_validate(value)
 
 
 # --- pickers -----------------------------------------------------------------------------

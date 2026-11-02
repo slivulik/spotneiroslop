@@ -1,6 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "motion/react";
+import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { PlaysChart, StatTile } from "@/components/admin/charts";
 import { Button, Field, Input, PageTitle, Panel, Select, TextArea, Toggle } from "@/components/admin/ui";
@@ -40,7 +41,7 @@ function Switches() {
         <Toggle checked={draft.lossless_enabled ?? true} onChange={(v) => set("lossless_enabled", v)} label="Lossless (FLAC 16 бит)" description="Отключите, чтобы снизить трафик" />
         <Toggle checked={draft.hires_enabled ?? true} onChange={(v) => set("hires_enabled", v)} label="Hi-Res (FLAC 24 бит)" />
         <Toggle checked={draft.guest_previews ?? true} onChange={(v) => set("guest_previews", v)} label="Превью для гостей" description="30-секундные фрагменты без входа" />
-        <Toggle checked={draft.metadata_lookup ?? true} onChange={(v) => set("metadata_lookup", v)} label="Искать метаданные в открытых базах" description="При загрузке: тексты из LRCLIB, обложки из MusicBrainz, фото и биографии из Wikidata — только если в файле их нет" />
+        <Toggle checked={draft.metadata_lookup ?? true} onChange={(v) => set("metadata_lookup", v)} label="Искать метаданные в открытых базах" description="При загрузке: синхронные тексты из LRCLIB, обложки из MusicBrainz и Deezer, фото и биографии из Wikidata — если в файле их нет" />
         <Field label="Максимальное качество потока" className="p-3">
           <Select value={draft.max_quality ?? "hires"} onChange={(e) => set("max_quality", e.target.value as Config["max_quality"])} options={[
             { value: "hires", label: "Hi-Res" }, { value: "lossless", label: "Lossless" }, { value: "high", label: "Высокое (AAC 256)" },
@@ -81,6 +82,38 @@ function Switches() {
   );
 }
 
+/** Catalogue-wide pass: covers (MusicBrainz → Deezer), synced lyrics (LRCLIB), artist photos/bios. */
+function CatalogEnrich() {
+  const status = useQuery({
+    queryKey: ["admin", "enrich"],
+    queryFn: () => unwrap(api.GET("/v1/admin/catalog/enrich")),
+    refetchInterval: (q) => (q.state.data?.running ? 3000 : false),
+  });
+  const start = useAction(() => unwrap(api.POST("/v1/admin/catalog/enrich")), { success: "Поиск запущен", invalidate: [["admin", "enrich"]] });
+  const s = status.data;
+  const r = (s?.report ?? {}) as Record<string, number>;
+  return (
+    <Panel title="Обложки и тексты для всего каталога">
+      <p className="mb-4 text-body text-text-secondary">
+        Для каждого релиза без обложки — поиск по названию в MusicBrainz и Deezer; для каждого трека без текста — синхронный текст в LRCLIB
+        (обычный заменяется синхронным, если найдётся). Тексты, введённые вручную, не трогаются.
+      </p>
+      <div className="flex flex-wrap items-center gap-4">
+        <Button tone="primary" disabled={start.isPending || s?.running} onClick={() => start.mutate(undefined)}>
+          {s?.running ? "Идёт поиск…" : "Найти для всего каталога"}
+        </Button>
+        {s?.report ? (
+          <span className="text-caption text-text-secondary">
+            Обложек: {r.covers ?? 0} · синхронных текстов: {r.lyrics_synced ?? 0} · обычных: {r.lyrics_plain ?? 0} · артистов: {r.artists ?? 0}
+            {" · "}проверено релизов {r.checked_releases ?? 0}, треков {r.checked_tracks ?? 0}
+          </span>
+        ) : null}
+        {s?.finished_at && !s.running ? <span className="text-caption text-text-tertiary">Завершено {new Date(s.finished_at).toLocaleString("ru-RU")}</span> : null}
+      </div>
+    </Panel>
+  );
+}
+
 export default function StreamingPage() {
   const streaming = useStreaming();
   const d = streaming.data;
@@ -112,6 +145,7 @@ export default function StreamingPage() {
             </AnimatePresence>
             {d && d.listening_now.length === 0 ? <div className="py-6 text-center text-text-tertiary">Сейчас никто не слушает</div> : null}
           </Panel>
+          <CatalogEnrich />
           <Panel title="Прослушивания за 14 дней">{d ? <PlaysChart days={d.daily} /> : <div className="skeleton h-56 rounded-lg" />}</Panel>
           <Panel title="Топ треков недели">
             {d?.top_tracks.map((t, i) => (

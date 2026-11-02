@@ -227,7 +227,7 @@ def stage_artwork(ctx: JobContext) -> dict[str, Any]:
         if not has_cover and enrich.enabled(ctx):
             data = enrich.cover(ctx)
             if data:
-                ctx.warn("cover_found", "Обложка найдена в Cover Art Archive (MusicBrainz)")
+                ctx.warn("cover_found", "Обложка найдена в открытых базах (MusicBrainz / Deezer)")
     if data is None:
         if not has_cover:
             ctx.warn("no_cover", "Нет обложки (ни встроенной, ни загруженной) — релиз останется без картинки")

@@ -14,7 +14,7 @@ from sqlalchemy.orm import selectinload
 
 from sonora_api.core.context import AppContext
 from sonora_api.core.errors import NotFoundError
-from sonora_api.enrich import lrclib, musicbrainz, wikimedia
+from sonora_api.enrich import covers, lrclib, musicbrainz, wikimedia
 from sonora_api.models.catalog import Artist, Release, ReleaseArtist, Track, TrackArtist
 from sonora_api.models.enums import ImageKind
 from sonora_api.schemas.admin_catalog import ArtistSuggestion, CoverSuggestion, LyricsSuggestion
@@ -61,14 +61,20 @@ async def release_cover(session: AsyncSession, ctx: AppContext, release_id: uuid
     links = sorted(release.artist_links, key=lambda link: link.position)
     if not links:
         raise NothingFoundError("Release has no artist to search by")
-    mbid = await asyncio.to_thread(
-        musicbrainz.find_release_mbid, links[0].artist.name, release.title, release.track_count or None
+    single = None
+    if (release.track_count or 0) <= 1:
+        single = await session.scalar(select(Track.title).where(Track.release_id == release.id).limit(1))
+    match = await asyncio.to_thread(
+        covers.find,
+        links[0].artist.name,
+        release.title,
+        track_count=release.track_count or None,
+        single_title=single,
     )
-    data = await asyncio.to_thread(musicbrainz.front_cover, mbid) if mbid else None
-    if not data:
-        raise NothingFoundError("No matching release with a cover in MusicBrainz")
-    image = await upload_image(ctx, ImageKind.RELEASE, data)
-    return CoverSuggestion(image=image, source=f"https://musicbrainz.org/release/{mbid}")
+    if match is None:
+        raise NothingFoundError("No matching cover in MusicBrainz or Deezer")
+    image = await upload_image(ctx, ImageKind.RELEASE, match.data)
+    return CoverSuggestion(image=image, source=match.source)
 
 
 async def artist_info(session: AsyncSession, ctx: AppContext, artist_id: uuid.UUID) -> ArtistSuggestion:

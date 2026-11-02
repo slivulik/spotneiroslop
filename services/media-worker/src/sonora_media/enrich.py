@@ -8,7 +8,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
-from sonora_api.enrich import lrclib, musicbrainz, wikimedia
+from sonora_api.enrich import covers, lrclib, musicbrainz, wikimedia
 from sonora_api.media.images import ImageError, process
 from sonora_api.media.lyrics import line_document, parse_lrc, static_document
 from sonora_api.models import Artist, PlatformSetting
@@ -52,10 +52,14 @@ def lyrics(ctx: JobContext) -> dict[str, Any] | None:
 
 def cover(ctx: JobContext) -> bytes | None:
     tags = ctx.tags
-    if not (tags.artists and tags.album):
+    if not tags.artists:
         return None
-    mbid = musicbrainz.find_release_mbid(tags.artists[0], tags.album, tags.track_total)
-    return musicbrainz.front_cover(mbid) if mbid else None
+    album = tags.album or tags.title  # a lone track without an album tag is its own single
+    if not album:
+        return None
+    single = tags.title if (tags.track_total or 1) <= 1 or not tags.album else None
+    match = covers.find(tags.artists[0], album, track_count=tags.track_total, single_title=single)
+    return match.data if match else None
 
 
 def apply_artist_info(session: Session, ctx: JobContext, artist: Artist, workdir: Path) -> None:
