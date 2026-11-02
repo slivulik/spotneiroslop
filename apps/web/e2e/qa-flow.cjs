@@ -99,6 +99,20 @@ const AUDIT = () => {
     });
     check(`navigation reachable at ${w}px`, nav.side || nav.tab, JSON.stringify(nav));
   }
+  // Full-screen player on a phone: every control inside the screen (it once overflowed to the right).
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto(BASE + album);
+  await page.waitForTimeout(1200);
+  await page.locator('li[id^="t-"]').first().getByRole("button").first().click();
+  await page.waitForTimeout(1500);
+  await page.locator(".player-dock").first().click({ position: { x: 60, y: 20 } });
+  await page.waitForTimeout(1500);
+  const npOverflow = await page.evaluate(() => [...document.querySelectorAll("button, [role=slider], input[type=range]")]
+    .filter((e) => { const r = e.getBoundingClientRect(); return r.width > 0 && (r.right > window.innerWidth + 1 || r.left < -1); })
+    .map((e) => e.getAttribute("aria-label") || e.textContent?.trim().slice(0, 20)));
+  await page.screenshot({ path: `${OUT}/w390-nowplaying.png` });
+  check("full-screen player fits a 390 px screen", npOverflow.length === 0, npOverflow.slice(0, 4).join(", "));
+  await page.keyboard.press("Escape");
   await page.setViewportSize({ width: 1440, height: 900 });
 
   // --- 2. Dead buttons & a11y basics on every page ----------------------------------------------
