@@ -24,10 +24,12 @@ from sonora_api.schemas.catalog import (
     ReleaseOut,
     ReleaseRef,
     ReleaseSummary,
+    TrackLicense,
     TrackOut,
 )
 from sonora_api.schemas.common import Page
 from sonora_api.services.media import artwork, media_url, palette_out
+from sonora_api.services.sources.base import SOURCE_TITLES
 
 TOP_TRACKS_LIMIT = 10
 HIRES_MIN_BIT_DEPTH = 24
@@ -99,6 +101,20 @@ def is_playable(track: Track, viewer: User | None) -> bool:
     return not (viewer.explicit_filter and track.is_explicit)
 
 
+def track_license(track: Track) -> TrackLicense | None:
+    """Licence and attribution of an imported recording; None for the owner's own uploads."""
+    if not track.license_code:
+        return None
+    source = SOURCE_TITLES.get(track.source_name, track.source_name) if track.source_name else None
+    return TrackLicense(
+        code=track.license_code,
+        url=track.license_url,
+        source=source,
+        source_url=track.source_url,
+        attribution=track.attribution,
+    )
+
+
 def track_out(settings: Settings, track: Track, viewer: User | None) -> TrackOut:
     return TrackOut(
         id=track.id,
@@ -115,6 +131,7 @@ def track_out(settings: Settings, track: Track, viewer: User | None) -> TrackOut
         lyrics_type=track.lyrics_type,
         has_canvas=track.has_canvas,
         playable=is_playable(track, viewer),
+        license=track_license(track),
     )
 
 

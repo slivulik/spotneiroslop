@@ -125,6 +125,14 @@ class Track(Base):
         CheckConstraint("duration_ms >= 0", name="duration_non_negative"),
         # Candidate lookup for acoustic-fingerprint duplicate detection.
         Index("ix_tracks_duration_ms", "duration_ms"),
+        # One catalogue track per recording imported from an open source.
+        Index(
+            "ix_tracks_source_external_id",
+            "source_name",
+            "source_external_id",
+            unique=True,
+            postgresql_where=text("source_external_id IS NOT NULL"),
+        ),
     )
 
     id: Mapped[uuid.UUID] = pk_uuid()
@@ -158,6 +166,16 @@ class Track(Base):
         str_enum(TrackStatus, "track_status"), server_default=TrackStatus.PROCESSING.value
     )
     play_count: Mapped[int] = mapped_column(BigInteger, server_default="0")
+    #: Licence of a recording imported from an open catalogue ("CC BY-SA 4.0", "CC0 1.0" …);
+    #: None for the owner's own uploads.
+    license_code: Mapped[str | None] = mapped_column(String(64))
+    license_url: Mapped[str | None] = mapped_column(String(512))
+    #: Where it was imported from ("jamendo", "internet_archive"), its id and page there.
+    source_name: Mapped[str | None] = mapped_column(String(32))
+    source_external_id: Mapped[str | None] = mapped_column(String(512))
+    source_url: Mapped[str | None] = mapped_column(String(512))
+    #: Author to credit, as the licence requires.
+    attribution: Mapped[str | None] = mapped_column(String(512))
     created_at: Mapped[datetime] = created_at()
     updated_at: Mapped[datetime] = updated_at()
 
