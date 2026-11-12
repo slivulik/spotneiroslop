@@ -1,5 +1,5 @@
 # Temporary helper for the team/v2 branch: regenerates the OpenAPI document and the typed TS client
-# from the API code and uploads them as an artifact. Removed again before the PR is merged.
+# from the API code and commits them back to the branch when they changed. Removed before merging.
 name: regen-schema
 
 on:
@@ -10,6 +10,8 @@ on:
 jobs:
   regen:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v5
       - uses: astral-sh/setup-uv@v7
@@ -29,9 +31,9 @@ jobs:
         run: |
           pnpm install --frozen-lockfile --filter @sonora/api-schema...
           pnpm --filter @sonora/api-schema run generate
-      - uses: actions/upload-artifact@v4
-        with:
-          name: api-schema
-          path: |
-            packages/api-schema/openapi.json
-            packages/api-schema/src/schema.gen.ts
+      - name: Commit when changed
+        run: |
+          git add packages/api-schema/openapi.json packages/api-schema/src/schema.gen.ts
+          if git diff --cached --quiet; then echo "schema up to date"; exit 0; fi
+          git -c user.name="sonora-ci" -c user.email="ci@sonora.invalid" commit -m "chore(api-schema): regenerate OpenAPI document and TS client"
+          git push origin HEAD:${GITHUB_REF_NAME}
