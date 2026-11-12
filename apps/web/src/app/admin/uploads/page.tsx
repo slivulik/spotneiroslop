@@ -11,9 +11,9 @@ import { type S, useAction } from "@/lib/admin";
 
 const AUDIO = /\.(flac|mp3)$/i;
 const COVER = /^(cover|folder|front|artwork)\.(jpe?g|png|webp)$/i;
-const STAGES = ["probe", "authenticity", "tags", "fingerprint", "loudness", "catalog", "transcode", "waveform", "artwork", "preview", "lyrics", "publish"];
+const STAGES = ["fetch", "probe", "authenticity", "tags", "fingerprint", "loudness", "catalog", "transcode", "waveform", "artwork", "preview", "lyrics", "publish"];
 const STAGE_LABELS: Record<string, string> = {
-  probe: "Проверка", authenticity: "Подлинность", tags: "Теги", fingerprint: "Дубли", loudness: "Громкость", catalog: "Каталог",
+  fetch: "Скачивание", probe: "Проверка", authenticity: "Подлинность", tags: "Теги", fingerprint: "Дубли", loudness: "Громкость", catalog: "Каталог",
   transcode: "Кодирование", waveform: "Волна", artwork: "Обложка", preview: "Превью", lyrics: "Текст", publish: "Публикация",
 };
 
@@ -224,6 +224,16 @@ function StageBar({ job }: { job: S["UploadJobOut"] }) {
   );
 }
 
+const SOURCE_NAMES: Record<string, string> = { jamendo: "Jamendo", internet_archive: "Internet Archive" };
+
+/** Jobs created by «Открытые источники» carry the catalogue's description in their options. */
+function importedFrom(job: S["UploadJobOut"]): { label: string; source: string } | null {
+  const options = job.options as { source?: string; source_meta?: { title?: string; artist?: string } };
+  if (!options.source || !options.source_meta) return null;
+  const { title, artist } = options.source_meta;
+  return { label: [artist, title].filter(Boolean).join(" — ") || job.id, source: SOURCE_NAMES[options.source] ?? options.source };
+}
+
 function Jobs() {
   const client = useQueryClient();
   const jobs = useJobs();
@@ -239,10 +249,12 @@ function Jobs() {
         <AnimatePresence initial={false}>
           {jobs.data?.items.map((job) => {
             const source = job.files.find((f) => (f as { role?: string }).role === "source") as { filename?: string } | undefined;
+            const imported = importedFrom(job);
             return (
               <motion.div key={job.id} layout initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="rounded-lg bg-white/[0.04] p-4">
                 <div className="mb-2 flex flex-wrap items-center gap-2">
-                  <span className="min-w-0 flex-1 truncate text-body font-semibold">{source?.filename ?? job.id}</span>
+                  <span className="min-w-0 flex-1 truncate text-body font-semibold">{imported?.label ?? source?.filename ?? job.id}</span>
+                  {imported ? <Pill>{imported.source}</Pill> : null}
                   {job.stage && job.status !== "succeeded" ? <Pill tone="info">{STAGE_LABELS[job.stage] ?? job.stage}</Pill> : null}
                   <StatusPill status={job.status} />
                 </div>
