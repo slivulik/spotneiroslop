@@ -6,7 +6,7 @@ import { useCurrentTrack } from "@/components/player/hooks";
 const BRAND = { c1: "#8a2a12", c2: "#2a2f8f", c3: "#0b5f56" };
 
 /** Pull a colour towards a usable brightness for a glowing background. */
-function vivid(hex: string | null | undefined, fallback: string): string {
+export function vivid(hex: string | null | undefined, fallback: string): string {
   if (!hex || !/^#[0-9a-f]{6}$/i.test(hex)) return fallback;
   const n = Number.parseInt(hex.slice(1), 16);
   let [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
