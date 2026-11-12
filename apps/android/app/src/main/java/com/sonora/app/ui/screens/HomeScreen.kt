@@ -22,11 +22,10 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
@@ -63,7 +62,6 @@ import com.sonora.app.ui.components.UiState
 import com.sonora.app.ui.components.tracksWord
 import com.sonora.app.ui.design.C
 import com.sonora.app.ui.design.EqBars
-import com.sonora.app.ui.design.PlayButton
 import com.sonora.app.ui.design.S
 import com.sonora.app.ui.design.SectionTitle
 import com.sonora.app.ui.design.T
@@ -131,23 +129,23 @@ fun greeting(hour: Int = LocalTime.now().hour): String = when {
 fun HomeScreen(app: AppViewModel, vm: HomeViewModel = hiltViewModel()) {
     val state by vm.state.collectAsStateWithLifecycle()
     val signedIn by app.auth.signedIn.collectAsStateWithLifecycle()
+    val player by app.player.state.collectAsStateWithLifecycle()
+    val waveSettings by app.waves.settings.collectAsStateWithLifecycle()
+    val waving = player.context?.type == "wave"
+    val hero = remember(player.track, waving, player.isPlaying, waveSettings) { WaveHeroUi(player.track, waving, waving && player.isPlaying, waveSettings) }
     LaunchedEffect(signedIn) { vm.load() }
-    LoadState(state, onRetry = { vm.load() }) { HomeContent(it) }
+    LoadState(state, onRetry = { vm.load() }) { HomeContent(it, hero = hero) }
 }
 
 @Composable
-fun HomeContent(data: HomeData, hour: Int = LocalTime.now().hour) {
+fun HomeContent(data: HomeData, hour: Int = LocalTime.now().hour, hero: WaveHeroUi = WaveHeroUi()) {
     val env = LocalEnv.current
     val actions = LocalActions.current
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = LocalBottomInset.current + S.l)) {
-        item {
-            Row(Modifier.fillMaxWidth().statusBarsPadding().padding(start = S.page, end = S.page, top = S.m, bottom = S.s), verticalAlignment = Alignment.CenterVertically) {
-                Text(greeting(hour), style = com.sonora.app.ui.design.T.PageTitle, color = C.text, modifier = Modifier.weight(1f))
-                Avatar(env.userName ?: env.email, env.signedIn) { actions.navigate(if (env.signedIn) "settings" else "login") }
-            }
-        }
+        // «Моя волна» needs an account; signed out, the page starts with the greeting.
+        if (env.signedIn) item(key = "home:wave") { WaveHero(hero) { Greeting(hour) } }
+        else item(key = "home:greeting") { Greeting(hour, Modifier.statusBarsPadding()) }
         if (env.signedIn && data.recent.isNotEmpty()) item { RecentGrid(data.recent.take(6)) }
-        if (env.signedIn) item { WaveCard() }
         if (data.mixes.isNotEmpty()) {
             item { SectionTitle("Миксы для вас") }
             item { Shelf(data.mixes, { it.key }) { m -> MediaCard(m.mosaic.firstOrNull(), m.title, m.subtitle ?: tracksWord(m.trackCount), m.key) { actions.navigate("mix/${m.key}") } } }
@@ -161,6 +159,16 @@ fun HomeContent(data: HomeData, hour: Int = LocalTime.now().hour) {
             item { Shelf(data.playlists, { it.id }) { PlaylistCard(it) } }
         }
         data.home.sections.forEach { block -> item(key = block.id) { Block(block) } }
+    }
+}
+
+@Composable
+private fun Greeting(hour: Int, modifier: Modifier = Modifier) {
+    val env = LocalEnv.current
+    val actions = LocalActions.current
+    Row(modifier.fillMaxWidth().padding(start = S.page, end = S.page, top = S.m, bottom = S.s), verticalAlignment = Alignment.CenterVertically) {
+        Text(greeting(hour), style = T.PageTitle, color = C.text, modifier = Modifier.weight(1f))
+        Avatar(env.userName ?: env.email, env.signedIn) { actions.navigate(if (env.signedIn) "settings" else "login") }
     }
 }
 
@@ -205,29 +213,6 @@ private fun RecentGrid(tracks: List<Track>) {
                 if (row.size == 1) Spacer(Modifier.weight(1f))
             }
         }
-    }
-}
-
-/** «Моя волна»: one calm accent card with a single action. */
-@Composable
-private fun WaveCard() {
-    val env = LocalEnv.current
-    val actions = LocalActions.current
-    val waving = env.currentContext?.type == "wave"
-    val accent = C.accent
-    Row(
-        Modifier.padding(horizontal = S.page, vertical = S.m).fillMaxWidth().height(120.dp).clip(RoundedCornerShape(12.dp))
-            .drawBehind { drawRect(Brush.linearGradient(listOf(accent, Color(0xFF2A1A6E)), Offset.Zero, Offset(size.width, size.height))) }
-            .press({ if (waving) actions.togglePlay() else actions.playWave() }, label = "Моя волна")
-            .padding(horizontal = S.xl),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text("Моя волна", style = T.Headline.copy(color = Color.White))
-            Spacer(Modifier.height(S.xs))
-            Text("Бесконечный поток под ваш вкус", style = T.Caption, color = Color.White.copy(alpha = 0.8f))
-        }
-        PlayButton(waving && env.playing, { if (waving) actions.togglePlay() else actions.playWave() }, size = 52.dp, container = Color.White, content = Color(0xFF1B1238))
     }
 }
 

@@ -94,6 +94,7 @@ class AuthRepository @Inject constructor(
     private val settings: SettingsRepository,
     private val cache: OfflineCache,
     private val library: LibraryRepository,
+    private val waves: WaveRepository,
 ) {
     val signedIn: StateFlow<com.sonora.app.data.net.Tokens?> = session.tokens
     private val _me = MutableStateFlow<com.sonora.app.data.net.Me?>(null)
@@ -118,6 +119,7 @@ class AuthRepository @Inject constructor(
         _me.value = tokens.user
         settings.pull()
         library.refresh()
+        waves.pull()
     }
 
     suspend fun login(email: String, password: String) {
@@ -126,6 +128,7 @@ class AuthRepository @Inject constructor(
         _me.value = tokens.user
         settings.pull()
         library.refresh()
+        waves.pull()
     }
 
     suspend fun logout() {
@@ -134,6 +137,7 @@ class AuthRepository @Inject constructor(
         _me.value = null
         cache.clear()
         library.reset()
+        waves.reset()
     }
 }
 

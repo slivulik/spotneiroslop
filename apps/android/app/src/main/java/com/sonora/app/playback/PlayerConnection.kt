@@ -7,8 +7,8 @@ import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
-import com.sonora.app.data.net.SonoraApi
 import com.sonora.app.data.net.Track
+import com.sonora.app.data.repo.WaveRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -42,7 +42,8 @@ data class PlayerUi(
 @Singleton
 class PlayerConnection @Inject constructor(
     @ApplicationContext private val context: Context,
-    private val api: SonoraApi,
+    private val waves: WaveRepository,
+    private val feedback: WaveFeedback,
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private var controller: MediaController? = null
@@ -50,6 +51,11 @@ class PlayerConnection @Inject constructor(
     val state: StateFlow<PlayerUi> = _state
     private var ticker: Job? = null
     private var refilling = false
+    /** Changes when the wave's upcoming items are replaced; a refill started before is then dropped. */
+    private var waveGeneration = 0
+    /** After a refill that added nothing, wait before asking again (no request storm per player event). */
+    private var refillPausedUntil = 0L
+    private var waveRestart: Job? = null
 
     fun connect() {
         if (controller != null) return
@@ -111,23 +117,88 @@ class PlayerConnection @Inject constructor(
         c.play()
     }
 
-    /** Endless "Моя волна": new tracks from /v1/me/wave, never repeating what is already queued. */
-    fun playWave() = scope.launch {
-        val tracks = runCatching { api.wave(25) }.getOrNull().orEmpty()
-        if (tracks.isNotEmpty()) play(tracks, 0, PlayContext("wave", null, "Моя волна"))
+    /** Fine-grained position for the karaoke lyrics (the published state ticks only twice a second). */
+    fun positionMs(): Long = controller?.currentPosition?.coerceAtLeast(0) ?: _state.value.positionMs
+
+    /**
+     * Endless «Моя волна»: a new server session with the current wave settings; its id travels with
+     * every queued item (and survives process death through the saved queue). False if it failed.
+     */
+    suspend fun startWave(): Boolean {
+        val batch = waves.start() ?: return false
+        val tracks = batch.tracks.filter { it.playable }
+        if (tracks.isEmpty()) return false
+        waveGeneration++
+        refillPausedUntil = 0
+        play(tracks, 0, waveContext(batch.sessionId))
+        return true
     }
+
+    private fun waveContext(sessionId: String?) = PlayContext("wave", sessionId, WAVE_TITLE)
 
     private fun maybeRefillWave(items: List<MediaItem>, index: Int) {
         val ctx = QueueCodec.context(items.getOrNull(index)) ?: return
         if (ctx.type != "wave" || refilling || items.size - index > 3) return
+        if (System.currentTimeMillis() < refillPausedUntil) return
+        // The newest session sits at the end of the queue (settings changes replace upcoming items).
+        val session = items.asReversed().firstNotNullOfOrNull { WaveFeedback.sessionOf(it) } ?: ctx.id
+        val generation = waveGeneration
         refilling = true
         scope.launch {
             val queued = items.map { it.mediaId }
-            var more = runCatching { api.wave(25, queued.takeLast(200)) }.getOrNull().orEmpty()
-            if (more.isEmpty()) more = runCatching { api.wave(25, queued.takeLast(10)) }.getOrNull().orEmpty()
-            controller?.addMediaItems(more.map { QueueCodec.item(it, ctx) })
+            val batch = waves.more(session, queued)
+            // The server never repeats within a session; a fresh session (after a restart) might.
+            val recent = queued.takeLast(30).toHashSet()
+            val fresh = batch?.tracks.orEmpty().filter { it.playable && it.id !in recent }
+            val c = controller
+            if (generation == waveGeneration) {
+                if (c != null && batch != null && fresh.isNotEmpty()) {
+                    c.addMediaItems(fresh.map { QueueCodec.item(it, waveContext(batch.sessionId)) })
+                } else {
+                    refillPausedUntil = System.currentTimeMillis() + 30_000
+                }
+            }
             refilling = false
         }
+    }
+
+    /**
+     * Wave settings changed: while the wave plays, start a new session and replace the upcoming
+     * items (never the current track). Debounced, so tapping through the chips makes one request.
+     */
+    fun onWaveSettingsChanged() {
+        waveRestart?.cancel()
+        waveRestart = scope.launch {
+            delay(600)
+            if (QueueCodec.context(controller?.currentMediaItem)?.type != "wave") return@launch
+            val batch = waves.start() ?: return@launch
+            val c = controller ?: return@launch
+            val current = c.currentMediaItem ?: return@launch
+            if (QueueCodec.context(current)?.type != "wave") return@launch
+            val fresh = batch.tracks.filter { it.playable && it.id != current.mediaId }
+            if (fresh.isEmpty()) return@launch
+            waveGeneration++
+            refillPausedUntil = 0
+            refilling = true // removing items must not trigger a refill from the old session
+            val from = c.currentMediaItemIndex + 1
+            if (from < c.mediaItemCount) c.removeMediaItems(from, c.mediaItemCount)
+            c.addMediaItems(fresh.map { QueueCodec.item(it, waveContext(batch.sessionId)) })
+            refilling = false
+        }
+    }
+
+    /** Liked in the app: during the wave this is also a strong positive signal for the session. */
+    fun onLiked(trackId: String) {
+        val item = controller?.currentMediaItem ?: return
+        if (item.mediaId == trackId) feedback.liked(item)
+    }
+
+    /** «Не нравится» in the wave: tell the session, then move on. */
+    fun dislike() {
+        val c = controller ?: return
+        val item = c.currentMediaItem ?: return
+        feedback.disliked(item, c.currentPosition)
+        c.seekToNextMediaItem()
     }
 
     fun toggle() {
@@ -189,6 +260,10 @@ class PlayerConnection @Inject constructor(
 
     fun move(from: Int, to: Int) {
         controller?.moveMediaItem(from, to)
+    }
+
+    private companion object {
+        const val WAVE_TITLE = "Моя волна"
     }
 
     private fun connectThen(action: () -> Unit) {

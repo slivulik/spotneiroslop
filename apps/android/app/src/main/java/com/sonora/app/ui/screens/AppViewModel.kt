@@ -8,11 +8,13 @@ import androidx.media3.common.util.UnstableApi
 import com.sonora.app.data.net.PlaylistSummary
 import com.sonora.app.data.net.SonoraApi
 import com.sonora.app.data.net.Track
+import com.sonora.app.data.net.WaveSettings
 import com.sonora.app.data.repo.AuthRepository
 import com.sonora.app.data.repo.EventsRepository
 import com.sonora.app.data.repo.LibraryRepository
 import com.sonora.app.data.repo.ServerAddress
 import com.sonora.app.data.repo.SettingsRepository
+import com.sonora.app.data.repo.WaveRepository
 import com.sonora.app.playback.PlayContext
 import com.sonora.app.playback.PlayerConnection
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -33,6 +35,7 @@ class AppViewModel @Inject constructor(
     val library: LibraryRepository,
     val player: PlayerConnection,
     val settings: SettingsRepository,
+    val waves: WaveRepository,
     private val events: EventsRepository,
     private val api: SonoraApi,
     private val server: ServerAddress,
@@ -65,9 +68,39 @@ class AppViewModel @Inject constructor(
                 auth.refreshMe()
                 settings.pull()
                 library.refresh()
+                waves.pull()
             }
             events.flush()
         }
+    }
+
+    /** «Моя волна» settings sheet. */
+    private val _waveSheet = MutableStateFlow(false)
+    val waveSheet: StateFlow<Boolean> = _waveSheet
+
+    fun openWaveSettings() {
+        _waveSheet.value = true
+        viewModelScope.launch { waves.pull() }
+    }
+
+    fun closeWaveSettings() {
+        _waveSheet.value = false
+    }
+
+    /** Saved on the phone at once; a playing wave switches to a new session from the next track. */
+    fun setWaveSettings(s: WaveSettings) {
+        if (s == waves.settings.value) return
+        waves.update(s)
+        player.onWaveSettingsChanged()
+    }
+
+    fun playWave() = viewModelScope.launch {
+        if (!player.startWave()) say("Не удалось запустить волну — проверьте соединение")
+    }
+
+    fun dislike() {
+        player.dislike()
+        say("Не нравится — волна учтёт")
     }
 
     fun say(text: String) {
@@ -75,7 +108,9 @@ class AppViewModel @Inject constructor(
     }
 
     fun toggle(kind: String, id: String) = viewModelScope.launch {
+        val wasSaved = library.isSaved(kind, id)
         if (!library.toggle(kind, id)) say("Не удалось сохранить — нет соединения")
+        else if (kind == "tracks" && !wasSaved) player.onLiked(id)
     }
 
     fun pickPlaylist(track: Track) {
