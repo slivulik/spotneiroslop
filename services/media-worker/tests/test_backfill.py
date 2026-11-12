@@ -3,6 +3,7 @@
 from pathlib import Path
 
 import pytest
+from sonora_api.enrich import covers, lrclib, musicbrainz
 from sonora_api.enrich.covers import CoverMatch
 from sonora_api.enrich.lrclib import LyricsMatch
 from sonora_api.models import Lyrics, PlatformSetting, Release, Track
@@ -33,22 +34,22 @@ def test_backfill_finds_covers_and_synced_lyrics(
         asked.append((artist, album))
         return CoverMatch(cover_png(800), "https://www.deezer.com/album/1")
 
-    monkeypatch.setattr(backfill.covers, "find", fake_cover)
+    monkeypatch.setattr(covers, "find", fake_cover)
     monkeypatch.setattr(
-        backfill.lrclib,
+        lrclib,
         "find",
         lambda *a, **k: LyricsMatch("[00:01.00]Первая\n[00:03.00]Вторая", "Первая\nВторая", False, 7),
     )
-    monkeypatch.setattr(backfill.enrich.musicbrainz, "find_artist_wikidata", lambda *a, **k: None)
+    monkeypatch.setattr(musicbrainz, "find_artist_wikidata", lambda *a, **k: None)
 
     report = backfill.run(backfill.Env(h.settings, h.storage, sessions, tmp_path / "enrich"))
     assert (report.covers, report.lyrics_synced) == (1, 1)
     assert asked == [("Solo Artist", "Plain")]  # a lone track is searched as its own single
     with sessions() as s:
-        release = s.get(Release, release.id)
-        assert release is not None
-        assert release.cover_key
-        assert release.cover_key.startswith(f"covers/{release.id}/")
+        stored = s.get(Release, release.id)
+        assert stored is not None
+        assert stored.cover_key
+        assert stored.cover_key.startswith(f"covers/{stored.id}/")
         lyrics = s.get(Lyrics, track.id)
         assert lyrics is not None
         assert lyrics.type == LyricsType.LINE

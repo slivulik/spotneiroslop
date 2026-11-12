@@ -267,7 +267,7 @@ class InternetArchiveSource:
 
     async def search(self, query: str, limit: int) -> list[SourceTrack]:
         q = f"({escape_query(query)}) AND mediatype:(audio) AND licenseurl:(*creativecommons.org*)"
-        params = [
+        params: list[tuple[str, str | int | float | bool | None]] = [
             ("q", q),
             ("fl[]", "identifier"),
             ("fl[]", "licenseurl"),

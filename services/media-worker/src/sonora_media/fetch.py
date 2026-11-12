@@ -114,7 +114,8 @@ def _open(client: httpx.Client, url: str) -> tuple[httpx.Response, str]:
 
 
 def _content_type(response: httpx.Response) -> str:
-    return response.headers.get("content-type", "").split(";")[0].strip().lower()
+    value: str = response.headers.get("content-type", "")
+    return value.split(";", maxsplit=1)[0].strip().lower()
 
 
 def _stream_to(response: httpx.Response, part: Path, *, max_bytes: int, deadline: float, host: str) -> int:
