@@ -4,6 +4,8 @@ Owner: Denis (speaks Russian; answer him in Russian, kindly). This repo is his m
 service: FastAPI API, media-worker, Next.js site, native Android app.
 
 ## How work is organised
+Full kickoff brief from Denis (roles, rounds, «Мэтч», recommendations, quality bars): `docs/team/KICKOFF.md` — follow it.
+
 Work runs in **rounds** with a large team of subagents — read `docs/team/PROCESS.md` (process)
 and `docs/team/BRIEF.md` (team brief, file ownership, API contracts, environment limits).
 Integration branch: `team/v2` (draft PR against the default branch). Never push to the default branch.
