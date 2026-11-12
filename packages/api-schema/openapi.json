@@ -5278,6 +5278,208 @@
         "title": "SignedOut",
         "type": "object"
       },
+      "SourceImportIn": {
+        "properties": {
+          "external_ids": {
+            "description": "Ids from the search results; resolved again on the server",
+            "items": {
+              "maxLength": 512,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 50,
+            "minItems": 1,
+            "title": "External Ids",
+            "type": "array"
+          },
+          "publish": {
+            "default": false,
+            "description": "Publish each release as soon as processing succeeds",
+            "title": "Publish",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "external_ids"
+        ],
+        "title": "SourceImportIn",
+        "type": "object"
+      },
+      "SourceLicense": {
+        "properties": {
+          "code": {
+            "description": "Readable licence: «CC BY-SA 4.0», «CC0 1.0», «Public Domain Mark 1.0» …",
+            "title": "Code",
+            "type": "string"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Licence deed",
+            "title": "Url"
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "title": "SourceLicense",
+        "type": "object"
+      },
+      "SourceOut": {
+        "description": "An open music catalogue the admin can import from.",
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "disabled_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Why the source can't be used (e.g. no Jamendo key), in Russian",
+            "title": "Disabled Reason"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "key": {
+            "enum": [
+              "jamendo",
+              "internet_archive"
+            ],
+            "title": "Key",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "title",
+          "description",
+          "enabled"
+        ],
+        "title": "SourceOut",
+        "type": "object"
+      },
+      "SourceTrackOut": {
+        "properties": {
+          "album": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Album"
+          },
+          "already_imported": {
+            "description": "A track from this recording is already in the catalogue",
+            "title": "Already Imported",
+            "type": "boolean"
+          },
+          "artist": {
+            "title": "Artist",
+            "type": "string"
+          },
+          "artwork_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Artwork Url"
+          },
+          "duration_s": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration S"
+          },
+          "external_id": {
+            "description": "Pass back to `/import`",
+            "title": "External Id",
+            "type": "string"
+          },
+          "format": {
+            "description": "What will be downloaded: flac or mp3",
+            "title": "Format",
+            "type": "string"
+          },
+          "license": {
+            "$ref": "#/components/schemas/SourceLicense"
+          },
+          "page_url": {
+            "description": "The recording's page at the source",
+            "title": "Page Url",
+            "type": "string"
+          },
+          "preview_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Directly playable stream for listening before import",
+            "title": "Preview Url"
+          },
+          "source": {
+            "enum": [
+              "jamendo",
+              "internet_archive"
+            ],
+            "title": "Source",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "source",
+          "external_id",
+          "title",
+          "artist",
+          "album",
+          "duration_s",
+          "license",
+          "artwork_url",
+          "preview_url",
+          "page_url",
+          "format",
+          "already_imported"
+        ],
+        "title": "SourceTrackOut",
+        "type": "object"
+      },
       "StatsOut": {
         "properties": {
           "artists": {
@@ -5624,6 +5826,69 @@
         "title": "TopTrack",
         "type": "object"
       },
+      "TrackLicense": {
+        "description": "Licence of a recording imported from an open catalogue (Creative Commons / public domain).",
+        "properties": {
+          "attribution": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Author to credit",
+            "title": "Attribution"
+          },
+          "code": {
+            "description": "Readable licence: «CC BY-SA 4.0», «CC0 1.0», «Public Domain Mark 1.0» …",
+            "title": "Code",
+            "type": "string"
+          },
+          "source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Where it was imported from, e.g. «Jamendo»",
+            "title": "Source"
+          },
+          "source_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The recording's page at the source",
+            "title": "Source Url"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Licence deed",
+            "title": "Url"
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "title": "TrackLicense",
+        "type": "object"
+      },
       "TrackList": {
         "properties": {
           "items": {
@@ -5676,6 +5941,17 @@
           "is_explicit": {
             "title": "Is Explicit",
             "type": "boolean"
+          },
+          "license": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TrackLicense"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Set for imported Creative Commons / public-domain recordings"
           },
           "lyrics_type": {
             "anyOf": [
@@ -6060,6 +6336,7 @@
       "UploadStage": {
         "description": "Media pipeline stages, in execution order. Each is idempotent and checkpointed in\n`upload_jobs.state`, so a job can be retried from any stage.",
         "enum": [
+          "fetch",
           "probe",
           "authenticity",
           "tags",
@@ -6215,6 +6492,168 @@
           "token"
         ],
         "title": "VerifyEmailIn",
+        "type": "object"
+      },
+      "WaveFeedbackIn": {
+        "description": "What the listener did with a track of the session. `skipped` before 30 s pushes the artist\nand genres down for the rest of the session; `liked` also likes the track; `disliked` stores a\n«не нравится» (the client skips to the next track itself).",
+        "properties": {
+          "action": {
+            "enum": [
+              "started",
+              "finished",
+              "skipped",
+              "liked",
+              "disliked"
+            ],
+            "title": "Action",
+            "type": "string"
+          },
+          "played_ms": {
+            "anyOf": [
+              {
+                "maximum": 86400000.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Played Ms"
+          },
+          "track_id": {
+            "format": "uuid",
+            "title": "Track Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "track_id",
+          "action"
+        ],
+        "title": "WaveFeedbackIn",
+        "type": "object"
+      },
+      "WaveSessionOut": {
+        "properties": {
+          "session_id": {
+            "format": "uuid",
+            "title": "Session Id",
+            "type": "string"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/WaveSettings"
+          },
+          "tracks": {
+            "items": {
+              "$ref": "#/components/schemas/TrackOut"
+            },
+            "title": "Tracks",
+            "type": "array"
+          }
+        },
+        "required": [
+          "session_id",
+          "settings",
+          "tracks"
+        ],
+        "title": "WaveSessionOut",
+        "type": "object"
+      },
+      "WaveSettings": {
+        "description": "How the listener tuned «Моя волна»; null means «any». Filters relax (language, then mood,\nthen character) rather than leave the wave empty.",
+        "properties": {
+          "character": {
+            "anyOf": [
+              {
+                "enum": [
+                  "favorite",
+                  "discover",
+                  "popular"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Character"
+          },
+          "language": {
+            "anyOf": [
+              {
+                "enum": [
+                  "russian",
+                  "foreign",
+                  "instrumental"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Language"
+          },
+          "mood": {
+            "anyOf": [
+              {
+                "enum": [
+                  "energetic",
+                  "happy",
+                  "calm",
+                  "sad"
+                ],
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mood"
+          }
+        },
+        "title": "WaveSettings",
+        "type": "object"
+      },
+      "WaveStartIn": {
+        "properties": {
+          "limit": {
+            "default": 20,
+            "maximum": 50.0,
+            "minimum": 1.0,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "seed_artist": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seed Artist"
+          },
+          "seed_track": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seed Track"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/WaveSettings"
+          }
+        },
+        "title": "WaveStartIn",
         "type": "object"
       },
       "WeeklyPlays": {
@@ -9948,6 +10387,402 @@
         ]
       }
     },
+    "/v1/admin/sources": {
+      "get": {
+        "description": "Catalogues and whether each can be used right now (e.g. Jamendo needs a key).",
+        "operationId": "admin_list_sources",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SourceOut"
+                  },
+                  "title": "Response Admin List Sources",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "List Sources",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/admin/sources/{key}/import": {
+      "post": {
+        "description": "Queue one upload job per track; follow them in «Загрузка» (`GET /v1/admin/uploads`).",
+        "operationId": "admin_import_from_source",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "enum": [
+                "jamendo",
+                "internet_archive"
+              ],
+              "title": "Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SourceImportIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/UploadJobOut"
+                  },
+                  "title": "Response Admin Import From Source",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Import From Source",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/v1/admin/sources/{key}/search": {
+      "get": {
+        "description": "Free-licence tracks only; `already_imported` marks recordings already in the catalogue.",
+        "operationId": "admin_search_source",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "enum": [
+                "jamendo",
+                "internet_archive"
+              ],
+              "title": "Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "required": true,
+            "schema": {
+              "maxLength": 200,
+              "minLength": 1,
+              "title": "Q",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/SourceTrackOut"
+                  },
+                  "title": "Response Admin Search Source",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          },
+          "502": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Gateway"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Search Source",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/v1/admin/stats": {
       "get": {
         "operationId": "admin_stats",
@@ -10637,6 +11472,7 @@
     },
     "/v1/admin/tracks/{track_id}/lyrics": {
       "delete": {
+        "description": "Removed lyrics stay removed: listeners opening the track won't fetch them from LRCLIB again.",
         "operationId": "admin_delete_lyrics",
         "parameters": [
           {
@@ -17172,6 +18008,447 @@
         ]
       }
     },
+    "/v1/me/wave/sessions": {
+      "post": {
+        "description": "Wave 2.0: start «Моя волна» (or a radio from `seed_track` / `seed_artist`) with settings.\n\nThe server remembers what the session served and how the listener reacted, so `next` never\nrepeats a track and adapts to skips, likes and dislikes.",
+        "operationId": "recommendations_start_wave_session",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WaveStartIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WaveSessionOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Start Wave Session",
+        "tags": [
+          "recommendations"
+        ]
+      }
+    },
+    "/v1/me/wave/sessions/{session_id}/feedback": {
+      "post": {
+        "description": "What the listener did with a track; plays are still reported through `/v1/events/batch`.",
+        "operationId": "recommendations_send_wave_feedback",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WaveFeedbackIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Send Wave Feedback",
+        "tags": [
+          "recommendations"
+        ]
+      }
+    },
+    "/v1/me/wave/sessions/{session_id}/next": {
+      "get": {
+        "description": "The next batch of the session: never a track it already served, never empty while anything\nplayable is left (settings relax: language, then mood, then character).",
+        "operationId": "recommendations_next_wave_tracks",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "session_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Session Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 10,
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/TrackOut"
+                  },
+                  "title": "Response Recommendations Next Wave Tracks",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Next Wave Tracks",
+        "tags": [
+          "recommendations"
+        ]
+      }
+    },
+    "/v1/me/wave/settings": {
+      "get": {
+        "description": "Settings of the listener's latest wave session (all null before the first one).",
+        "operationId": "recommendations_get_wave_settings",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WaveSettings"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Bad Request"
+          },
+          "401": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unauthorized"
+          },
+          "403": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Forbidden"
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            },
+            "description": "Too Many Requests"
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "summary": "Get Wave Settings",
+        "tags": [
+          "recommendations"
+        ]
+      }
+    },
     "/v1/moods": {
       "get": {
         "operationId": "catalog_list_moods",
@@ -18160,7 +19437,7 @@
     },
     "/v1/tracks/{track_id}/lyrics": {
       "get": {
-        "description": "Synced (line) or plain lyrics; 204 when the track simply has none (not an error).",
+        "description": "Synced (line) or plain lyrics; 204 when the track simply has none (not an error).\n\nA track without lyrics gets one LRCLIB lookup on the first request (unless enrichment is\nswitched off in the admin panel), so it is worth asking even when `has_lyrics` is false.",
         "operationId": "catalog_get_lyrics",
         "parameters": [
           {

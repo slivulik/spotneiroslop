@@ -422,6 +422,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/admin/sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Sources
+         * @description Catalogues and whether each can be used right now (e.g. Jamendo needs a key).
+         */
+        get: operations["admin_list_sources"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/sources/{key}/import": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Import From Source
+         * @description Queue one upload job per track; follow them in «Загрузка» (`GET /v1/admin/uploads`).
+         */
+        post: operations["admin_import_from_source"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/admin/sources/{key}/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search Source
+         * @description Free-licence tracks only; `already_imported` marks recordings already in the catalogue.
+         */
+        get: operations["admin_search_source"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/admin/stats": {
         parameters: {
             query?: never;
@@ -512,7 +572,10 @@ export interface paths {
          */
         put: operations["admin_put_lyrics"];
         post?: never;
-        /** Delete Lyrics */
+        /**
+         * Delete Lyrics
+         * @description Removed lyrics stay removed: listeners opening the track won't fetch them from LRCLIB again.
+         */
         delete: operations["admin_delete_lyrics"];
         options?: never;
         head?: never;
@@ -1407,6 +1470,90 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/me/wave/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Start Wave Session
+         * @description Wave 2.0: start «Моя волна» (or a radio from `seed_track` / `seed_artist`) with settings.
+         *
+         *     The server remembers what the session served and how the listener reacted, so `next` never
+         *     repeats a track and adapts to skips, likes and dislikes.
+         */
+        post: operations["recommendations_start_wave_session"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/wave/sessions/{session_id}/feedback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send Wave Feedback
+         * @description What the listener did with a track; plays are still reported through `/v1/events/batch`.
+         */
+        post: operations["recommendations_send_wave_feedback"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/wave/sessions/{session_id}/next": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Next Wave Tracks
+         * @description The next batch of the session: never a track it already served, never empty while anything
+         *     playable is left (settings relax: language, then mood, then character).
+         */
+        get: operations["recommendations_next_wave_tracks"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/wave/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Wave Settings
+         * @description Settings of the listener's latest wave session (all null before the first one).
+         */
+        get: operations["recommendations_get_wave_settings"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/moods": {
         parameters: {
             query?: never;
@@ -1580,6 +1727,9 @@ export interface paths {
         /**
          * Get Lyrics
          * @description Synced (line) or plain lyrics; 204 when the track simply has none (not an error).
+         *
+         *     A track without lyrics gets one LRCLIB lookup on the first request (unless enrichment is
+         *     switched off in the admin panel), so it is worth asking even when `has_lyrics` is false.
          */
         get: operations["catalog_get_lyrics"];
         put?: never;
@@ -3413,6 +3563,99 @@ export interface components {
             /** Devices */
             devices: number;
         };
+        /** SourceImportIn */
+        SourceImportIn: {
+            /**
+             * External Ids
+             * @description Ids from the search results; resolved again on the server
+             */
+            external_ids: string[];
+            /**
+             * Publish
+             * @description Publish each release as soon as processing succeeds
+             * @default false
+             */
+            publish: boolean;
+        };
+        /** SourceLicense */
+        SourceLicense: {
+            /**
+             * Code
+             * @description Readable licence: «CC BY-SA 4.0», «CC0 1.0», «Public Domain Mark 1.0» …
+             */
+            code: string;
+            /**
+             * Url
+             * @description Licence deed
+             */
+            url?: string | null;
+        };
+        /**
+         * SourceOut
+         * @description An open music catalogue the admin can import from.
+         */
+        SourceOut: {
+            /** Description */
+            description: string;
+            /**
+             * Disabled Reason
+             * @description Why the source can't be used (e.g. no Jamendo key), in Russian
+             */
+            disabled_reason?: string | null;
+            /** Enabled */
+            enabled: boolean;
+            /**
+             * Key
+             * @enum {string}
+             */
+            key: "jamendo" | "internet_archive";
+            /** Title */
+            title: string;
+        };
+        /** SourceTrackOut */
+        SourceTrackOut: {
+            /** Album */
+            album: string | null;
+            /**
+             * Already Imported
+             * @description A track from this recording is already in the catalogue
+             */
+            already_imported: boolean;
+            /** Artist */
+            artist: string;
+            /** Artwork Url */
+            artwork_url: string | null;
+            /** Duration S */
+            duration_s: number | null;
+            /**
+             * External Id
+             * @description Pass back to `/import`
+             */
+            external_id: string;
+            /**
+             * Format
+             * @description What will be downloaded: flac or mp3
+             */
+            format: string;
+            license: components["schemas"]["SourceLicense"];
+            /**
+             * Page Url
+             * @description The recording's page at the source
+             */
+            page_url: string;
+            /**
+             * Preview Url
+             * @description Directly playable stream for listening before import
+             */
+            preview_url: string | null;
+            /**
+             * Source
+             * @enum {string}
+             */
+            source: "jamendo" | "internet_archive";
+            /** Title */
+            title: string;
+        };
         /** StatsOut */
         StatsOut: {
             /** Artists */
@@ -3562,6 +3805,37 @@ export interface components {
             plays: number;
             track: components["schemas"]["TrackOut"];
         };
+        /**
+         * TrackLicense
+         * @description Licence of a recording imported from an open catalogue (Creative Commons / public domain).
+         */
+        TrackLicense: {
+            /**
+             * Attribution
+             * @description Author to credit
+             */
+            attribution?: string | null;
+            /**
+             * Code
+             * @description Readable licence: «CC BY-SA 4.0», «CC0 1.0», «Public Domain Mark 1.0» …
+             */
+            code: string;
+            /**
+             * Source
+             * @description Where it was imported from, e.g. «Jamendo»
+             */
+            source?: string | null;
+            /**
+             * Source Url
+             * @description The recording's page at the source
+             */
+            source_url?: string | null;
+            /**
+             * Url
+             * @description Licence deed
+             */
+            url?: string | null;
+        };
         /** TrackList */
         TrackList: {
             /** Items */
@@ -3587,6 +3861,8 @@ export interface components {
             id: string;
             /** Is Explicit */
             is_explicit: boolean;
+            /** @description Set for imported Creative Commons / public-domain recordings */
+            license?: components["schemas"]["TrackLicense"] | null;
             lyrics_type: components["schemas"]["LyricsType"] | null;
             /**
              * Playable
@@ -3734,7 +4010,7 @@ export interface components {
          *     `upload_jobs.state`, so a job can be retried from any stage.
          * @enum {string}
          */
-        UploadStage: "probe" | "authenticity" | "tags" | "fingerprint" | "loudness" | "catalog" | "transcode" | "waveform" | "artwork" | "preview" | "lyrics" | "publish";
+        UploadStage: "fetch" | "probe" | "authenticity" | "tags" | "fingerprint" | "loudness" | "catalog" | "transcode" | "waveform" | "artwork" | "preview" | "lyrics" | "publish";
         /** UserPlaylistIn */
         UserPlaylistIn: {
             /** Description */
@@ -3777,6 +4053,63 @@ export interface components {
         VerifyEmailIn: {
             /** Token */
             token: string;
+        };
+        /**
+         * WaveFeedbackIn
+         * @description What the listener did with a track of the session. `skipped` before 30 s pushes the artist
+         *     and genres down for the rest of the session; `liked` also likes the track; `disliked` stores a
+         *     «не нравится» (the client skips to the next track itself).
+         */
+        WaveFeedbackIn: {
+            /**
+             * Action
+             * @enum {string}
+             */
+            action: "started" | "finished" | "skipped" | "liked" | "disliked";
+            /** Played Ms */
+            played_ms?: number | null;
+            /**
+             * Track Id
+             * Format: uuid
+             */
+            track_id: string;
+        };
+        /** WaveSessionOut */
+        WaveSessionOut: {
+            /**
+             * Session Id
+             * Format: uuid
+             */
+            session_id: string;
+            settings: components["schemas"]["WaveSettings"];
+            /** Tracks */
+            tracks: components["schemas"]["TrackOut"][];
+        };
+        /**
+         * WaveSettings
+         * @description How the listener tuned «Моя волна»; null means «any». Filters relax (language, then mood,
+         *     then character) rather than leave the wave empty.
+         */
+        WaveSettings: {
+            /** Character */
+            character?: ("favorite" | "discover" | "popular") | null;
+            /** Language */
+            language?: ("russian" | "foreign" | "instrumental") | null;
+            /** Mood */
+            mood?: ("energetic" | "happy" | "calm" | "sad") | null;
+        };
+        /** WaveStartIn */
+        WaveStartIn: {
+            /**
+             * Limit
+             * @default 20
+             */
+            limit: number;
+            /** Seed Artist */
+            seed_artist?: string | null;
+            /** Seed Track */
+            seed_track?: string | null;
+            settings?: components["schemas"]["WaveSettings"];
         };
         /** WeeklyPlays */
         WeeklyPlays: {
@@ -6634,6 +6967,293 @@ export interface operations {
             };
             /** @description Too Many Requests */
             429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    admin_list_sources: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SourceOut"][];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Bad Gateway */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    admin_import_from_source: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: "jamendo" | "internet_archive";
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SourceImportIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UploadJobOut"][];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Bad Gateway */
+            502: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    admin_search_source: {
+        parameters: {
+            query: {
+                q: string;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                key: "jamendo" | "internet_archive";
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SourceTrackOut"][];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Bad Gateway */
+            502: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -12203,6 +12823,350 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TrackOut"][];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    recommendations_start_wave_session: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WaveStartIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WaveSessionOut"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    recommendations_send_wave_feedback: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WaveFeedbackIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    recommendations_next_wave_tracks: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrackOut"][];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Unprocessable Content */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+        };
+    };
+    recommendations_get_wave_settings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WaveSettings"];
                 };
             };
             /** @description Bad Request */
