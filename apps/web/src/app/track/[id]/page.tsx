@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import type { components } from "@sonora/api-schema";
+import { LicenseNote } from "@/components/LicenseNote";
 import { apiGet, shareMetadata } from "@/lib/og";
 import { ClientRedirect } from "./redirect";
 
@@ -14,5 +15,11 @@ export default async function TrackPage({ params }: { params: Promise<{ id: stri
   const { id } = await params;
   const track = await apiGet<components["schemas"]["TrackOut"]>(`/v1/tracks/${id}`);
   if (!track) redirect("/");
-  return <ClientRedirect to={`/album/${track.release.id}?track=${id}`} />;
+  return (
+    <>
+      <ClientRedirect to={`/album/${track.release.id}?track=${id}`} />
+      {/* Imported Creative Commons / public-domain recordings carry their attribution with them. */}
+      {track.license ? <LicenseNote license={track.license} className="-mt-6 px-8" /> : null}
+    </>
+  );
 }
