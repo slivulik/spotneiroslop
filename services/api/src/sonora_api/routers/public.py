@@ -24,7 +24,7 @@ from sonora_api.schemas.editorial import (
     SectionConfig,
 )
 from sonora_api.schemas.events import EventsIn, EventsOut
-from sonora_api.services import editorial, events, platform
+from sonora_api.services import editorial, events, lyrics_on_demand, platform
 
 router = APIRouter(prefix=API_V1, tags=["catalog"], responses=ERROR_RESPONSES)
 
@@ -74,12 +74,18 @@ class LyricsOut(ApiModel):
     response_model=LyricsOut,
     responses={204: {"description": "The track exists but has no lyrics"}},
 )
-async def get_lyrics(track_id: uuid.UUID, viewer: CurrentViewer, session: Session) -> Response:
-    """Synced (line) or plain lyrics; 204 when the track simply has none (not an error)."""
+async def get_lyrics(track_id: uuid.UUID, viewer: CurrentViewer, session: Session, ctx: Ctx) -> Response:
+    """Synced (line) or plain lyrics; 204 when the track simply has none (not an error).
+
+    A track without lyrics gets one LRCLIB lookup on the first request (unless enrichment is
+    switched off in the admin panel), so it is worth asking even when `has_lyrics` is false.
+    """
     track = await session.scalar(select(Track).where(Track.id == track_id, Track.status == TrackStatus.READY))
     if track is None:
         raise NotFoundError("Track not found")
     lyrics = await session.get(Lyrics, track_id) if track.has_lyrics else None
+    if lyrics is None and not track.has_lyrics:
+        lyrics = await lyrics_on_demand.find_missing(session, ctx.redis, track)
     if lyrics is None:
         return Response(status_code=204)
     if lyrics.type == LyricsType.LINE:
