@@ -1,0 +1,37 @@
+# Temporary helper for the team/v2 branch: regenerates the OpenAPI document and the typed TS client
+# from the API code and uploads them as an artifact. Removed again before the PR is merged.
+name: regen-schema
+
+on:
+  push:
+    branches: [team/v2]
+  workflow_dispatch:
+
+jobs:
+  regen:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+      - name: Export OpenAPI from the API
+        working-directory: services/api
+        run: |
+          uv sync --frozen
+          uv run python scripts/export_openapi.py
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Generate the TS client
+        run: |
+          pnpm install --frozen-lockfile --filter @sonora/api-schema...
+          pnpm --filter @sonora/api-schema run generate
+      - uses: actions/upload-artifact@v4
+        with:
+          name: api-schema
+          path: |
+            packages/api-schema/openapi.json
+            packages/api-schema/src/schema.gen.ts
