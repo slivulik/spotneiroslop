@@ -18,6 +18,8 @@ export interface PlayContext {
   type: "release" | "artist" | "tracks" | "playlist" | "genre" | "home" | "wave" | "mix";
   id: string | null;
   title: string;
+  /** Wave 2.0 session that serves this endless context (refills and feedback go to it). */
+  session?: string | null;
 }
 
 export interface Queue {

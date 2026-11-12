@@ -68,6 +68,11 @@ export const listening = {
     current.lastPos = positionMs;
   },
 
+  /** Time actually listened to the current track so far (seeks and stalls excluded). */
+  listenedMs(): number {
+    return current ? Math.round(current.listened) : 0;
+  },
+
   /** Forget the last position (after a pause or seek) so the gap isn't counted. */
   gap(): void {
     if (current) current.lastPos = null;
