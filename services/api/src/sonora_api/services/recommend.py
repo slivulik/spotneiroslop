@@ -15,13 +15,14 @@ from collections import Counter, defaultdict
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from sonora_api.core.config import Settings
 from sonora_api.core.errors import NotFoundError
 from sonora_api.models import (
     Artist,
+    Dislike,
     FollowArtist,
     Genre,
     LikeTrack,
@@ -162,6 +163,35 @@ async def _load(session: AsyncSession, ids: set[uuid.UUID]) -> list[_Cand]:
     return [_Cand(t, artists[t.id], genres[t.id]) for t in tracks]
 
 
+@dataclass(frozen=True, slots=True)
+class Blocked:
+    """What the listener asked never to hear («не нравится»): single tracks and whole artists,
+    including their featured appearances on other people's tracks."""
+
+    tracks: frozenset[uuid.UUID] = frozenset()
+    artists: frozenset[uuid.UUID] = frozenset()
+
+    def hides(self, x: _Cand) -> bool:
+        return x.track.id in self.tracks or any(a in self.artists for a in x.artists)
+
+
+async def blocked(session: AsyncSession, user: User) -> Blocked:
+    """Dislikes in force: without `until`, or with `until` still ahead."""
+    rows = await session.execute(
+        select(Dislike.track_id, Dislike.artist_id).where(
+            Dislike.user_id == user.id, or_(Dislike.until.is_(None), Dislike.until > _now())
+        )
+    )
+    tracks: set[uuid.UUID] = set()
+    artists: set[uuid.UUID] = set()
+    for track_id, artist_id in rows:
+        if track_id is not None:
+            tracks.add(track_id)
+        if artist_id is not None:
+            artists.add(artist_id)
+    return Blocked(frozenset(tracks), frozenset(artists))
+
+
 async def _candidate_ids(
     session: AsyncSession, t: Taste, user: User, cooc: Counter[uuid.UUID]
 ) -> set[uuid.UUID]:
@@ -200,9 +230,11 @@ async def _candidate_ids(
     return ids
 
 
-def _rank(
+def _score(
     cands: list[_Cand], t: Taste, cooc: Counter[uuid.UUID], rng: random.Random, exclude: set[uuid.UUID]
-) -> list[_Cand]:
+) -> list[tuple[float, _Cand]]:
+    """Relevance of every candidate, in input order: the wave settings add their own terms on top
+    (`services.wave`) before sorting, so the base weights stay in one place."""
     a, g, c = _norm(t.artists), _norm(t.genres), _norm(dict(cooc))
     top_pc = max((x.track.play_count for x in cands), default=0)
     now = _now()
@@ -218,6 +250,13 @@ def _rank(
         s -= 1.5 if x.track.id in t.recent else 0
         s += rng.random() * 0.45
         scored.append((s, x))
+    return scored
+
+
+def _rank(
+    cands: list[_Cand], t: Taste, cooc: Counter[uuid.UUID], rng: random.Random, exclude: set[uuid.UUID]
+) -> list[_Cand]:
+    scored = _score(cands, t, cooc, rng, exclude)
     scored.sort(key=lambda p: -p[0])
     return [x for _, x in scored]
 
@@ -296,14 +335,20 @@ async def wave(
     seed_track: uuid.UUID | None = None,
     seed_artist: uuid.UUID | None = None,
 ) -> list[TrackOut]:
-    """The next batch of "Моя волна" (or of a radio from a track/artist): endless, never repeating."""
+    """The next batch of "Моя волна" (or of a radio from a track/artist): endless, never repeating.
+
+    Stateless: the client passes what it already got in `exclude`. Wave 2.0 sessions
+    (`services.wave`) keep that state on the server and add settings and feedback.
+    """
     t = await taste(session, user)
     if seed_track or seed_artist:
         t = _blend(await _seed_taste(session, seed_track, seed_artist), t)
         if seed_track:
             exclude = exclude | {seed_track}
+    hidden = await blocked(session, user)
     cooc = await _co_listened(session, user, _top(t.tracks, 20))
-    cands = await _load(session, await _candidate_ids(session, t, user, cooc))
+    pool = await _candidate_ids(session, t, user, cooc)
+    cands = [x for x in await _load(session, pool) if not hidden.hides(x)]
     ranked = _rank(cands, t, cooc, random.Random(), exclude)  # noqa: S311 - shuffling, not security
     return [catalog.track_out(settings, x.track, user) for x in _diversify(ranked, limit)]
 
@@ -352,13 +397,14 @@ async def _mix_tracks(session: AsyncSession, user: User, t: Taste, key: str) -> 
     day = _now().date().isoformat()
     rng = random.Random(f"{user.id}:{day}:{key}")  # noqa: S311 - stable shuffle for the day
     cooc = await _co_listened(session, user, _top(t.tracks, 20))
+    hidden = await blocked(session, user)
     kind, _, ident = key.partition(":")
     if kind == "genre":
         gid = uuid.UUID(ident)
         ids = set(
             await session.scalars(select(TrackGenre.track_id).where(TrackGenre.genre_id == gid).limit(500))
         )
-        cands = await _load(session, ids)
+        cands = [x for x in await _load(session, ids) if not hidden.hides(x)]
         boosted = Taste(
             artists=t.artists,
             genres={**t.genres, gid: max(t.genres.values(), default=1) * 2},
@@ -376,7 +422,7 @@ async def _mix_tracks(session: AsyncSession, user: User, t: Taste, key: str) -> 
             )
         )
         near = await _co_listened(session, user, list(own))
-        cands = await _load(session, own | set(list(near)[:200]))
+        cands = [x for x in await _load(session, own | set(list(near)[:200])) if not hidden.hides(x)]
         boosted = Taste(
             artists={**t.artists, aid: max(t.artists.values(), default=1) * 1.5},
             genres=t.genres,
@@ -390,7 +436,8 @@ async def _mix_tracks(session: AsyncSession, user: User, t: Taste, key: str) -> 
                 select(ListeningHistory.track_id).where(ListeningHistory.user_id == user.id).distinct()
             )
         )
-        cands = await _load(session, (await _candidate_ids(session, t, user, cooc)) - heard)
+        pool = (await _candidate_ids(session, t, user, cooc)) - heard
+        cands = [x for x in await _load(session, pool) if not hidden.hides(x)]
         return _diversify(_rank(cands, t, cooc, rng, heard), MIX_SIZE)
     raise NotFoundError("Mix not found")
 
