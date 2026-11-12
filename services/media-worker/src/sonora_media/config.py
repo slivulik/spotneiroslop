@@ -40,6 +40,10 @@ class WorkerSettings(BaseSettings):
     #: Look up missing lyrics (LRCLIB), covers (Cover Art Archive) and artist photos/bios
     #: (Wikidata/Wikipedia). Also switchable at runtime in admin → Стриминг.
     metadata_lookup: bool = True
+    #: Tracks imported from open catalogues (admin → «Открытые источники»): the worker downloads
+    #: the source itself — at most this many bytes, within this many seconds.
+    import_max_bytes: int = 500 * 1024**2
+    import_timeout_seconds: int = 1800
 
     @property
     def sync_database_url(self) -> str:
