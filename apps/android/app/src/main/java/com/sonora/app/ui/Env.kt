@@ -20,6 +20,8 @@ data class Env(
     val userName: String? = null,
     val email: String? = null,
     val isAdmin: Boolean = false,
+    /** The full-screen player covers everything: screens below can pause their animations. */
+    val playerOpen: Boolean = false,
 ) {
     fun saved(kind: String, id: String) = when (kind) {
         "tracks" -> id in likedTracks
@@ -38,6 +40,7 @@ interface Actions {
     fun play(tracks: List<Track>, index: Int, ctx: PlayContext, shuffle: Boolean = false)
     fun togglePlay()
     fun playWave()
+    fun openWaveSettings()
     fun toggleSaved(kind: String, id: String)
     fun openTrackMenu(track: Track, ctx: PlayContext)
     fun share(path: String, title: String)
@@ -50,6 +53,7 @@ object NoActions : Actions {
     override fun play(tracks: List<Track>, index: Int, ctx: PlayContext, shuffle: Boolean) = Unit
     override fun togglePlay() = Unit
     override fun playWave() = Unit
+    override fun openWaveSettings() = Unit
     override fun toggleSaved(kind: String, id: String) = Unit
     override fun openTrackMenu(track: Track, ctx: PlayContext) = Unit
     override fun share(path: String, title: String) = Unit
