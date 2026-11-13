@@ -1,4 +1,4 @@
-# Sonora v2 — team brief (read fully before starting)
+# Sonora v2 — round 1 brief (contracts; process lives in PROCESS.md and AGENT-GUIDE.md)
 
 ## Project
 Sonora is Denis's own music streaming service (he hosts it on his VPS for himself and friends).
@@ -36,18 +36,10 @@ Nobody edits: `CHANGELOG.md`, `README.md`, `ROADMAP.md`, `packages/design-tokens
 `packages/api-schema/openapi.json`, `packages/api-schema/src/schema.gen.ts`, `.github/**`, lockfiles.
 (The lead regenerates the OpenAPI document and TS client from the API in CI after merging.)
 
-## Environment limits — important
-- No network installs: `pip`, `uv sync`, `npm/pnpm install`, Gradle downloads are refused. There are no
-  node_modules, no API Python deps, no Android SDK. You cannot run the test suites or builds.
-- Available locally: `git`, `ruff` (run `ruff format` and `ruff check` from `services/api` /
-  `services/media-worker` — config is in their pyproject), `python3 -m py_compile`, `grep`, etc.
-- After merging, the lead pushes and GitHub CI runs everything: ruff format --check, ruff check,
-  **mypy --strict**, pytest (Postgres+pgvector, Redis), OpenAPI check, `pnpm -r build/typecheck/test/lint`
-  (TS strict, ESLint), web Docker build, Android `recordRoborazziDebug` + `assembleDebug/Release` + `lintDebug`.
-  So write code that compiles the first time: read the real signatures you call, mirror existing
-  patterns exactly, keep full typing, no unused imports/vars, no `any`.
-- **No new dependencies** in any stack (lockfiles are frozen).
-- Keep changes focused and production-quality; no placeholder code, no TODO stubs for core behaviour.
+## Environment
+Superseded by `docs/team/AGENT-GUIDE.md`: dependencies, a private stack per agent slot, test databases,
+Playwright and the Android SDK are available locally — run the checks before committing.
+New dependencies still need a reason in the round plan.
 
 ## Contract (A implements; B/C/D rely on these exact names — Pydantic class names become TS schema names)
 
