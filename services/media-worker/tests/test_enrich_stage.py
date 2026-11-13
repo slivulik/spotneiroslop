@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 from sonora_api.enrich import lrclib, musicbrainz
-from sonora_api.lrclib import LyricsMatch
+from sonora_api.enrich.lrclib import LyricsMatch
 from sonora_api.models import Artist, Lyrics, TrackArtist
 from sonora_api.models.enums import JobStatus
 from sqlalchemy import select

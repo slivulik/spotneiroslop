@@ -78,7 +78,7 @@ export function LyricsView({ trackId, size = "large" }: { trackId: string; size?
   const fill = useRef<HTMLSpanElement>(null);
   const activeLine = useRef(active);
   const placed = useRef(false);
-  const heldUntil = useRef(0);
+  const holding = useRef(false);
   const resume = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [held, setHeld] = useState(false);
 
@@ -86,7 +86,7 @@ export function LyricsView({ trackId, size = "large" }: { trackId: string; size?
   useEffect(() => {
     activeLine.current = active;
     const el = box.current;
-    if (!el || Date.now() < heldUntil.current) return;
+    if (!el || holding.current) return;
     scrollToLine(el, active, placed.current && !reduced);
     placed.current = true;
   }, [active, interlude, reduced, lines]);
@@ -134,12 +134,12 @@ export function LyricsView({ trackId, size = "large" }: { trackId: string; size?
   const follow = (smooth: boolean) => {
     if (resume.current) clearTimeout(resume.current);
     resume.current = null;
-    heldUntil.current = 0;
+    holding.current = false;
     setHeld(false);
     if (box.current) scrollToLine(box.current, activeLine.current, smooth);
   };
   const hold = () => {
-    heldUntil.current = Date.now() + HOLD_MS;
+    holding.current = true;
     setHeld(true);
     if (resume.current) clearTimeout(resume.current);
     resume.current = setTimeout(() => follow(!reduced), HOLD_MS);
