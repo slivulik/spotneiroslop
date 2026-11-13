@@ -60,6 +60,11 @@ the daemon, but run `./gradlew --stop` when you finish.
 - Music sources: only legal open-licence sources (Jamendo, Internet Archive). Never YouTube, VK, Yandex, Spotify.
 - Do not edit: `CHANGELOG.md`, `ROADMAP.md`, `README.md`, `BUGS.md`, `docs/team/ROUNDS.md` (lead only).
 
+## Save as you go
+The account has a usage limit that can stop every agent mid-task. Reviewers: create your findings
+file first and append each finding the moment it is confirmed. Builders: commit each working piece
+separately. Work that exists only in your head is lost when the limit hits.
+
 ## When you finish
 1. All checks above green. `tools/dev/stack.sh down N`; `./gradlew --stop` if you used Gradle.
 2. Commit in your worktree (conventional commits: `feat(api): …`, `fix(web): …`). End every commit message with:
