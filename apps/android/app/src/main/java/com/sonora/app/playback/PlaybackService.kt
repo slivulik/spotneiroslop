@@ -59,6 +59,7 @@ class PlaybackService : MediaSessionService() {
     @Inject lateinit var settings: SettingsRepository
     @Inject lateinit var events: EventsRepository
     @Inject lateinit var db: SonoraDatabase
+    @Inject lateinit var waveFeedback: WaveFeedback
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val main = Handler(Looper.getMainLooper())
@@ -96,6 +97,7 @@ class PlaybackService : MediaSessionService() {
         player.setAudioSessionId(Util.generateAudioSessionIdV21(this))
         equalizer.attach(player.audioSessionId)
         player.addListener(listener)
+        player.addListener(waveFeedback.listener(player))
 
         val open = PendingIntent.getActivity(
             this, 0, Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP),

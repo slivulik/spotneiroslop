@@ -51,6 +51,8 @@ data class AppSettings(
     val eqBands: List<Float> = List(10) { 0f },
     val cacheMb: Int = 512,
     val baseUrl: String = "",
+    /** "system" (follow Android's animation scale), "full" or "reduced" — same value as the web app. */
+    val motion: String = "system",
 )
 
 /** Local settings (DataStore) synced with /v1/me/settings, the same document the web app edits. */
@@ -70,6 +72,7 @@ class SettingsRepository @Inject constructor(
         val eqBands = stringPreferencesKey("eq_bands")
         val cache = intPreferencesKey("cache_mb")
         val baseUrl = stringPreferencesKey("base_url")
+        val motion = stringPreferencesKey("motion")
     }
 
     private fun read(p: Preferences) = AppSettings(
@@ -82,6 +85,7 @@ class SettingsRepository @Inject constructor(
         eqBands = p[K.eqBands]?.split(",")?.mapNotNull { it.toFloatOrNull() }?.takeIf { it.size == 10 } ?: List(10) { 0f },
         cacheMb = p[K.cache] ?: 512,
         baseUrl = p[K.baseUrl] ?: "",
+        motion = p[K.motion] ?: "system",
     )
 
     /** Read once synchronously at startup (theme before the first frame, cache size for the player). */
@@ -92,6 +96,10 @@ class SettingsRepository @Inject constructor(
 
     fun setTheme(mode: ThemeMode) = update(buildJsonObject { putJsonObject("appearance") { put("theme", mode.name.lowercase()) } }) {
         it[K.theme] = mode.name.lowercase()
+    }
+
+    fun setMotion(mode: String) = update(buildJsonObject { putJsonObject("appearance") { put("motion", mode) } }) {
+        it[K.motion] = mode
     }
 
     fun setQuality(wifi: String? = null, cellular: String? = null) = update(buildJsonObject {
@@ -152,6 +160,7 @@ class SettingsRepository @Inject constructor(
         val eq = doc["equalizer"]?.jsonObject
         context.settingsStore.edit { p ->
             appearance?.get("theme")?.jsonPrimitive?.content?.let { p[K.theme] = it }
+            appearance?.get("motion")?.jsonPrimitive?.content?.takeIf { it in setOf("system", "full", "reduced") }?.let { p[K.motion] = it }
             audio?.get("quality_wifi")?.jsonPrimitive?.content?.let { p[K.qWifi] = it }
             audio?.get("quality_cellular")?.jsonPrimitive?.content?.let { p[K.qCell] = it }
             audio?.get("normalization")?.jsonPrimitive?.content?.let { p[K.norm] = it }

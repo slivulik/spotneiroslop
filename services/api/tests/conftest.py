@@ -8,6 +8,7 @@ from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 
+import httpx
 import pytest
 from alembic import command
 from alembic.config import Config
@@ -33,6 +34,7 @@ from sonora_api.models.enums import (
     TrackStatus,
     UserRole,
 )
+from sonora_api.services import lyrics_on_demand
 from sonora_api.services.email import ConsoleEmailSender
 from sonora_api.services.google import GoogleIdentity
 
@@ -355,3 +357,14 @@ async def make_admin(harness: Harness, email: str = "admin@example.com") -> dict
         user.role = UserRole.ADMIN
         await s.commit()
     return tokens
+
+
+@pytest.fixture(autouse=True)
+def _no_lrclib_network(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Lyrics on demand never reaches the real LRCLIB from tests: every lookup answers «not found».
+    Tests of the feature itself substitute their own transport on top of this one."""
+    monkeypatch.setattr(
+        lyrics_on_demand,
+        "_lrclib_transport",
+        lambda: httpx.MockTransport(lambda _request: httpx.Response(404)),
+    )

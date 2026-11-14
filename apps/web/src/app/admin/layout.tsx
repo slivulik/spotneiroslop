@@ -9,6 +9,7 @@ const TABS = [
   { href: "/admin", label: "Обзор", emoji: "◎" },
   { href: "/admin/streaming", label: "Стриминг", emoji: "◉" },
   { href: "/admin/uploads", label: "Загрузка", emoji: "⇪" },
+  { href: "/admin/import", label: "Открытые источники", emoji: "⊕" },
   { href: "/admin/music", label: "Треки", emoji: "♫" },
   { href: "/admin/releases", label: "Релизы", emoji: "◐" },
   { href: "/admin/artists", label: "Артисты", emoji: "✦" },

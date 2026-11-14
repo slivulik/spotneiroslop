@@ -45,6 +45,32 @@ let prefetchedFor: string | null = null;
 /** Track for which `play_start` was reported in the current load. */
 let startedFor: string | null = null;
 
+/**
+ * What happened to a track, as the listener experienced it: it started playing, played to its
+ * end, or was left early by the listener (next / picked another track in the queue).
+ */
+export type TrackEvent =
+  | { type: "started"; trackId: string; context: PlayContext | null }
+  | { type: "finished"; trackId: string; context: PlayContext | null }
+  | { type: "left"; trackId: string; context: PlayContext | null; playedMs: number; positionMs: number; durationMs: number };
+let onTrackEvent: ((event: TrackEvent) => void) | null = null;
+
+function emitTrackEvent(event: TrackEvent): void {
+  try {
+    onTrackEvent?.(event);
+  } catch {
+    // Listeners are reporting only; they must never break playback.
+  }
+}
+
+/** The listener moves on from the current track before it ended by itself. */
+function leaveCurrent(): void {
+  const s = state();
+  const track = s.queue ? current(s.queue) : null;
+  if (!track || startedFor !== track.id) return;
+  emitTrackEvent({ type: "left", trackId: track.id, context: s.context, playedMs: listening.listenedMs(), positionMs: s.positionMs, durationMs: s.durationMs });
+}
+
 function state() {
   return usePlayer.getState();
 }
@@ -73,6 +99,7 @@ function getEngine(): PlayerEngine {
       if (event.type === "PLAYING" && track && startedFor !== track.id) {
         startedFor = track.id;
         listening.start(track.id, s.context);
+        emitTrackEvent({ type: "started", trackId: track.id, context: s.context });
       }
       if (event.type === "PAUSE" || event.type === "WAITING" || (before !== "playing" && event.type === "PLAYING")) {
         listening.gap();
@@ -99,6 +126,9 @@ function getEngine(): PlayerEngine {
       updatePositionState(positionMs, durationMs);
     },
     onEnded: () => {
+      const ended = state().queue;
+      const endedTrack = ended ? current(ended) : null;
+      if (endedTrack && startedFor === endedTrack.id) emitTrackEvent({ type: "finished", trackId: endedTrack.id, context: state().context });
       listening.end();
       startedFor = null;
       if (useSleep.getState().endOfTrack) {
@@ -190,6 +220,7 @@ export const player = {
   },
 
   next(): void {
+    leaveCurrent();
     advance(true);
   },
 
@@ -270,6 +301,14 @@ export const player = {
     prefetchedFor = null;
   },
 
+  /** Swap everything after the current track for `tracks` (e.g. the wave was retuned); the current track plays on. */
+  replaceUpcoming(tracks: QueueTrack[], context: PlayContext): void {
+    const s = state();
+    if (!s.queue || !current(s.queue)) return player.playTracks(tracks, 0, context);
+    s.patch({ queue: append(clearUpcoming(s.queue), tracks), context });
+    prefetchedFor = null;
+  },
+
   clearQueue(): void {
     const s = state();
     if (s.queue) s.patch({ queue: clearUpcoming(s.queue) });
@@ -278,6 +317,7 @@ export const player = {
   playAt(cursor: number): void {
     const s = state();
     if (!s.queue || cursor < 0 || cursor >= s.queue.order.length) return;
+    if (cursor !== s.queue.cursor) leaveCurrent();
     s.patch({ queue: { ...s.queue, cursor } });
     void loadCurrent(true);
   },
@@ -297,6 +337,11 @@ export const player = {
     onQueueLow = fn;
   },
 
+  /** One listener for track start / end / leave (wave feedback); null removes it. */
+  setTrackEventHandler(fn: ((event: TrackEvent) => void) | null): void {
+    onTrackEvent = fn;
+  },
+
   /** Settings → Playback: warm the next track before the current one ends. */
   setPreloadNext(on: boolean): void {
     preloadNext = on;
@@ -313,6 +358,14 @@ export const player = {
   },
   levels(): { energy: number; bass: number } | null {
     return engine?.levels() ?? null;
+  },
+  /** Log-spaced spectrum bands (0..1) into `out`; false when there is nothing to analyse. */
+  bands(out: Float32Array): boolean {
+    return engine?.spectrumBands(out) ?? false;
+  },
+  /** Exact position for smooth visuals (lyrics fill); the store's position ticks only a few times a second. */
+  positionNow(): number {
+    return engine?.hasSource ? engine.positionMs : state().positionMs;
   },
 
   isPlaying(): boolean {

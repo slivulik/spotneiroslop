@@ -121,6 +121,8 @@ class UploadStage(StrEnum):
     """Media pipeline stages, in execution order. Each is idempotent and checkpointed in
     `upload_jobs.state`, so a job can be retried from any stage."""
 
+    #: Imports from open catalogues download their source here; a no-op for browser/CLI uploads.
+    FETCH = "fetch"
     PROBE = "probe"
     AUTHENTICITY = "authenticity"
     TAGS = "tags"

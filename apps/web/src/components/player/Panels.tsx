@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { AnimatePresence, motion, Reorder } from "motion/react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { Artwork } from "@/components/Artwork";
 import { QualityBadge } from "@/components/Badges";
 import { CloseIcon, GripIcon, InfoIcon, LyricsIcon, QueueIcon, TrashIcon } from "@/components/icons";
@@ -10,7 +10,8 @@ import { LikeButton } from "@/components/LikeButton";
 import { useCurrentTrack } from "@/components/player/hooks";
 import { TrackMenuButton } from "@/components/TrackMenu";
 import { formatDuration, releaseTypeLabel } from "@/lib/format";
-import { useLyrics, useRelease, useTrack } from "@/lib/queries";
+import { LyricsView } from "@/components/player/Lyrics";
+import { useRelease, useTrack } from "@/lib/queries";
 import { player } from "@/player/controller";
 import { type QueueTrack, queueView } from "@/player/queue";
 import { usePlayer } from "@/player/store";
@@ -22,67 +23,6 @@ export const PANEL_META: Record<PanelKind, { title: string; icon: React.ReactNod
   info: { title: "О треке", icon: <InfoIcon size={18} /> },
   queue: { title: "Очередь", icon: <QueueIcon size={18} /> },
 };
-
-/**
- * Lyrics bound to the playing track: keyed by track id so the previous song's text can never
- * linger; synced lines follow playback and seek on click; plain text stays selectable.
- */
-export function LyricsPanel({ trackId, big = false }: { trackId: string; big?: boolean }) {
-  const lyrics = useLyrics(trackId, true);
-  const list = useRef<HTMLDivElement>(null);
-  const userScrolled = useRef(0);
-  const lines = lyrics.data?.lines ?? [];
-  // Re-render only when the sung line changes, not on every position tick.
-  const active = usePlayer((s) => {
-    let a = -1;
-    for (let i = 0; i < lines.length; i++) {
-      if (lines[i]!.start_ms <= s.positionMs + 250) a = i;
-      else break;
-    }
-    return a;
-  });
-
-  useEffect(() => {
-    // Don't fight the user: pause auto-follow for 4 s after they scroll.
-    if (Date.now() - userScrolled.current < 4000) return;
-    const el = list.current?.querySelector<HTMLElement>(`[data-line="${active}"]`);
-    el?.scrollIntoView({ block: "center", behavior: "smooth" });
-  }, [active]);
-
-  if (lyrics.isPending) return <div className="flex flex-col gap-3 p-6">{[70, 90, 60, 80].map((w) => <div key={w} className="skeleton h-6 rounded-md" style={{ width: `${w}%` }} />)}</div>;
-  if (lyrics.isError || !lyrics.data) {
-    return (
-      <div className="flex h-full flex-col items-center justify-center gap-2 p-6 text-center">
-        <LyricsIcon size={28} className="text-text-tertiary" />
-        <p className="text-body text-text-secondary">У этого трека пока нет текста</p>
-      </div>
-    );
-  }
-  if (lyrics.data.type === "static") {
-    return <div className={`selectable h-full overflow-auto whitespace-pre-line p-6 leading-relaxed text-text-primary/90 ${big ? "font-display text-title-3" : "text-body-l"}`}>{lyrics.data.text}</div>;
-  }
-  return (
-    <div
-      ref={list}
-      onWheel={() => (userScrolled.current = Date.now())}
-      onTouchMove={() => (userScrolled.current = Date.now())}
-      className="h-full overflow-auto px-6 py-[30%] [mask-image:linear-gradient(transparent,#000_15%,#000_85%,transparent)]"
-    >
-      {lines.map((line, i) => (
-        <button
-          key={`${line.start_ms}-${i}`}
-          type="button"
-          data-line={i}
-          onClick={() => player.seek(line.start_ms)}
-          className={`no-press block w-full origin-left py-1.5 text-left font-bold leading-tight tracking-[-0.01em] transition-[opacity,transform] duration-500 ease-standard ${big ? "text-[clamp(22px,2.6vw,34px)]" : "text-title-3"}`}
-          style={{ opacity: i === active ? 1 : i < active ? 0.32 : 0.5, transform: i === active ? "scale(1.02)" : "none" }}
-        >
-          {line.text || "♪"}
-        </button>
-      ))}
-    </div>
-  );
-}
 
 /** About the playing track: artwork, credits, release facts, actions. */
 export function InfoPanel({ trackId }: { trackId: string }) {
@@ -168,7 +108,11 @@ export function QueuePanel() {
         <span className="mono-label text-text-tertiary">Далее · {view.next.length}</span>
         {view.next.length ? <button type="button" onClick={() => player.clearQueue()} className="text-caption font-semibold text-text-secondary hover:text-text-primary">Очистить</button> : null}
       </div>
-      {view.next.length === 0 ? <p className="px-2 py-2 text-caption text-text-secondary">Дальше ничего нет. Добавляйте треки через меню «…» → «Добавить в очередь».</p> : null}
+      {view.next.length === 0 ? (
+        <p className="px-2 py-2 text-caption text-text-secondary">
+          {context?.type === "wave" ? "Следующие треки волна подберёт сама." : "Дальше ничего нет. Добавляйте треки через меню «…» → «Добавить в очередь»."}
+        </p>
+      ) : null}
       <Reorder.Group
         axis="y"
         values={view.next.map((e) => e.track)}
@@ -232,7 +176,11 @@ export function SidePanel() {
             </button>
           </div>
           <div className="min-h-0 flex-1">
-            {kind === "lyrics" ? <LyricsPanel key={track.id} trackId={track.id} /> : kind === "info" ? <InfoPanel key={track.id} trackId={track.id} /> : <QueuePanel />}
+            {kind === "lyrics" ? (
+              <div className="h-full px-6">
+                <LyricsView key={track.id} trackId={track.id} size="panel" />
+              </div>
+            ) : kind === "info" ? <InfoPanel key={track.id} trackId={track.id} /> : <QueuePanel />}
           </div>
         </motion.aside>
       ) : null}
