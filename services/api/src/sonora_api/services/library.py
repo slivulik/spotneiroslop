@@ -344,8 +344,10 @@ async def listening_history(session: AsyncSession, settings: Settings, user: Use
                 catalog._tracks_query(_now())
                 .join(ListeningHistory, ListeningHistory.track_id == Track.id)
                 .where(ListeningHistory.user_id == user.id)
-                .add_columns(ListeningHistory.played_at, ListeningHistory.ms_played)
-                .order_by(ListeningHistory.played_at.desc())
+                # The row id keeps two plays with the same timestamp apart: `.unique()` below
+                # (needed for the eager-loaded artists) would otherwise merge them after LIMIT.
+                .add_columns(ListeningHistory.played_at, ListeningHistory.ms_played, ListeningHistory.id)
+                .order_by(ListeningHistory.played_at.desc(), ListeningHistory.id.desc())
                 .limit(limit)
             )
         )
@@ -355,7 +357,7 @@ async def listening_history(session: AsyncSession, settings: Settings, user: Use
     return HistoryOut(
         items=[
             HistoryEntry(played_at=played_at, ms_played=ms, track=catalog.track_out(settings, t, user))
-            for t, played_at, ms in rows
+            for t, played_at, ms, _ in rows
         ]
     )
 
