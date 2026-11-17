@@ -131,9 +131,11 @@ async function refill(): Promise<void> {
     const next: PlayContext = { ...context, session };
     if (session !== (context.session ?? null)) now.patch({ context: next });
     const playable = tracks.filter((t) => t.playable);
-    // Only the recent past matters: a long session may legitimately come back to an old track.
-    const fresh = freshTracks(playable, now.queue.items.slice(-30).map((t) => t.id));
-    const add = fresh.length ? fresh : upcoming(now.queue, 1).length ? [] : playable;
+    // The server decides what may come back (on a small catalogue it repeats, oldest first), so a
+    // refill is only checked against what is still ahead: the playing track and the upcoming ones.
+    const playing = current(now.queue);
+    const ahead = [...(playing ? [playing.id] : []), ...upcoming(now.queue, now.queue.items.length).map((t) => t.id)];
+    const add = freshTracks(playable, ahead);
     if (add.length) {
       player.addToQueue(add.map(toQueueTrack), next);
       added = true;

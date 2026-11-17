@@ -7,6 +7,7 @@ import { Button, ConfirmButton, Field, ImageUploader, type ImageRef, Input, Moda
 import { Artwork } from "@/components/Artwork";
 import { PlusIcon } from "@/components/icons";
 import { api, unwrap } from "@/lib/api";
+import { pluralTracks } from "@/lib/format";
 import { type S, useAction } from "@/lib/admin";
 
 const PRESETS = ["#7C5CFF", "#FF4D6D", "#FFB547", "#2EE6C5", "#4D7CFF", "#C44DFF", "#FF7A3D", "#3DDC84", "#E8E8F0", "#1F8AA8"];
@@ -60,7 +61,7 @@ export default function GenresAdminPage() {
         {genres.data?.map((g, i) => (
           <motion.button key={g.id} type="button" onClick={() => setEdit(g)} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.02 }} className="relative aspect-[16/10] overflow-hidden rounded-xl p-4 text-left transition-transform hover:-translate-y-1" style={{ background: `linear-gradient(135deg, ${g.color ?? "#555"}, color-mix(in srgb, ${g.color ?? "#555"} 45%, #07070a))` }}>
             <div className="font-display text-title-3 font-bold">{g.name}</div>
-            <div className="text-caption text-white/75">{g.track_count} треков</div>
+            <div className="text-caption text-white/75">{pluralTracks(g.track_count)}</div>
             {g.artwork ? <Artwork artwork={g.artwork} alt="" sizes="100px" className="absolute -bottom-3 -right-3 h-20 w-20 rotate-[22deg] rounded-md" /> : null}
           </motion.button>
         ))}

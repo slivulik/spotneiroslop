@@ -8,6 +8,7 @@ import { Artwork } from "@/components/Artwork";
 import { SpotlightZone } from "@/components/visual/Spotlight";
 import { api, unwrap } from "@/lib/api";
 import { type S, useAction } from "@/lib/admin";
+import { pluralPlays, pluralReleases, pluralTracks } from "@/lib/format";
 
 type Row = S["AdminArtistRow"];
 
@@ -52,7 +53,7 @@ function ArtistForm({ artist, onSaved }: { artist: Row; onSaved: () => void }) {
       <Field label="Биография"><TextArea className="min-h-40" value={bio} onChange={(e) => { setBio(e.target.value); setBioSource(null); }} /></Field>
       {bioSource && bio ? <a href={bioSource} target="_blank" rel="noreferrer" className="-mt-3 text-caption text-text-secondary underline">Источник биографии</a> : null}
       <Toggle checked={verified} onChange={setVerified} label="Подтверждённый артист" description="Галочка на странице артиста" />
-      <div className="flex gap-3 text-caption text-text-secondary"><Pill>{artist.release_count} релизов</Pill><Pill>{artist.track_count} треков</Pill><Pill>{artist.plays} прослушиваний</Pill></div>
+      <div className="flex gap-3 text-caption text-text-secondary"><Pill>{pluralReleases(artist.release_count)}</Pill><Pill>{pluralTracks(artist.track_count)}</Pill><Pill>{pluralPlays(artist.plays)}</Pill></div>
       <div className="flex justify-end"><Button tone="primary" disabled={save.isPending} onClick={() => save.mutate(undefined, { onSuccess: onSaved })}>Сохранить</Button></div>
     </div>
   );
@@ -78,7 +79,7 @@ export default function ArtistsPage() {
             <div className="spotlight-glow" />
             <Artwork artwork={a.artwork} alt={a.name} seed={a.name} sizes="120px" className="aspect-square w-full rounded-full" />
             <div className="w-full truncate text-body font-bold">{a.verified ? "✓ " : ""}{a.name}</div>
-            <div className="text-caption text-text-secondary">{a.track_count} треков</div>
+            <div className="text-caption text-text-secondary">{pluralTracks(a.track_count)}</div>
           </motion.button>
         ))}
       </SpotlightZone>

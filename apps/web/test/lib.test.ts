@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { artworkSrcSet, artworkUrl } from "@/lib/artwork";
-import { formatDuration, formatTotal, pluralTracks } from "@/lib/format";
+import { formatDuration, formatTotal, pluralPlays, pluralReleases, pluralTracks } from "@/lib/format";
+import { safeNext } from "@/lib/safe-next";
 
 const art = { url_template: "https://cdn/c/{size}.{format}", sizes: [64, 160, 300, 640, 1200, 3000], blurhash: null, palette: null };
 
@@ -22,5 +23,26 @@ describe("format", () => {
     expect([1, 2, 5, 11, 21, 22, 112].map(pluralTracks)).toEqual([
       "1 трек", "2 трека", "5 треков", "11 треков", "21 трек", "22 трека", "112 треков",
     ]);
+  });
+});
+
+describe("safeNext", () => {
+  const origin = "https://music.example";
+  it("keeps same-site paths", () => {
+    expect(safeNext("/album/1?x=1#t", origin)).toBe("/album/1?x=1#t");
+    expect(safeNext("/", origin)).toBe("/");
+  });
+  it("refuses anything that resolves to another origin", () => {
+    for (const value of ["//evil.example", "/\\evil.example/phish", "/\t/evil.example", "/\n/evil.example", "https://evil.example", "javascript:alert(1)", "evil", "", null]) {
+      expect(safeNext(value, origin)).toBe("/");
+    }
+  });
+});
+
+describe("plural", () => {
+  it("picks the Russian form", () => {
+    expect([1, 2, 5, 11, 21, 22, 104, 111].map(pluralTracks)).toEqual(["1 трек", "2 трека", "5 треков", "11 треков", "21 трек", "22 трека", "104 трека", "111 треков"]);
+    expect(pluralPlays(1)).toBe("1 прослушивание");
+    expect(pluralReleases(3)).toBe("3 релиза");
   });
 });

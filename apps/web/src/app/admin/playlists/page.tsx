@@ -9,6 +9,7 @@ import { PlaylistCover } from "@/components/PlaylistCover";
 import { PlusIcon } from "@/components/icons";
 import { SpotlightZone } from "@/components/visual/Spotlight";
 import { api, unwrap } from "@/lib/api";
+import { pluralTracks } from "@/lib/format";
 import { type S, useAction } from "@/lib/admin";
 
 function PlaylistEditor({ id, onClose }: { id: string; onClose: () => void }) {
@@ -72,7 +73,7 @@ export default function PlaylistsPage() {
             <div className="spotlight-glow" />
             <PlaylistCover playlist={p} sizes="220px" className="aspect-square w-full rounded-lg" />
             <div className="mt-2 truncate text-body font-bold">{p.title}</div>
-            <div className="truncate text-caption text-text-secondary">{p.track_count} треков</div>
+            <div className="truncate text-caption text-text-secondary">{pluralTracks(p.track_count)}</div>
           </motion.button>
         ))}
       </SpotlightZone>

@@ -15,7 +15,7 @@ import { Reveal, Tilt } from "@/components/visual/Reveal";
 import { ResonanceRing, signature } from "@/components/visual/Sonic";
 import { SpotlightZone } from "@/components/visual/Spotlight";
 import { artworkUrl } from "@/lib/artwork";
-import { formatDuration, releaseTypeLabel } from "@/lib/format";
+import { formatDuration, pluralTracks, releaseTypeLabel } from "@/lib/format";
 import { playPlaylist, playRelease, playTracks } from "@/lib/play";
 import { player } from "@/player/controller";
 
@@ -282,7 +282,7 @@ function PlaylistCard({ playlist }: { playlist: S["PlaylistSummary"] }) {
         </div>
         <div className="px-1 pb-1 pt-2.5">
           <div className="truncate text-body font-bold">{playlist.title}</div>
-          <div className="line-clamp-2 text-caption text-text-secondary">{playlist.description ?? `${playlist.track_count} треков`}</div>
+          <div className="line-clamp-2 text-caption text-text-secondary">{playlist.description ?? pluralTracks(playlist.track_count)}</div>
         </div>
       </Link>
     </Tilt>
