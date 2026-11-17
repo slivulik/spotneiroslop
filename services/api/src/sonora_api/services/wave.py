@@ -247,10 +247,14 @@ async def feedback(
 
 
 async def latest_settings(session: AsyncSession, user: User) -> WaveSettings:
-    """Settings of the session the listener started last (all «any» before the first one)."""
+    """Tuning of the listener's last «Моя волна» (all «any» before the first one).
+
+    Radios from a track or an artist are sessions too, but always start untuned: they must not
+    overwrite what the listener chose for their own wave.
+    """
     stored = await session.scalar(
         select(WaveSession.settings)
-        .where(WaveSession.user_id == user.id)
+        .where(WaveSession.user_id == user.id, WaveSession.seed_type == "user")
         .order_by(WaveSession.started_at.desc(), WaveSession.id.desc())
         .limit(1)
     )
@@ -497,11 +501,12 @@ async def _pick(
         _judge(base, x, ws, listener, signals.get(x.track.id), tuning)
         for base, x in rec._score(cands, t, cooc, rng, set())
     ]
+    if repeating:
+        # Every level of relaxation has already played once: plain "heard longest ago" order.
+        judged.sort(key=lambda j: last_served.get(j.cand.track.id, -1))
+        return [j.cand for j in judged[:limit]]
     for level in range(4):
         fitting = [j for j in judged if j.passes(level)]
-        if fitting and repeating:
-            fitting.sort(key=lambda j: last_served.get(j.cand.track.id, -1))
-            return [j.cand for j in fitting[:limit]]
         if fitting:
             fitting.sort(key=lambda j: -j.score)
             return rec._diversify([j.cand for j in fitting], limit)

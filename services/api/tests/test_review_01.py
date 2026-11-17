@@ -165,3 +165,12 @@ async def test_huge_offsets_are_a_validation_error(harness: Harness, catalog_dat
         "/v1/me/library/tracks", headers=me, params={"offset": 9223372036854775808}
     )
     assert response.status_code == 422
+
+
+async def test_a_radio_does_not_overwrite_the_wave_tuning(harness: Harness, catalog_data: Catalog) -> None:
+    me = bearer(await register(harness.client))
+    tuned = {"character": "discover", "mood": "calm", "language": None}
+    await _start(harness, me, settings=tuned, limit=3)
+    await _start(harness, me, seed_track=str(catalog_data.tracks[0].id), limit=3)  # a radio, untuned
+    stored = (await harness.client.get("/v1/me/wave/settings", headers=me)).json()
+    assert stored == tuned

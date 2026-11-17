@@ -148,7 +148,10 @@ edge_up() {
 }
 
 case "$CMD" in
-  env) slot_env ;;
+  env)
+    # The exports name per-slot test databases: make sure they exist (quietly, if Postgres is up).
+    ensure_db >/dev/null 2>&1 || true
+    slot_env ;;
   up)
     shared_up; api_up
     [[ "${3:-}" == "--no-web" ]] || web_up

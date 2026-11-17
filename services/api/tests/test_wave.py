@@ -190,7 +190,7 @@ async def test_mood_from_genre_names(harness: Harness, catalog_data: Catalog) ->
     await _genre(harness, "ambient", "Ambient", calm)
     await _genre(harness, "heavy-metal", "Heavy Metal", loud)
 
-    started = await _start(harness, me, settings={"mood": "calm"}, limit=10)
+    started = await _start(harness, me, settings={"mood": "calm"}, limit=3)
     first = _ids(started["tracks"])
     assert str(calm.id) in first
     assert str(loud.id) not in first  # the opposite mood is filtered out; unknown tracks stay
