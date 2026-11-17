@@ -39,6 +39,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
@@ -91,13 +92,34 @@ fun tracksWord(n: Int): String {
 
 private val PLACEHOLDER = listOf(SonoraTokens.Colors.WaveA, SonoraTokens.Colors.WaveB, SonoraTokens.Colors.WaveC, SonoraTokens.Colors.WaveD)
 
+/** The two colours of the placeholder gradient [Cover] draws for [seed] while there is no artwork. */
+fun placeholderColors(seed: String): Pair<Color, Color> {
+    val h = seed.hashCode()
+    val a = PLACEHOLDER[Math.floorMod(h, 4)]
+    val b = PLACEHOLDER[Math.floorMod(h / 4 + 1, 4)].takeIf { it != a } ?: PLACEHOLDER[(Math.floorMod(h, 4) + 2) % 4]
+    return a to b
+}
+
+/**
+ * Three colours that belong to a cover: its palette (vibrant first) when the server extracted one,
+ * otherwise the placeholder pair, so ambient backgrounds always match what the cover shows.
+ */
+fun coverColors(artwork: Artwork?, seed: String): List<Color> {
+    val p = artwork?.palette
+    val fromCover = listOfNotNull(hexColor(p?.vibrant), hexColor(p?.accent), hexColor(p?.dominant), hexColor(p?.muted)).distinct()
+    return when (fromCover.size) {
+        0 -> placeholderColors(seed).let { (a, b) -> listOf(a, b, PLACEHOLDER.first { it != a && it != b }) }
+        1 -> fromCover[0].let { c -> listOf(c, lerp(c, Color.White, 0.35f), lerp(c, Color.Black, 0.4f)) }
+        2 -> fromCover + lerp(fromCover[0], fromCover[1], 0.5f)
+        else -> fromCover.take(3)
+    }
+}
+
 /** Artwork, or a calm two-tone gradient picked from the seed while there is none. */
 @Composable
 fun Cover(artwork: Artwork?, size: Dp, modifier: Modifier = Modifier, shape: Shape = RoundedCornerShape(6.dp), description: String? = null, seed: String = "") {
     val px = with(LocalDensity.current) { size.roundToPx() }
-    val h = seed.hashCode()
-    val a = PLACEHOLDER[Math.floorMod(h, 4)]
-    val b = PLACEHOLDER[Math.floorMod(h / 4 + 1, 4)].takeIf { it != a } ?: PLACEHOLDER[(Math.floorMod(h, 4) + 2) % 4]
+    val (a, b) = placeholderColors(seed)
     val tint = hexColor(artwork?.palette?.dominant) ?: Color(0xFF1D1A26)
     Box(
         modifier.size(size).clip(shape).drawBehind {

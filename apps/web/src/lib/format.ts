@@ -24,10 +24,15 @@ export function releaseTypeLabel(type: string): string {
   return RELEASE_TYPES[type] ?? type;
 }
 
-export function pluralTracks(n: number): string {
-  const mod10 = n % 10;
-  const mod100 = n % 100;
-  if (mod10 === 1 && mod100 !== 11) return `${n} трек`;
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return `${n} трека`;
-  return `${n} треков`;
+/** Russian plural: [один трек, два трека, пять треков]. */
+export function plural(n: number, forms: readonly [string, string, string]): string {
+  const mod10 = Math.abs(n) % 10;
+  const mod100 = Math.abs(n) % 100;
+  if (mod10 === 1 && mod100 !== 11) return `${n} ${forms[0]}`;
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return `${n} ${forms[1]}`;
+  return `${n} ${forms[2]}`;
 }
+
+export const pluralTracks = (n: number): string => plural(n, ["трек", "трека", "треков"]);
+export const pluralReleases = (n: number): string => plural(n, ["релиз", "релиза", "релизов"]);
+export const pluralPlays = (n: number): string => plural(n, ["прослушивание", "прослушивания", "прослушиваний"]);

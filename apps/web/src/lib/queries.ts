@@ -134,16 +134,19 @@ export function useGenres() {
   });
 }
 
+/**
+ * Lyrics of a track. Asked for even when `has_lyrics` is false: the server then looks them up on
+ * demand. "None found" (204, or the not-found error) resolves to null; other failures throw.
+ */
 export function useLyrics(trackId: string | null, enabled: boolean) {
   return useQuery({
     queryKey: ["lyrics", trackId],
     enabled: Boolean(trackId) && enabled,
     retry: false,
     staleTime: 10 * 60_000,
-    // 204 = the track has no lyrics: resolve to null instead of failing.
     queryFn: async ({ signal }) => {
       const { data, response } = await api.GET("/v1/tracks/{track_id}/lyrics", { params: { path: { track_id: trackId! } }, signal });
-      if (response.status === 204) return null;
+      if (response.status === 204 || response.status === 404) return null;
       if (!response.ok || !data) throw new Error(`lyrics ${response.status}`);
       return data as S["LyricsOut"];
     },

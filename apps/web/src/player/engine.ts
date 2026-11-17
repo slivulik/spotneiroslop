@@ -428,6 +428,31 @@ export class PlayerEngine {
     return { energy: all / (used - 1), bass: bass / bassBins };
   }
 
+  /**
+   * Spectrum for visuals: `out.length` log-spaced bands (0..1) from ≈ 40 Hz to ≈ 9.5 kHz, so the
+   * bass, voice and air each get their share. False without Web Audio or while paused.
+   */
+  spectrumBands(out: Float32Array): boolean {
+    if (!this.analyser || !this.spectrum || this.audio.paused) return false;
+    this.analyser.getByteFrequencyData(this.spectrum);
+    const bins = this.spectrum;
+    const top = Math.min(bins.length - 1, 220);
+    const n = out.length;
+    for (let b = 0; b < n; b++) {
+      const lo = Math.max(1, Math.floor(top ** (b / n)));
+      const hi = Math.max(lo + 1, Math.floor(top ** ((b + 1) / n)));
+      let sum = 0;
+      for (let i = lo; i < hi; i++) sum += bins[i] ?? 0;
+      out[b] = sum / (hi - lo) / 255;
+    }
+    return true;
+  }
+
+  /** Exact playback position (ms) from the media clock, between the coarse progress events. */
+  get positionMs(): number {
+    return this.audio.currentTime * 1000;
+  }
+
   /** Time-domain samples (128 = silence) for the oscilloscope; false when nothing is audible. */
   oscilloscope(out: Uint8Array<ArrayBuffer>): boolean {
     if (!this.analyser || this.audio.paused) return false;

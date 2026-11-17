@@ -46,6 +46,16 @@ class AudioBadges(ApiModel):
     hires: bool
 
 
+class TrackLicense(ApiModel):
+    """Licence of a recording imported from an open catalogue (Creative Commons / public domain)."""
+
+    code: str = Field(description="Readable licence: «CC BY-SA 4.0», «CC0 1.0», «Public Domain Mark 1.0» …")
+    url: str | None = Field(default=None, description="Licence deed")
+    source: str | None = Field(default=None, description="Where it was imported from, e.g. «Jamendo»")
+    source_url: str | None = Field(default=None, description="The recording's page at the source")
+    attribution: str | None = Field(default=None, description="Author to credit")
+
+
 class TrackOut(ApiModel):
     id: uuid.UUID
     title: str
@@ -62,6 +72,9 @@ class TrackOut(ApiModel):
     has_canvas: bool
     playable: bool = Field(
         description="False for guests and for explicit tracks when the explicit filter is on"
+    )
+    license: TrackLicense | None = Field(
+        default=None, description="Set for imported Creative Commons / public-domain recordings"
     )
 
 

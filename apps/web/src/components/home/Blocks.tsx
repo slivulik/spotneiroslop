@@ -15,7 +15,7 @@ import { Reveal, Tilt } from "@/components/visual/Reveal";
 import { ResonanceRing, signature } from "@/components/visual/Sonic";
 import { SpotlightZone } from "@/components/visual/Spotlight";
 import { artworkUrl } from "@/lib/artwork";
-import { formatDuration, releaseTypeLabel } from "@/lib/format";
+import { formatDuration, pluralTracks, releaseTypeLabel } from "@/lib/format";
 import { playPlaylist, playRelease, playTracks } from "@/lib/play";
 import { player } from "@/player/controller";
 
@@ -210,7 +210,7 @@ export function ReleaseCard({ release }: { release: S["ReleaseSummary"] }) {
   );
 }
 
-function StoryCircle({ release, index }: { release: S["ReleaseSummary"]; index: number }) {
+function StoryCircle({ release }: { release: S["ReleaseSummary"] }) {
   const palette = release.artwork?.palette;
   const current = useCurrentTrack();
   const playing = useIsPlaying();
@@ -282,14 +282,14 @@ function PlaylistCard({ playlist }: { playlist: S["PlaylistSummary"] }) {
         </div>
         <div className="px-1 pb-1 pt-2.5">
           <div className="truncate text-body font-bold">{playlist.title}</div>
-          <div className="line-clamp-2 text-caption text-text-secondary">{playlist.description ?? `${playlist.track_count} треков`}</div>
+          <div className="line-clamp-2 text-caption text-text-secondary">{playlist.description ?? pluralTracks(playlist.track_count)}</div>
         </div>
       </Link>
     </Tilt>
   );
 }
 
-function ArtistBubble({ artist, index }: { artist: S["ArtistSummary"]; index: number }) {
+function ArtistBubble({ artist }: { artist: S["ArtistSummary"] }) {
   return (
     <div className="reveal">
       <Link href={`/artist/${artist.id}`} className="group flex flex-col items-center gap-3 rounded-xl p-3 transition-colors hover:bg-fg/5">
@@ -347,7 +347,7 @@ export function HomeBlockView({ block: raw, index }: { block: Block; index: numb
         <section>
           <SectionHeader title={block.title} subtitle={block.subtitle} icon={icon} index={index} />
           <div className="shelf" style={{ gridAutoColumns: "112px", gap: "10px" }}>
-            {block.releases.map((r, i) => <StoryCircle key={r.id} release={r} index={i} />)}
+            {block.releases.map((r) => <StoryCircle key={r.id} release={r} />)}
           </div>
         </section>
       </Reveal>
@@ -392,7 +392,7 @@ export function HomeBlockView({ block: raw, index }: { block: Block; index: numb
   if (block.type === "artists") {
     return (
       <ShelfSection title={block.title} subtitle={block.subtitle} icon={icon} index={index} itemWidth="clamp(130px, 13vw, 170px)">
-        {block.artists.map((a, i) => <ArtistBubble key={a.id} artist={a} index={i} />)}
+        {block.artists.map((a) => <ArtistBubble key={a.id} artist={a} />)}
       </ShelfSection>
     );
   }

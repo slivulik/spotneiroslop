@@ -1,5 +1,6 @@
 """Recommendations on real data: wave, mixes, similar artists, artist statistics."""
 
+import uuid
 from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import select
@@ -9,7 +10,7 @@ from sonora_api.models import Genre, ListeningHistory, TrackGenre, User
 from tests.conftest import Catalog, Harness, bearer, make_artist, make_release, make_track, register
 
 
-async def _user_id(harness: Harness, email: str):
+async def _user_id(harness: Harness, email: str) -> uuid.UUID | None:
     async with harness.ctx.sessionmaker() as s:
         return await s.scalar(select(User.id).where(User.email == email))
 

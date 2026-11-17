@@ -55,6 +55,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -91,6 +92,7 @@ import com.sonora.app.playback.PlayContext
 import com.sonora.app.playback.PlayerUi
 import com.sonora.app.ui.components.Cover
 import com.sonora.app.ui.design.C
+import com.sonora.app.ui.design.LocalMotion
 import com.sonora.app.ui.design.S
 import com.sonora.app.ui.design.T
 import com.sonora.app.ui.design.muted
@@ -107,6 +109,7 @@ import com.sonora.app.ui.screens.MixScreen
 import com.sonora.app.ui.screens.PlaylistScreen
 import com.sonora.app.ui.screens.SearchScreen
 import com.sonora.app.ui.screens.SettingsScreen
+import com.sonora.app.ui.screens.WaveSettingsContent
 
 /** Shared-element scopes for the cover that moves between the mini player and the full player. */
 @OptIn(ExperimentalSharedTransitionApi::class)
@@ -134,6 +137,9 @@ fun SonoraAppUi(app: AppViewModel, deepLink: String?, onDeepLinkHandled: () -> U
     val menu by app.menu.collectAsStateWithLifecycle()
     val picking by app.picking.collectAsStateWithLifecycle()
     val playlists by app.playlists.collectAsStateWithLifecycle()
+    val waveSheet by app.waveSheet.collectAsStateWithLifecycle()
+    val waveSettings by app.waves.settings.collectAsStateWithLifecycle()
+    val settings by app.settings.settings.collectAsStateWithLifecycle()
     var playerOpen by rememberSaveable { mutableStateOf(false) }
 
     val env = Env(
@@ -148,6 +154,7 @@ fun SonoraAppUi(app: AppViewModel, deepLink: String?, onDeepLinkHandled: () -> U
         userName = me?.displayName,
         email = me?.email,
         isAdmin = me?.role == "admin",
+        playerOpen = playerOpen && player.track != null,
     )
     val actions = remember(app, nav) {
         object : Actions {
@@ -155,7 +162,8 @@ fun SonoraAppUi(app: AppViewModel, deepLink: String?, onDeepLinkHandled: () -> U
             override fun back() { nav.popBackStack() }
             override fun play(tracks: List<Track>, index: Int, ctx: PlayContext, shuffle: Boolean) = app.player.play(tracks, index, ctx, shuffle)
             override fun togglePlay() = app.player.toggle()
-            override fun playWave() { app.player.playWave() }
+            override fun playWave() { app.playWave() }
+            override fun openWaveSettings() = app.openWaveSettings()
             override fun toggleSaved(kind: String, id: String) { app.toggle(kind, id) }
             override fun openTrackMenu(track: Track, ctx: PlayContext) = app.openMenu(track, ctx)
             override fun share(path: String, title: String) = app.share(path, title)
@@ -172,7 +180,10 @@ fun SonoraAppUi(app: AppViewModel, deepLink: String?, onDeepLinkHandled: () -> U
     }
 
     val hasTrack = player.track != null
-    CompositionLocalProvider(LocalEnv provides env, LocalActions provides actions, LocalBottomInset provides if (hasTrack) 152.dp else 88.dp) {
+    CompositionLocalProvider(
+        LocalEnv provides env, LocalActions provides actions, LocalBottomInset provides if (hasTrack) 152.dp else 88.dp,
+        LocalMotion provides settings.motion,
+    ) {
         SharedTransitionLayout(Modifier.fillMaxSize().background(C.bg)) {
             Box(Modifier.fillMaxSize()) {
                 Routes(nav, app)
@@ -204,6 +215,15 @@ fun SonoraAppUi(app: AppViewModel, deepLink: String?, onDeepLinkHandled: () -> U
         }
 
         menu?.let { (track, ctx) -> TrackSheet(track, ctx, app) }
+        if (waveSheet) {
+            ModalBottomSheet(
+                onDismissRequest = app::closeWaveSettings,
+                sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+                containerColor = C.surface,
+            ) {
+                WaveSettingsContent(waveSettings, app::setWaveSettings)
+            }
+        }
         if (picking != null) {
             ModalBottomSheet(onDismissRequest = app::closePicker, containerColor = C.surface) {
                 Text("Добавить в плейлист", style = T.Title, color = C.text, modifier = Modifier.padding(horizontal = S.page, vertical = S.s))

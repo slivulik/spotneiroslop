@@ -28,12 +28,12 @@ from sonora_api.schemas.admin_catalog import (
     SearchHit,
 )
 from sonora_api.schemas.common import ERROR_RESPONSES, AdminPage, ApiModel
-from sonora_api.services import admin_catalog
+from sonora_api.services import admin_catalog, lyrics_on_demand
 from sonora_api.services import lookup as metadata
 
 router = APIRouter(prefix=f"{API_V1}/admin", tags=["admin"], responses=ERROR_RESPONSES)
 log = get_logger("sonora.admin")
-Offset = Annotated[int, Query(ge=0)]
+Offset = Annotated[int, Query(ge=0, le=10_000_000)]
 Limit = Annotated[int, Query(ge=1, le=200)]
 
 
@@ -95,8 +95,10 @@ async def lookup_lyrics(track_id: uuid.UUID, admin: AdminViewer, session: Sessio
 
 
 @router.delete("/tracks/{track_id}/lyrics", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_lyrics(track_id: uuid.UUID, admin: AdminViewer, session: Session) -> None:
+async def delete_lyrics(track_id: uuid.UUID, admin: AdminViewer, session: Session, ctx: Ctx) -> None:
+    """Removed lyrics stay removed: listeners opening the track won't fetch them from LRCLIB again."""
     await admin_catalog.delete_lyrics(session, track_id)
+    await lyrics_on_demand.remember_miss(ctx.redis, track_id, ttl=None)
 
 
 @router.delete("/tracks/{track_id}", status_code=status.HTTP_204_NO_CONTENT)

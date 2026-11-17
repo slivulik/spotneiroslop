@@ -18,6 +18,8 @@ import com.sonora.app.data.net.ReleaseRef
 import com.sonora.app.data.net.ReleaseSummary
 import com.sonora.app.data.net.SearchResult
 import com.sonora.app.data.net.Track
+import com.sonora.app.data.net.TrackLicense
+import com.sonora.app.data.net.WaveSettings
 import com.sonora.app.data.net.WeeklyPlays
 import com.sonora.app.playback.PlayContext
 import com.sonora.app.playback.PlayerUi
@@ -26,6 +28,7 @@ import com.sonora.app.ui.screens.ArtistPage
 import com.sonora.app.ui.screens.HomeData
 import com.sonora.app.ui.screens.LibraryData
 import com.sonora.app.ui.screens.SearchUi
+import com.sonora.app.ui.screens.WaveHeroUi
 
 /** Realistic Russian catalogue for screenshot tests (no network, no artwork files). */
 object FakeData {
@@ -38,8 +41,15 @@ object FakeData {
     private val tides = ReleaseRef("r2", "Приливы", "tides", "album")
     private val road = ReleaseRef("r3", "Долгая дорога", "road", "single")
 
-    private fun t(id: String, title: String, n: Int, ms: Long, artists: List<ArtistRef>, release: ReleaseRef, hires: Boolean = false, explicit: Boolean = false) =
-        Track(id, title, null, ms, 1, n, explicit, artists, release, AudioBadges(hires, true), hasLyrics = true, lyricsType = "line")
+    private fun t(
+        id: String, title: String, n: Int, ms: Long, artists: List<ArtistRef>, release: ReleaseRef,
+        hires: Boolean = false, explicit: Boolean = false, license: TrackLicense? = null,
+    ) = Track(id, title, null, ms, 1, n, explicit, artists, release, AudioBadges(hires, true), hasLyrics = true, lyricsType = "line", license = license)
+
+    /** An imported open-licence track (Jamendo), so the licence mark shows up in the player. */
+    private val ccBySa = TrackLicense(
+        "CC BY-SA 4.0", "https://creativecommons.org/licenses/by-sa/4.0/", "jamendo", "https://www.jamendo.com/track/1", "Ночной берег",
+    )
 
     val albumTracks = listOf(
         t("t1", "Северное сияние", 1, 214_000, listOf(aurora), northern, hires = true),
@@ -51,7 +61,7 @@ object FakeData {
     )
     val mixed = listOf(
         albumTracks[0],
-        t("t7", "Приливы", 1, 232_000, listOf(shore), tides),
+        t("t7", "Приливы", 1, 232_000, listOf(shore), tides, license = ccBySa),
         t("t8", "Долгая дорога", 1, 360_000, listOf(sonora), road),
         albumTracks[3],
         t("t9", "Тихий порт", 3, 198_000, listOf(shore), tides),
@@ -127,12 +137,17 @@ object FakeData {
         track = albumTracks[2], context = ctx, isPlaying = true, positionMs = 83_000, durationMs = 243_000,
         queue = albumTracks, index = 2,
     )
+    /** Synced lines of «Белые ночи»; at 1:23 the long line 6 is a little over a third sung. */
     val lyrics = Lyrics(
         "line",
         listOf(
+            LyricsLine(48_000, 54_000, "Ночь прозрачна, как стекло"), LyricsLine(54_000, 60_000, "Тихо дышит северный ветер"),
             LyricsLine(60_000, 66_000, "Над заливом белые ночи"), LyricsLine(66_000, 72_000, "Город спит, а мы не спим"),
-            LyricsLine(72_000, 80_000, "Свет не гаснет до рассвета"), LyricsLine(80_000, 88_000, "Это лето — только с ним"),
+            LyricsLine(72_000, 80_000, "Свет не гаснет до рассвета"), LyricsLine(80_000, 88_000, "Это лето — только с нами, и свет не гаснет до утра"),
             LyricsLine(88_000, 94_000, "Тени тают на граните"), LyricsLine(94_000, 100_000, "Ветер пишет по воде"),
+            LyricsLine(100_000, 104_000, ""), LyricsLine(104_000, 110_000, "Мы уходим в это небо"),
+            LyricsLine(110_000, 116_000, "Белым светом по воде"), LyricsLine(116_000, 122_000, "И не важно, что там дальше"),
+            LyricsLine(122_000, 128_000, "Если ночь светла везде"),
         ),
     )
 
@@ -140,4 +155,14 @@ object FakeData {
         currentId = "t3", currentContext = ctx, playing = true, likedTracks = setOf("t1", "t3", "t8"), savedReleases = setOf("r1"),
         followed = setOf("a1"), signedIn = true, userName = "Admin", email = "admin@sonora.example",
     )
+
+    /** «Моя волна» playing «Приливы» (an open-licence track) with two filters set. */
+    val waveCtx = PlayContext("wave", "6f1c2a0e-5b7d-4c1e-9a3f-2d8e7b6c5a41", "Моя волна")
+    val waveSettings = WaveSettings(character = "discover", mood = "calm")
+    val wavePlaying = PlayerUi(
+        track = mixed[1], context = waveCtx, isPlaying = true, positionMs = 71_000, durationMs = 232_000,
+        queue = mixed, index = 1,
+    )
+    val waveEnv = env.copy(currentId = "t7", currentContext = waveCtx, likedTracks = env.likedTracks + "t7")
+    val waveHero = WaveHeroUi(track = mixed[1], active = true, playing = true, settings = waveSettings)
 }

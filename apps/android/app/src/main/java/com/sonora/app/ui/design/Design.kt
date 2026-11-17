@@ -18,15 +18,18 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -57,6 +60,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
@@ -104,6 +108,26 @@ val LightColors = with(SonoraTokens.LightColors) {
 
 val LocalColors = staticCompositionLocalOf { DarkColors }
 val C: SonoraPalette @Composable get() = LocalColors.current
+
+/** The app's motion preference ("system" | "full" | "reduced", synced with the web app). */
+val LocalMotion = staticCompositionLocalOf { "system" }
+
+/**
+ * Whether decorative, continuous animation may run: off when the user chose reduced motion in the
+ * app, or (with "system") when Android's "Remove animations" sets the animator duration scale to 0.
+ */
+@Composable
+fun rememberAnimationsEnabled(): Boolean {
+    val pref = LocalMotion.current
+    val resolver = LocalContext.current.contentResolver
+    return remember(pref, resolver) {
+        when (pref) {
+            "reduced" -> false
+            "full" -> true
+            else -> android.provider.Settings.Global.getFloat(resolver, android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 1f) != 0f
+        }
+    }
+}
 
 object T {
     /** Page titles («Поиск», «Медиатека», greeting). */
@@ -196,6 +220,21 @@ fun Chip(text: String, selected: Boolean, onClick: () -> Unit) {
     val fg by animateColorAsState(if (selected) C.onAccent else C.text, tween(150), label = "chipText")
     Box(Modifier.height(32.dp).clip(CircleShape).background(bg).press(onClick, role = Role.Tab).padding(horizontal = 14.dp), contentAlignment = Alignment.Center) {
         Text(text, style = T.Label, color = fg, maxLines = 1)
+    }
+}
+
+/** Translucent pill with an icon over colourful backgrounds (wave hero, now playing). */
+@Composable
+fun GlassPill(icon: ImageVector, text: String, onClick: () -> Unit, modifier: Modifier = Modifier, tint: Color = C.text, active: Boolean = false) {
+    val fill by animateColorAsState(C.fg.copy(alpha = if (active) 0.2f else 0.09f), tween(150), label = "glass")
+    Row(
+        modifier.height(40.dp).clip(CircleShape).background(fill).border(1.dp, C.fg.copy(alpha = 0.12f), CircleShape)
+            .press(onClick, scale = true, label = text).padding(horizontal = 14.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(18.dp))
+        Spacer(Modifier.width(S.s))
+        Text(text, style = T.LabelBold, color = C.text, maxLines = 1)
     }
 }
 

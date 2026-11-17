@@ -21,6 +21,7 @@ from sonora_api.core.errors import AppError, ForbiddenError, NotFoundError
 from sonora_api.core.ids import uuid7
 from sonora_api.models import (
     Artist,
+    Dislike,
     FollowArtist,
     FollowPlaylist,
     LikeRelease,
@@ -96,6 +97,11 @@ async def set_saved(
         await session.execute(
             insert(model).values({"user_id": user.id, column.key: target_id}).on_conflict_do_nothing()
         )
+        if kind == "tracks":
+            # One state per track: liking it by any route takes back an earlier «не нравится».
+            await session.execute(
+                delete(Dislike).where(Dislike.user_id == user.id, Dislike.track_id == target_id)
+            )
     else:
         await session.execute(delete(model).where(model.user_id == user.id, column == target_id))
     await session.commit()
@@ -176,7 +182,9 @@ async def my_playlists(session: AsyncSession, settings: Settings, user: User) ->
 
 
 async def _own(session: AsyncSession, user: User, playlist_id: uuid.UUID) -> Playlist:
-    p = await session.get(Playlist, playlist_id)
+    # Every caller changes the playlist: the row lock makes two devices adding tracks at once
+    # take turns instead of colliding on the position index.
+    p = await session.get(Playlist, playlist_id, with_for_update=True)
     if p is None or p.type != PlaylistType.USER:
         raise NotFoundError("Playlist not found")
     if p.owner_id != user.id:
@@ -336,8 +344,10 @@ async def listening_history(session: AsyncSession, settings: Settings, user: Use
                 catalog._tracks_query(_now())
                 .join(ListeningHistory, ListeningHistory.track_id == Track.id)
                 .where(ListeningHistory.user_id == user.id)
-                .add_columns(ListeningHistory.played_at, ListeningHistory.ms_played)
-                .order_by(ListeningHistory.played_at.desc())
+                # The row id keeps two plays with the same timestamp apart: `.unique()` below
+                # (needed for the eager-loaded artists) would otherwise merge them after LIMIT.
+                .add_columns(ListeningHistory.played_at, ListeningHistory.ms_played, ListeningHistory.id)
+                .order_by(ListeningHistory.played_at.desc(), ListeningHistory.id.desc())
                 .limit(limit)
             )
         )
@@ -347,7 +357,7 @@ async def listening_history(session: AsyncSession, settings: Settings, user: Use
     return HistoryOut(
         items=[
             HistoryEntry(played_at=played_at, ms_played=ms, track=catalog.track_out(settings, t, user))
-            for t, played_at, ms in rows
+            for t, played_at, ms, _ in rows
         ]
     )
 

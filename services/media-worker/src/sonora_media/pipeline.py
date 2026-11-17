@@ -14,12 +14,24 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+import httpx
 from sonora_api.models import Release, Track, TrackArtist, UploadJob
 from sonora_api.models.enums import UPLOAD_STAGES, JobStatus, UploadStage
 from sqlalchemy import create_engine, select
 from sqlalchemy.orm import Session, sessionmaker
 
-from sonora_media import artwork, authenticity, catalog, enrich, loudness, preview, transcode, waveform
+from sonora_media import (
+    artwork,
+    authenticity,
+    catalog,
+    enrich,
+    fetch,
+    imports,
+    loudness,
+    preview,
+    transcode,
+    waveform,
+)
 from sonora_media import fingerprint as fp
 from sonora_media.config import WorkerSettings
 from sonora_media.errors import MediaError
@@ -45,6 +57,8 @@ class JobContext:
     state: dict[str, Any]
     workdir: Path
     warnings: list[dict[str, Any]] = field(default_factory=list)
+    #: HTTP transport for imports (downloads from open catalogues); tests pass a mock.
+    http_transport: httpx.BaseTransport | None = None
     _source: Path | None = None
 
     @property
@@ -56,6 +70,11 @@ class JobContext:
             self._source = self.workdir / f"source{Path(entry['key']).suffix}"
             self.storage.download(self.settings.s3_uploads_bucket, entry["key"], self._source)
         return self._source
+
+    def use_source(self, path: Path, entry: dict[str, Any]) -> None:
+        """The source was just fetched into `path` and stored as `entry` (no download back)."""
+        self.files = [*(f for f in self.files if f["role"] != "source"), entry]
+        self._source = path
 
     def cover_bytes(self) -> bytes | None:
         entry = self._file("cover")
@@ -94,6 +113,65 @@ class JobContext:
 # ---------------------------------------------------------------------------
 
 
+def stage_fetch(ctx: JobContext) -> dict[str, Any]:
+    """Imports: download the source from the catalogue (allow-listed hosts only) into upload
+    storage, exactly where a browser upload would have put it. Uploads skip this stage."""
+    job = imports.spec(ctx.options)
+    if job is None:
+        return {"imported": False}
+    with ctx.sessions() as session:
+        other = imports.already_imported(session, job, exclude=_own_track_id(ctx, session))
+    if other is not None:
+        raise MediaError(f"Этот трек с {imports.title(job)} уже есть в каталоге")
+    settings = ctx.settings
+    urls = [job.download_url, *([job.fallback_url] if job.fallback_url else [])]
+    errors: list[str] = []
+    downloaded: fetch.Downloaded | None = None
+    for url in urls:
+        try:
+            downloaded = fetch.download_audio(
+                url,
+                ctx.workdir / "fetch",
+                max_bytes=settings.import_max_bytes,
+                timeout_seconds=settings.import_timeout_seconds,
+                transport=ctx.http_transport,
+            )
+            break
+        except MediaError as exc:
+            errors.append(str(exc))
+    if downloaded is None:
+        raise MediaError("; ".join(errors))
+    if errors:
+        ctx.warn("fetch_fallback", f"Основная ссылка не сработала ({errors[0]}) — скачан запасной вариант")
+    if downloaded.kind != job.format:
+        ctx.warn(
+            "fetch_format",
+            f"{imports.title(job)} отдал {downloaded.kind.upper()} вместо {job.format.upper()}",
+        )
+    key = f"jobs/{ctx.job_id}/source.{downloaded.kind}"
+    ctx.storage.upload_file(settings.s3_uploads_bucket, key, downloaded.path)
+    entry = {
+        "role": "source",
+        "key": key,
+        "filename": imports.filename(job, downloaded.kind),
+        "size_bytes": downloaded.size_bytes,
+    }
+    ctx.use_source(downloaded.path, entry)
+    with ctx.sessions.begin() as session:
+        row = session.get(UploadJob, ctx.job_id)
+        assert row is not None  # noqa: S101
+        row.files = list(ctx.files)
+    return {
+        "imported": True,
+        "source": job.source,
+        "external_id": job.external_id,
+        "url": downloaded.url,
+        "key": key,
+        "size_bytes": downloaded.size_bytes,
+        "format": downloaded.kind,
+    }
+
+
 def stage_probe(ctx: JobContext) -> dict[str, Any]:
     return probe(ctx.settings, ctx.source).to_dict()
 
@@ -112,6 +190,8 @@ def stage_authenticity(ctx: JobContext) -> dict[str, Any]:
 
 def stage_tags(ctx: JobContext) -> dict[str, Any]:
     tags = read_tags(ctx.source)
+    if (job := imports.spec(ctx.options)) is not None:
+        imports.fill_tags(tags, job, ctx.warn)
     if not tags.artists:
         raise MediaError("Нет тега исполнителя (ARTIST / TPE1) — заполните его и загрузите снова")
     if not tags.title:
@@ -151,25 +231,36 @@ def stage_loudness(ctx: JobContext) -> dict[str, Any]:
 
 
 def stage_catalog(ctx: JobContext) -> dict[str, Any]:
-    previous = ctx.state.get(UploadStage.CATALOG, {}).get("track_id")
+    job = imports.spec(ctx.options)
     with ctx.sessions.begin() as session:
+        own = _own_track_id(ctx, session)
+        if job is not None and imports.already_imported(session, job, exclude=own):
+            raise MediaError(f"Этот трек с {imports.title(job)} уже есть в каталоге")
         track = catalog.upsert_track(
             session,
-            track_id=uuid.UUID(previous) if previous else _job_track_id(session, ctx.job_id),
+            track_id=own,
             tags=ctx.tags,
             probe=ctx.state[UploadStage.PROBE],
             sha256=ctx.state[UploadStage.FINGERPRINT]["sha256"],
             fingerprint=ctx.state[UploadStage.FINGERPRINT]["fingerprint"],
             loudness=ctx.state[UploadStage.LOUDNESS],
         )
-        job = session.get(UploadJob, ctx.job_id)
-        assert job is not None  # noqa: S101
-        job.track_id = track.id
+        if job is not None:
+            imports.apply_to_track(track, job)
+        row = session.get(UploadJob, ctx.job_id)
+        assert row is not None  # noqa: S101
+        row.track_id = track.id
         return {"track_id": str(track.id), "release_id": str(track.release_id)}
 
 
 def _job_track_id(session: Session, job_id: uuid.UUID) -> uuid.UUID | None:
     return session.scalar(select(UploadJob.track_id).where(UploadJob.id == job_id))
+
+
+def _own_track_id(ctx: JobContext, session: Session) -> uuid.UUID | None:
+    """The track this job already wrote (kept across retries), if any."""
+    previous = ctx.state.get(UploadStage.CATALOG, {}).get("track_id")
+    return uuid.UUID(previous) if previous else _job_track_id(session, ctx.job_id)
 
 
 def stage_transcode(ctx: JobContext) -> dict[str, Any]:
@@ -216,15 +307,30 @@ def stage_waveform(ctx: JobContext) -> dict[str, Any]:
     return {"peaks": waveform.compute(ctx.settings, ctx.source)}
 
 
+def _catalogue_cover(ctx: JobContext) -> bytes | None:
+    """Imports: the cover the catalogue shows for this recording (best effort)."""
+    job = imports.spec(ctx.options)
+    if job is None or not job.source_meta.artwork_url:
+        return None
+    data = fetch.download_image(job.source_meta.artwork_url, transport=ctx.http_transport)
+    if data is None:
+        ctx.warn("source_cover_failed", f"Не удалось скачать обложку с {imports.title(job)}")
+    return data
+
+
 def stage_artwork(ctx: JobContext) -> dict[str, Any]:
     data = ctx.cover_bytes() or embedded_cover(ctx.source)
     release_id = ctx.state[UploadStage.CATALOG]["release_id"]
     has_cover = False
+    from_catalogue = False
     if data is None:
         with ctx.sessions() as session:
             release = session.get(Release, uuid.UUID(release_id))
             has_cover = bool(release and release.cover_key)
-        if not has_cover and enrich.enabled(ctx):
+        if not has_cover:
+            data = _catalogue_cover(ctx)
+            from_catalogue = data is not None
+        if data is None and not has_cover and enrich.enabled(ctx):
             data = enrich.cover(ctx)
             if data:
                 ctx.warn("cover_found", "Обложка найдена в открытых базах (MusicBrainz / Deezer)")
@@ -232,7 +338,13 @@ def stage_artwork(ctx: JobContext) -> dict[str, Any]:
         if not has_cover:
             ctx.warn("no_cover", "Нет обложки (ни встроенной, ни загруженной) — релиз останется без картинки")
         return {"cover_key": None}
-    result = artwork.process(data, ctx.workdir / "cover")
+    try:
+        result = artwork.process(data, ctx.workdir / "cover")
+    except MediaError:
+        if not from_catalogue:
+            raise
+        ctx.warn("source_cover_failed", "Обложка из источника не читается — релиз останется без картинки")
+        return {"cover_key": None}
     if result.source_size < artwork.MIN_RECOMMENDED:
         ctx.warn(
             "small_cover",
@@ -295,6 +407,7 @@ def stage_publish(ctx: JobContext) -> dict[str, Any]:
 
 
 STAGES: dict[UploadStage, Callable[[JobContext], dict[str, Any]]] = {
+    UploadStage.FETCH: stage_fetch,
     UploadStage.PROBE: stage_probe,
     UploadStage.AUTHENTICITY: stage_authenticity,
     UploadStage.TAGS: stage_tags,
@@ -326,11 +439,17 @@ def _append_logs(job: UploadJob, *entries: dict[str, Any]) -> None:
 
 class Pipeline:
     def __init__(
-        self, settings: WorkerSettings, storage: MediaStorage, sessions: sessionmaker[Session]
+        self,
+        settings: WorkerSettings,
+        storage: MediaStorage,
+        sessions: sessionmaker[Session],
+        *,
+        http_transport: httpx.BaseTransport | None = None,
     ) -> None:
         self.settings = settings
         self.storage = storage
         self.sessions = sessions
+        self.http_transport = http_transport
 
     @classmethod
     def from_settings(cls, settings: WorkerSettings, storage: MediaStorage) -> Pipeline:
@@ -365,6 +484,7 @@ class Pipeline:
                 options=options,
                 state=state,
                 workdir=Path(tmp),
+                http_transport=self.http_transport,
             )
             return self._run_stages(ctx)
 

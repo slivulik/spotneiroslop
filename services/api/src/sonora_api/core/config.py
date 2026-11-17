@@ -60,6 +60,12 @@ class Settings(BaseSettings):
     smtp_password: SecretStr = SecretStr("")
     smtp_starttls: bool = True
 
+    #: Search and import from open catalogues (admin → «Открытые источники»). Only Creative Commons
+    #: and public-domain recordings are ever listed or imported.
+    sources_enabled: bool = True
+    #: Jamendo API client id — free at https://devportal.jamendo.com. Empty: Jamendo is disabled.
+    jamendo_client_id: str = ""
+
     rate_limit_enabled: bool = True
     #: Default budget per user (or per IP for anonymous requests).
     rate_limit_default_per_minute: int = 600

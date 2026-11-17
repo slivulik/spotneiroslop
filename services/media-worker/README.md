@@ -2,7 +2,7 @@
 
 Dramatiq worker that turns uploaded FLAC/MP3 files into streamable catalogue entries.
 Consumes queue `media`, actor `process_upload(job_id)` (enqueued by the API on
-`POST /v1/admin/uploads/{id}/complete` and on retry).
+`POST /v1/admin/uploads/{id}/complete`, on `POST /v1/admin/sources/{key}/import` and on retry).
 
 ## Pipeline
 
@@ -11,15 +11,16 @@ from its failed stage (or any earlier one) via `POST /v1/admin/jobs/{id}/retry`.
 
 | Stage | What it does |
 |---|---|
+| fetch | imports only: download the source from Jamendo / Internet Archive (HTTPS, allow-listed hosts and redirects, ≤ `SONORA_IMPORT_MAX_BYTES`, must really be FLAC/MP3) into `sonora-uploads/jobs/<job>/source.*`; MP3 fallback link if FLAC is missing; uploads skip it |
 | probe | ffprobe; full decode; FLAC: decoded PCM must match the STREAMINFO MD5 |
 | authenticity | spectral cliff detection → warning "suspected lossy source" (never a rejection) |
-| tags | Vorbis/ID3 → title/version, main/featured artists, album, positions, ISRC/UPC, LRC/USLT/SYLT |
+| tags | Vorbis/ID3 → title/version, main/featured artists, album, positions, ISRC/UPC, LRC/USLT/SYLT; imports fill missing tags from the catalogue's description |
 | fingerprint | SHA-256 + Chromaprint; duplicates rejected unless `allow_duplicate` |
 | loudness | EBU R128 (integrated, LRA, true peak) → track gain to −14 LUFS, capped at −1 dBTP |
-| catalog | artists / release / track rows (track stays `processing`) |
+| catalog | artists / release / track rows (track stays `processing`); imports also get licence, origin and attribution |
 | transcode | quality ladder (never upscales), whole files + HLS fMP4, gapless edit lists, ABR master |
 | waveform | 800 peaks |
-| artwork | 64…3000 px × AVIF/WebP/JPEG, blurhash, palette with WCAG-AA text colour |
+| artwork | 64…3000 px × AVIF/WebP/JPEG, blurhash, palette with WCAG-AA text colour; imports without a cover use the catalogue's |
 | preview | 30 s from the most energetic window, fades |
 | lyrics | provisional v1 document (line-synced or static) |
 | publish | track files, features, lyrics, album gain, release aggregates; `ready`; publish if asked |

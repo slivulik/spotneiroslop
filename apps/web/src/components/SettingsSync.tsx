@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { api } from "@/lib/api";
+import { loadWaveSettings } from "@/lib/recommend";
 import { useSession } from "@/lib/session";
 import { type Settings, useSettings } from "@/lib/settings";
 import { player } from "@/player/controller";
@@ -52,6 +53,8 @@ export function SettingsSync() {
       return;
     }
     let cancelled = false;
+    // The wave's tuning follows the latest session on any device (unless changed here and unsent).
+    void loadWaveSettings();
     const body = () => {
       const p = usePlayer.getState();
       return toServer(useSettings.getState(), p.quality, p.normalization) as never;

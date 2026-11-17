@@ -83,6 +83,7 @@ private val EQ_PRESETS = listOf(
 /** Everything the settings page can change; implemented by the app, faked in tests. */
 interface SettingsCommands {
     fun theme(mode: ThemeMode)
+    fun motion(mode: String)
     fun quality(wifi: String? = null, cellular: String? = null)
     fun normalization(mode: String)
     fun equalizer(enabled: Boolean, preamp: Float, bands: List<Float>)
@@ -99,6 +100,7 @@ fun SettingsScreen(app: AppViewModel, navigate: (String) -> Unit) {
     val commands = remember(app) {
         object : SettingsCommands {
             override fun theme(mode: ThemeMode) { app.settings.setTheme(mode) }
+            override fun motion(mode: String) { app.settings.setMotion(mode) }
             override fun quality(wifi: String?, cellular: String?) { app.settings.setQuality(wifi, cellular) }
             override fun normalization(mode: String) { app.settings.setNormalization(mode) }
             override fun equalizer(enabled: Boolean, preamp: Float, bands: List<Float>) { app.settings.setEqualizer(enabled, preamp, bands) }
@@ -134,6 +136,9 @@ fun SettingsContent(s: AppSettings, commands: SettingsCommands) {
 
         Group("Оформление") {
             Options(listOf(ThemeMode.Dark to "Тёмная", ThemeMode.Light to "Светлая", ThemeMode.System to "Как в системе"), s.theme, commands::theme)
+        }
+        Group("Анимации", "Живая «Моя волна» на главной и плавные переходы.") {
+            Options(listOf("system" to "Как в системе", "full" to "Включены", "reduced" to "Минимум"), s.motion, commands::motion)
         }
         Group("Качество по Wi-Fi") { Options(QUALITIES, s.qualityWifi) { commands.quality(wifi = it) } }
         Group("Качество в мобильной сети", "Сервер не отдаст больше, чем есть у трека.") { Options(QUALITIES, s.qualityCellular) { commands.quality(cellular = it) } }

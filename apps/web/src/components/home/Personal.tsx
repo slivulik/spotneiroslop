@@ -11,35 +11,10 @@ import { PauseIcon, PlayIcon } from "@/components/icons";
 import { useCurrentTrack, useIsPlaying } from "@/components/player/hooks";
 import { useMyPlaylists } from "@/lib/library";
 import { playTracks } from "@/lib/play";
-import { playWave, useMixes, useRecent, useTopArtists } from "@/lib/recommend";
+import { useMixes, useRecent, useTopArtists } from "@/lib/recommend";
 import { player } from "@/player/controller";
-import { usePlayer } from "@/player/store";
 
 type Mix = components["schemas"]["MixSummary"];
-
-/** The front door of personal listening: one calm row, one action. */
-export function WaveCard() {
-  const isWave = usePlayer((s) => s.context?.type === "wave");
-  const playing = useIsPlaying();
-  const active = isWave && playing;
-  return (
-    <button
-      type="button"
-      onClick={() => (isWave ? player.toggle() : void playWave())}
-      aria-label={isWave && playing ? "Моя волна — пауза" : "Моя волна — слушать"}
-      className="group relative flex h-[132px] w-full items-center justify-between overflow-hidden rounded-[20px] px-7 text-left text-white md:h-[150px] md:px-9"
-      style={{ background: "linear-gradient(110deg, var(--sonora-color-accent-default), #3b2a9a 60%, #1b1340)" }}
-    >
-      <span className="min-w-0">
-        <span className="block text-[26px] font-bold leading-tight tracking-[-0.02em] md:text-[30px]">Моя волна</span>
-        <span className="mt-1.5 block text-body text-white/75">{isWave ? (playing ? "Играет — подбирается под вас" : "На паузе") : "Бесконечный поток под ваш вкус"}</span>
-      </span>
-      <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-white text-[#1b1238] shadow-[0_10px_30px_-10px_rgba(0,0,0,.6)] transition-transform duration-200 group-hover:scale-105">
-        {active ? <PauseIcon size={22} /> : <PlayIcon size={22} style={{ marginLeft: 3 }} />}
-      </span>
-    </button>
-  );
-}
 
 /** Recently played as a quick grid (resume in one tap): 2 columns on phones, 3 on desktop. */
 export function ContinueListening() {

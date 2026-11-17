@@ -6,6 +6,7 @@ import { type FormEvent, useState } from "react";
 import { WaveLogo } from "@/components/icons";
 import { Oscilloscope } from "@/components/visual/Sonic";
 import { login, register, SessionError } from "@/lib/session";
+import { safeNext } from "@/lib/safe-next";
 
 const MESSAGES: Record<string, string> = {
   invalid_credentials: "Неверный e-mail или пароль",
@@ -14,14 +15,9 @@ const MESSAGES: Record<string, string> = {
   validation_error: "Проверьте поля: пароль — от 8 символов",
 };
 
-function safeNext(value: string | null): string {
-  // Only same-site paths: never redirect to another origin after sign-in.
-  return value && value.startsWith("/") && !value.startsWith("//") ? value : "/";
-}
-
 export function AuthForm({ mode }: { mode: "login" | "register" }) {
   const router = useRouter();
-  const next = safeNext(useSearchParams().get("next"));
+  const next = safeNext(useSearchParams().get("next"), typeof window === "undefined" ? "http://localhost" : window.location.origin);
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
 

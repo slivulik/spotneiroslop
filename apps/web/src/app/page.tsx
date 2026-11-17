@@ -4,7 +4,8 @@ import type { components } from "@sonora/api-schema";
 import { useSyncExternalStore } from "react";
 import { HeroCarousel, HomeBlockView } from "@/components/home/Blocks";
 import { PageError } from "@/components/Page";
-import { ContinueListening, FavoriteArtists, MixesShelf, WaveCard, YourPlaylists } from "@/components/home/Personal";
+import { ContinueListening, FavoriteArtists, MixesShelf, YourPlaylists } from "@/components/home/Personal";
+import { WaveHero } from "@/components/home/WaveHero";
 import { useHome } from "@/lib/queries";
 import { useSession } from "@/lib/session";
 
@@ -60,19 +61,24 @@ export default function HomePage() {
   const home = useHome();
   const sections = home.data?.sections ?? [];
   const arranged = arrange(sections);
-  const hasHero = sections.some((s) => s.type === "hero");
 
+  const greetingClass = "text-[30px] font-bold leading-[1.08] tracking-[-0.03em] md:text-[38px]";
   return (
     <div className="mx-auto flex max-w-[1680px] flex-col gap-10 px-4 pt-2 md:px-10">
+      {authed ? <WaveHero /> : null}
       <header className="flex flex-col gap-6">
-        <h1 className="text-[34px] font-bold leading-[1.08] tracking-[-0.03em] md:text-[44px]">
-          {hello}
-          {status === "authenticated" && user ? <span className="text-text-secondary">, {user.display_name}</span> : null}
-        </h1>
+        {/* Signed in, «Моя волна» above is the page heading and the greeting heads "continue listening". */}
+        {authed ? (
+          <h2 className={greetingClass}>
+            {hello}
+            {user ? <span className="text-text-secondary">, {user.display_name}</span> : null}
+          </h2>
+        ) : (
+          <h1 className={greetingClass}>{hello}</h1>
+        )}
         {authed ? <ContinueListening /> : null}
       </header>
 
-      {authed ? <WaveCard /> : null}
       {home.isPending ? <HomeSkeleton /> : null}
       {home.isError ? <PageError message="Не удалось загрузить главную" /> : null}
       {authed ? <MixesShelf index={0} /> : null}

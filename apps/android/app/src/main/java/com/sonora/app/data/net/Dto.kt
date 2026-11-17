@@ -54,10 +54,21 @@ data class Track(
     @SerialName("has_lyrics") val hasLyrics: Boolean = false,
     @SerialName("lyrics_type") val lyricsType: String? = null,
     val playable: Boolean = true,
+    /** Open licence of an imported track (Jamendo, Internet Archive); null for the owner's own uploads. */
+    val license: TrackLicense? = null,
 ) {
     val artistLine: String get() = artists.joinToString(", ") { it.name }
     val fullTitle: String get() = if (version.isNullOrBlank()) title else "$title ($version)"
 }
+
+@Serializable
+data class TrackLicense(
+    val code: String,
+    val url: String? = null,
+    val source: String? = null,
+    @SerialName("source_url") val sourceUrl: String? = null,
+    val attribution: String? = null,
+)
 
 @Serializable
 data class ReleaseSummary(
@@ -206,6 +217,37 @@ data class MixSummary(
 
 @Serializable
 data class Mix(val key: String, val title: String, val subtitle: String? = null, val tracks: List<Track> = emptyList())
+
+/**
+ * «Моя волна» 2.0 filters; null means «Любое».
+ * character: favorite | discover | popular; mood: energetic | happy | calm | sad;
+ * language: russian | foreign | instrumental.
+ */
+@Serializable
+data class WaveSettings(val character: String? = null, val mood: String? = null, val language: String? = null)
+
+@Serializable
+data class WaveStartIn(
+    val settings: WaveSettings = WaveSettings(),
+    @SerialName("seed_track") val seedTrack: String? = null,
+    @SerialName("seed_artist") val seedArtist: String? = null,
+    val limit: Int = 20,
+)
+
+@Serializable
+data class WaveSessionOut(
+    @SerialName("session_id") val sessionId: String,
+    val settings: WaveSettings = WaveSettings(),
+    val tracks: List<Track> = emptyList(),
+)
+
+/** action: started | finished | skipped | liked | disliked. */
+@Serializable
+data class WaveFeedbackIn(
+    @SerialName("track_id") val trackId: String,
+    val action: String,
+    @SerialName("played_ms") val playedMs: Long? = null,
+)
 
 @Serializable
 data class LyricsLine(@SerialName("start_ms") val startMs: Long, @SerialName("end_ms") val endMs: Long, val text: String)

@@ -37,7 +37,12 @@ interface SonoraApi {
     @GET("v1/tracks/{id}/stream") fun streamBlocking(@Path("id") id: String, @Query("quality") quality: String?): retrofit2.Call<Stream>
 
     // personal
+    /** Stateless wave of servers without Wave 2.0 sessions (fallback only). */
     @GET("v1/me/wave") suspend fun wave(@Query("limit") limit: Int = 25, @Query("exclude") exclude: List<String> = emptyList()): List<Track>
+    @POST("v1/me/wave/sessions") suspend fun startWaveSession(@Body body: WaveStartIn): WaveSessionOut
+    @GET("v1/me/wave/sessions/{session_id}/next") suspend fun waveNext(@Path("session_id") sessionId: String, @Query("limit") limit: Int = 10): List<Track>
+    @POST("v1/me/wave/sessions/{session_id}/feedback") suspend fun waveFeedback(@Path("session_id") sessionId: String, @Body body: WaveFeedbackIn): Response<Unit>
+    @GET("v1/me/wave/settings") suspend fun waveSettings(): WaveSettings
     @GET("v1/me/mixes") suspend fun mixes(): List<MixSummary>
     @GET("v1/me/top-artists") suspend fun topArtists(): List<ArtistSummary>
     @GET("v1/me/mixes/{key}") suspend fun mix(@Path("key") key: String): Mix

@@ -3,6 +3,7 @@
 import type { components } from "@sonora/api-schema";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, unwrap } from "@/lib/api";
+import { reportWaveLike } from "@/lib/recommend";
 import { useSession } from "@/lib/session";
 
 type S = components["schemas"];
@@ -34,6 +35,8 @@ export function useToggleSaved() {
       const params = { params: { path: { kind, target_id: id } } };
       if (saved) await unwrap(api.PUT("/v1/me/library/{kind}/{target_id}", params));
       else await unwrap(api.DELETE("/v1/me/library/{kind}/{target_id}", params));
+      // Liking a track of the playing wave also tunes the wave.
+      if (saved && kind === "tracks") reportWaveLike(id);
     },
     onMutate: async ({ kind, id, saved }) => {
       await client.cancelQueries({ queryKey: IDS });

@@ -22,6 +22,7 @@ from sonora_api.routers import (
     admin,
     admin_catalog,
     admin_content,
+    admin_sources,
     admin_users,
     auth,
     catalog,
@@ -104,7 +105,7 @@ def create_app(
     routers = (
         auth.router, me.router, catalog.router, public.router, library.router, recommend.router,
         stream.router,
-        admin.router, admin_content.router, admin_catalog.router, admin_users.router,
+        admin.router, admin_content.router, admin_catalog.router, admin_users.router, admin_sources.router,
     )  # fmt: skip
     for router in routers:
         app.include_router(router, dependencies=[Depends(default_rate_limit)])

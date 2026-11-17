@@ -2,6 +2,7 @@ import "server-only";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import type { components } from "@sonora/api-schema";
+import { pluralTracks } from "@/lib/format";
 
 type S = components["schemas"];
 const API = process.env.SONORA_API_INTERNAL_URL ?? "http://localhost:8000";
@@ -77,7 +78,7 @@ export async function shareCard(kind: string, id: string): Promise<ShareCard | n
   }
   if (kind === "playlist") {
     const p = await apiGet<S["PlaylistOut"]>(`/v1/playlists/${id}`);
-    return p && { kicker: p.type === "editorial" ? "Подборка" : "Плейлист", title: p.title, subtitle: `${p.owner_name ?? "Sonora"} · ${p.track_count} треков`, artwork: p.artwork ?? p.mosaic[0] };
+    return p && { kicker: p.type === "editorial" ? "Подборка" : "Плейлист", title: p.title, subtitle: `${p.owner_name ?? "Sonora"} · ${pluralTracks(p.track_count)}`, artwork: p.artwork ?? p.mosaic[0] };
   }
   if (kind === "track") {
     const t = await apiGet<S["TrackOut"]>(`/v1/tracks/${id}`);

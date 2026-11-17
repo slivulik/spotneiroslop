@@ -266,3 +266,10 @@ export const MoonIcon = (p: IconProps) => (
     <path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z" />
   </Stroke>
 );
+/** «Не нравится»: a struck-through circle — "don't offer this again". */
+export const DislikeIcon = (p: IconProps) => (
+  <Stroke {...p}>
+    <circle cx="12" cy="12" r="8.5" />
+    <path d="M6 6l12 12" />
+  </Stroke>
+);

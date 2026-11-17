@@ -236,22 +236,64 @@
   outline-offset: 2px;
 }
 
-/* ---- Lyrics (Apple Music-like): only opacity/transform change between states ------------ */
-.lyric-line { color: #fff; opacity: .3; transform: scale(.985); transition: opacity 420ms cubic-bezier(.2,0,0,1), transform 520ms cubic-bezier(.2,0,0,1); }
+/* ---- Karaoke lyrics: only opacity/transform change between states; the fill is one variable on one line ---- */
+.lyric-line {
+  --lyric-ink: var(--sonora-color-text-primary);
+  color: var(--lyric-ink);
+  opacity: .5;
+  transform: scale(.93);
+  transform-origin: left center;
+  transition: opacity 420ms cubic-bezier(.2,0,0,1), transform 520ms cubic-bezier(.2,0,0,1);
+}
+.lyric-line.is-past { opacity: .3; }
+.lyric-line.is-next { opacity: .55; }
+.lyric-line.is-far { opacity: .32; }
 .lyric-line.is-now { opacity: 1; transform: none; }
-.lyric-line.is-next { opacity: .42; }
-.lyric-line.is-far { opacity: .22; filter: blur(1.2px); }
-.lyric-line.is-past { opacity: .26; }
-@media (hover: hover) { .lyric-line:hover { opacity: .75; filter: none; } }
-.lyric-line:active { transform: scale(.975); }
+@media (hover: hover) { .lyric-line:not(.is-now):hover { opacity: .8; } }
+/* The sung part lights up left to right; as an inline box the gradient runs across wrapped lines in reading order. */
+.lyric-line .karaoke { -webkit-box-decoration-break: slice; box-decoration-break: slice; }
+.lyric-line.is-now .karaoke {
+  color: transparent;
+  background-image: linear-gradient(90deg, var(--lyric-ink) calc(var(--kp, -4%) - 4%), color-mix(in srgb, var(--lyric-ink) 38%, transparent) calc(var(--kp, -4%) + 4%));
+  -webkit-background-clip: text;
+  background-clip: text;
+}
 .lyric-dots { display: flex; gap: .5em; padding-left: .1em; }
-.lyric-dots i { width: .5em; height: .5em; font-size: clamp(14px, 1.6vw, 22px); border-radius: 9999px; background: #fff; animation: lyric-breathe 1.4s ease-in-out infinite; }
+.lyric-dots i { width: .5em; height: .5em; font-size: clamp(14px, 1.6vw, 22px); border-radius: 9999px; background: var(--sonora-color-text-primary); animation: lyric-breathe 1.4s ease-in-out infinite; }
 .lyric-dots i:nth-child(2) { animation-delay: .2s; } .lyric-dots i:nth-child(3) { animation-delay: .4s; }
 @keyframes lyric-breathe { 0%, 100% { opacity: .25; transform: scale(.8); } 50% { opacity: 1; transform: scale(1); } }
 
 /* ---- Now playing backdrop: the cover, blown up and blurred once, drifting on the compositor ---- */
 .np-backdrop { position: absolute; inset: -25%; filter: blur(70px) saturate(1.6); opacity: .85; animation: np-drift 30s ease-in-out infinite alternate; will-change: transform; }
 @keyframes np-drift { from { transform: translate3d(-3%, -2%, 0) scale(1.1) rotate(0deg); } to { transform: translate3d(3%, 2%, 0) scale(1.2) rotate(6deg); } }
+/* Full-screen player: dark ink in every theme (the token colours are set inline from the dark palette). */
+@property --np-a { syntax: "<color>"; inherits: true; initial-value: #5b3fd6; }
+@property --np-b { syntax: "<color>"; inherits: true; initial-value: #2a2f8f; }
+.np-ink {
+  color-scheme: dark;
+  --glass-fill: var(--sonora-color-glass-thin);
+  --glass-fill-strong: var(--sonora-color-glass-regular);
+  --glass-stroke: var(--sonora-color-border-default);
+  --glass-highlight: rgba(255, 255, 255, 0.14);
+  --glass-sheen: rgba(255, 255, 255, 0.06);
+  transition: --np-a 1.2s ease, --np-b 1.2s ease;
+}
+/* Two glows in the cover's palette over the blurred cover; they cross-fade from track to track. */
+.np-glow {
+  background:
+    radial-gradient(55% 45% at 30% 32%, color-mix(in srgb, var(--np-a) 55%, transparent), transparent 70%),
+    radial-gradient(65% 55% at 78% 94%, color-mix(in srgb, var(--np-b) 50%, transparent), transparent 72%);
+}
+/* Artwork depth: a long soft shadow plus a glow in the cover's own colour. */
+.np-cover { box-shadow: 0 60px 120px -40px rgba(0, 0, 0, 0.85), 0 40px 100px -46px var(--np-a); }
+
+/* ---- «Моя волна» hero: the ring field fades out towards every edge of its band ---------- */
+.wave-field {
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 14%, #000 78%, transparent), linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+  -webkit-mask-composite: source-in;
+  mask-image: linear-gradient(180deg, transparent, #000 14%, #000 78%, transparent), linear-gradient(90deg, transparent, #000 7%, #000 93%, transparent);
+  mask-composite: intersect;
+}
 
 @keyframes track-flash { 0%, 40% { background: var(--sonora-color-accent-muted); } 100% { background: transparent; } }
 .track-flash { animation: track-flash 2.4s ease-out; }
@@ -296,5 +338,5 @@
   .ripple-ring, .beat-ring { display: none; }
   .resonance .spin, .spectrum-bar { animation: none !important; }
   .wave-rule { clip-path: none; transition: none; }
-  .eq-bar, .marquee, .live-bg .field { animation: none !important; }
+  .eq-bar, .marquee, .live-bg .field, .np-backdrop, .lyric-dots i { animation: none !important; }
 }

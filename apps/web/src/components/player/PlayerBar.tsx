@@ -9,6 +9,7 @@ import { ExpandIcon, InfoIcon, LyricsIcon, NextIcon, QueueIcon } from "@/compone
 import { LikeButton } from "@/components/LikeButton";
 import { dockButton, PlayPauseButton, ProgressBar, QualitySelect, SleepTimer, TransportControls, VolumeControl } from "@/components/player/Controls";
 import { useCurrentTrack } from "@/components/player/hooks";
+import { DislikeButton } from "@/components/wave/WaveActions";
 import { player } from "@/player/controller";
 import { usePlayer } from "@/player/store";
 
@@ -127,6 +128,7 @@ export function PlayerBar() {
           </button>
           <TrackTitle />
           <LikeButton kind="tracks" id={track.id} size={18} className="h-9 w-9 shrink-0 hover:bg-fg/8" />
+          <DislikeButton size={18} className="h-9 w-9 hover:bg-fg/8" />
         </div>
         <div className="flex flex-col items-center gap-0.5">
           <TransportControls />
