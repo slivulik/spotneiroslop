@@ -76,3 +76,18 @@ Status: **in progress**.
 - **Expected:** 422.
 - **Fix:** `Query(ge=0, le=1_000_000)` (one shared `Offset` alias).
 
+### LY-1 [important] Lyrics of an unpublished (draft / scheduled) release are served to any logged-in user
+- **Where:** `services/api/src/sonora_api/routers/public.py:84` — the lookup is `Track.status == READY` only; every other track route uses `catalog.track_visible(now)` (release published and `publish_at` reached).
+- **Repro:** admin: `PATCH /v1/admin/releases/{rid} {"status":"draft"}` (release «Северное сияние»). Ordinary user:
+  `GET /v1/tracks/{tid}` → `404 Track not found`; `GET /v1/tracks/{tid}/stream` → `404`; `GET /v1/tracks/{tid}/lyrics` → **`200 {"type":"line","lines":[{"start_ms":2000,"end_ms":6500,"text":"Над городом гаснет свет"},…]}`**.
+- **Also:** for a hidden-release track *without* lyrics the same request triggers the new on-demand LRCLIB lookup, i.e. artist + title of an unreleased track are sent to a third party on a listener's request.
+- **Expected:** 404, same as the track itself.
+- **Fix:** `select(Track).join(Track.release).where(Track.id == track_id, catalog.track_visible(now))` in `get_lyrics` (admins have their own `/v1/admin/tracks/{id}`).
+
+### LY-2 [minor] On-demand lyrics: what was verified, what was not
+- Verified live (LRCLIB reachable from the stack): first request for a track without lyrics → `204` in 0.69 s, `lyrics:miss:{track}` written with TTL 604800 s; second request `204` in < 10 ms and no outbound call; 6 parallel first requests → one lookup (0.69 s), five immediate `204`; with `PATCH /v1/admin/platform {"metadata_lookup":false}` → `204` at once and no miss key written. All correct.
+- Contract drift: BRIEF says a miss «answers with the existing not-found error»; the endpoint answers `204` with an empty body (documented in OpenAPI as 204). Clients handle 204, so only the brief is wrong — fix the brief or the code, not both.
+- The miss key is per track id and is not dropped when an admin edits the title/artists (`PATCH /v1/admin/tracks/{id}`), so a corrected typo still waits 7 days for a new lookup. Suggested: `redis.delete(miss_key(id))` in the admin track patch.
+- The lookup runs inside the listener's request with `httpx.Timeout(8.0, connect=5.0)` and two sequential LRCLIB calls (`enrich/lrclib.py:60,63`): a slow LRCLIB can hold the lyrics request for ~16–26 s. **Not verified** (cannot slow LRCLIB down from here). Suggested: overall deadline of ~3 s via `asyncio.wait_for`, answer 204 and finish in the background.
+- **Not verified:** a positive hit against live LRCLIB (the seed catalogue is synthetic; durations cannot be edited to match a real song). Covered only by the mocked unit tests.
+

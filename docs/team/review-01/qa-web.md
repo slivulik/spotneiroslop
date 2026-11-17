@@ -34,3 +34,10 @@ Status: IN PROGRESS — findings are appended as they are confirmed; "Not covere
 - **Should:** only same-origin paths; anything else → `/`.
 - **Evidence:** `screenshots/r01/qa-web/auth-open-redirect-evil-landing.png`; `next=//evil.example` and `next=https://evil.example` are correctly rejected, the two variants above are not.
 - **Suggested fix:** resolve instead of pattern-matching: `const u = new URL(value, location.origin); return u.origin === location.origin ? u.pathname + u.search + u.hash : "/"` (and reject values containing `\` or control characters). Add unit tests for `/\host`, `/\t/host`, `/%5Chost`.
+
+### F-03 [minor] «1 треков» — hard-coded plural in six places although `pluralTracks()` exists
+- **Where:** `apps/web/src/components/home/Blocks.tsx:285` (home «Ваши плейлисты»), `apps/web/src/app/admin/artists/page.tsx:55,81` («N релизов / N треков / N прослушиваний»), `apps/web/src/app/admin/genres/page.tsx:63`, `apps/web/src/app/admin/playlists/page.tsx:75`, `apps/web/src/lib/og.ts:80` (share card subtitle).
+- **Steps:** sign in as admin → home → «Ваши плейлисты»: every card reads «1 треков». Same on `/admin/playlists`, `/admin/genres`, `/admin/artists`.
+- **Should:** «1 трек», «2 трека», «5 треков» (`lib/format.ts:27 pluralTracks`); same for «релизов», «прослушиваний».
+- **Evidence:** `screenshots/r01/qa-web/in-home-d-dark.png` (bottom row), `in-admin-playlists-d-dark.png`.
+- **Suggested fix:** use `pluralTracks(n)` everywhere; add `pluralReleases` / `pluralPlays` next to it.

@@ -31,7 +31,7 @@ async def list_users(
     q: str | None = None,
     role: UserRole | None = None,
     blocked: bool | None = None,
-    offset: Annotated[int, Query(ge=0)] = 0,
+    offset: Annotated[int, Query(ge=0, le=10_000_000)] = 0,
     limit: Annotated[int, Query(ge=1, le=200)] = 50,
 ) -> AdminPage[AdminUserRow]:
     items, total = await admin_users.list_users(

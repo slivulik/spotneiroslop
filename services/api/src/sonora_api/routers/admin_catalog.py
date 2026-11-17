@@ -33,7 +33,7 @@ from sonora_api.services import lookup as metadata
 
 router = APIRouter(prefix=f"{API_V1}/admin", tags=["admin"], responses=ERROR_RESPONSES)
 log = get_logger("sonora.admin")
-Offset = Annotated[int, Query(ge=0)]
+Offset = Annotated[int, Query(ge=0, le=10_000_000)]
 Limit = Annotated[int, Query(ge=1, le=200)]
 
 

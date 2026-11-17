@@ -52,7 +52,7 @@ async def get_liked_tracks(
     viewer: CurrentViewer,
     session: Session,
     ctx: Ctx,
-    offset: Annotated[int, Query(ge=0)] = 0,
+    offset: Annotated[int, Query(ge=0, le=10_000_000)] = 0,
     limit: Annotated[int, Query(ge=1, le=200)] = 100,
 ) -> AdminPage[TrackOut]:
     return await library.liked_tracks(session, ctx.settings, viewer.user, offset, limit)

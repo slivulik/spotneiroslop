@@ -1,8 +1,8 @@
 import uuid
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import Literal
 
-from pydantic import Field
+from pydantic import Field, field_validator
 
 from sonora_api.schemas.common import ApiModel
 
@@ -15,6 +15,14 @@ class PlayEvent(ApiModel):
     at: datetime | None = None
     context_type: Literal["release", "artist", "playlist", "tracks", "home", "genre"] | None = None
     context_id: uuid.UUID | None = None
+
+    @field_validator("at")
+    @classmethod
+    def _aware(cls, value: datetime | None) -> datetime | None:
+        """A timestamp without a zone is taken as UTC (it used to crash the comparison with now)."""
+        if value is not None and value.tzinfo is None:
+            return value.replace(tzinfo=UTC)
+        return value
 
 
 class EventsIn(ApiModel):

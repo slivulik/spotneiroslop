@@ -27,7 +27,7 @@ from typing import Any
 
 from pydantic import ValidationError
 from redis.asyncio import Redis
-from sqlalchemy import ColumnElement, Text, cast, delete, func, not_, or_, select
+from sqlalchemy import ColumnElement, Text, cast, func, not_, or_, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import InstrumentedAttribute
@@ -67,9 +67,6 @@ from sonora_api.services import recommend as rec
 STATE_TTL = timedelta(hours=12)
 #: Longest served list kept per session (~5 days of non-stop listening).
 SERVED_CAP = 2000
-#: Once nothing new is left, tracks served in the last N may not come back yet. Tiny catalogues
-#: shrink the window step by step instead of answering with an empty batch.
-REPEAT_WINDOWS = (30, 10, 1, 0)
 #: Look beyond the usual candidates when fewer than `limit × WIDEN_FACTOR` are left.
 WIDEN_FACTOR = 3
 WIDEN_POOL = 300
@@ -213,10 +210,7 @@ async def feedback(
         raise NotFoundError("Track not found")
     deltas: dict[str, float] = {}
     if body.action == "liked":
-        # A like overrides an earlier «не нравится» of the same track.
-        await session.execute(
-            delete(Dislike).where(Dislike.user_id == user.id, Dislike.track_id == body.track_id)
-        )
+        # A like also takes back an earlier «не нравится» of the same track (inside set_saved).
         await library.set_saved(session, user, "tracks", body.track_id, saved=True)
         deltas[_liked_key(body.track_id)] = 1.0  # co-listening seed for the rest of the session
     elif body.action == "disliked":
@@ -230,6 +224,8 @@ async def feedback(
                 set_={"until": None},
             )
         )
+        # ... and a dislike takes the track out of «Любимое»: it cannot be both.
+        await library.set_saved(session, user, "tracks", body.track_id, saved=False)
     # A skip without a position counts as early: nothing says the listener gave the track a chance.
     early_skip = body.action == "skipped" and (body.played_ms is None or body.played_ms < EARLY_SKIP_MS)
     if body.action in ("finished", "liked", "disliked") or early_skip:
@@ -484,11 +480,13 @@ async def _pick(
     never = set(hidden.tracks) | ({seed_track} if seed_track else set())
 
     cands = await _candidates(session, user, pool, never | set(served), hidden, limit)
-    for window in REPEAT_WINDOWS:  # nothing new left: let older tracks come back
-        if cands or not served:
-            break
-        recent = set(served[-window:]) if window else set()
-        cands = await _candidates(session, user, pool, never | recent, hidden, limit)
+    # Nothing new is left: older tracks come back, the one heard longest ago first. With N playable
+    # tracks a track therefore returns after the N − 1 others, whatever the size of the catalogue,
+    # and a batch is as full as the catalogue allows instead of shrinking to one or two tracks.
+    last_served = {track_id: position for position, track_id in enumerate(served)}
+    repeating = not cands and bool(served)
+    if repeating:
+        cands = await _candidates(session, user, pool, never, hidden, limit)
     if not cands:
         return []
 
@@ -501,6 +499,9 @@ async def _pick(
     ]
     for level in range(4):
         fitting = [j for j in judged if j.passes(level)]
+        if fitting and repeating:
+            fitting.sort(key=lambda j: last_served.get(j.cand.track.id, -1))
+            return [j.cand for j in fitting[:limit]]
         if fitting:
             fitting.sort(key=lambda j: -j.score)
             return rec._diversify([j.cand for j in fitting], limit)
